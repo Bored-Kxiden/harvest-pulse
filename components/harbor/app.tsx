@@ -34,7 +34,7 @@ export function HarborApp() {
    {page==='settings'&&<SettingsScreen navigate={navigate}/>}
    {!['home','inbox','harvest','garden','chat','dispatch','tide','settings'].includes(page)&&<div className="page-content"><p>This path is still growing.</p><button className="text-link" onClick={()=>navigate('home')}>Back home</button></div>}
   </>}</main>
-  <nav className="bottom-nav" aria-label="Main navigation">{[{id:'home',label:'Home',icon:House},{id:'harvest',label:'Harvest',icon:Sun},{id:'garden',label:'Garden',icon:Flower2}].map(({id,label,icon:Icon})=><a key={id} href={`#${id}`} className="nav-item" aria-current={page===id?'page':undefined}><span className="nav-icon"><Icon/></span><span>{label}</span></a>)}</nav>
+  <nav className="bottom-nav" aria-label="Main navigation">{[{id:'home',label:'Home',icon:House},{id:'harvest',label:'Harvest',icon:Sun},{id:'garden',label:'Garden',icon:Flower2}].map(({id,label,icon:Icon})=><a key={id} href={`#${id}`} className="nav-item" aria-current={page===id?'page':undefined}><span className="nav-icon"><Icon/><span className="sr-only">{label}</span></span></a>)}</nav>
   <Toaster theme="light" position="top-center"/>
  </div>
 }

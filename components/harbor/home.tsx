@@ -11,11 +11,14 @@ export function Home({navigate}:{navigate:(page:string)=>void}) {
  const {state}=useHarbor(); if(!state) return null
  const pending=state.dispatches.filter(d=>d.status==='delivered').length
  return <div className="entrance">
-  <section className="home-hero" aria-label="Welcome home">
-   <img className="hero-image" src="/images/meadow.png" alt="A hand-painted meadow of daisies, with a little home in the distance" fetchPriority="high"/>
-   <div className="hero-copy"><div className="eyebrow mb-2">A little closer, every day</div><h1 className="font-serif">Hey, {state.name}.<br/>There&apos;s a little love<br/>waiting for you.</h1><p>Your people. Your pace.</p></div>
-   <button className="hero-footer" onClick={()=>navigate('garden')}><Flower2/> Good things are growing <ChevronRight/></button><div className="wave" aria-hidden="true"/>
-  </section>
+  <div className="home-hero-frame">
+   <section className="home-hero" aria-label="Welcome home">
+    <img className="hero-image" src="/images/meadow.png" alt="A hand-painted meadow of daisies, with a little home in the distance" fetchPriority="high"/>
+    <span className="hero-chip" aria-hidden="true"><Avatar person="mom" small/></span>
+    <div className="hero-copy"><div className="eyebrow mb-2">A little closer, every day</div><h1 className="font-serif">Hey, {state.name}.<br/>There&apos;s a little love<br/>waiting for you.</h1><p>Your people. Your pace.</p></div>
+    <button className="hero-footer" onClick={()=>navigate('garden')}><Flower2/> Good things are growing <ChevronRight/></button>
+   </section>
+  </div>
   <div className="page-content"><div className="flow">
    <section className="flex flex-col gap-3" aria-labelledby="inbox-heading"><div className="section-heading"><h2 id="inbox-heading">Your people</h2><button className="text-link" onClick={()=>navigate('inbox')}>Inbox <ArrowRight/></button></div>
     <div className="chat-grid">{people.map(p=>{const messages=state.messages[p.id]??[];const last=messages.at(-1);return <button key={p.id} className="chat-tile" onClick={()=>navigate(`chat/${p.id}`)}><div className="flex items-center justify-between w-full"><Avatar person={p.id}/>{!state.read.includes(p.id)&&<span className="unread-dot" aria-label="Unread message"/>}</div><span className="chat-name">{p.name}<ChevronRight className="size-4 text-muted-foreground"/></span><span className="chat-preview">{last?.mine?'You: ':''}{last?.text??p.note}</span><span className="chat-time">{messages.length>1?'A moment shared':p.time}</span></button>})}</div>
