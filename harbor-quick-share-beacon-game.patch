@@ -1,0 +1,440 @@
+diff --git a/app/globals.css b/app/globals.css
+index c2a154b..9f16b39 100644
+--- a/app/globals.css
++++ b/app/globals.css
+@@ -157,6 +157,26 @@
+ .dispatch-rule { border-block:1px solid var(--border); padding-block:9px; display:flex; justify-content:space-between; font-size:14px; color:var(--muted-foreground); }
+ .transcript { height:350px; min-height:160px; }
+ .recap-number { font-family:var(--font-lora),sans-serif; font-size:30px; font-weight:700; }
++
++/* ---------- lighthouse beacon ---------- */
++.beacon-strip { display:flex; align-items:center; gap:14px; padding:16px 18px; }
++.beacon-orb { position:relative; width:34px; height:34px; border-radius:50%; flex-shrink:0; transition:background .8s ease, box-shadow .8s ease; }
++.beacon-orb-lg { width:52px; height:52px; }
++.beacon-orb[data-level='0'] { background:var(--secondary); box-shadow:0 0 0 6px color-mix(in srgb,var(--secondary) 55%,transparent); }
++.beacon-orb[data-level='1'] { background:var(--surface-green); box-shadow:0 0 0 6px color-mix(in srgb,var(--surface-green) 50%,transparent); }
++.beacon-orb[data-level='2'] { background:var(--surface-gold); box-shadow:0 0 0 7px color-mix(in srgb,var(--surface-gold) 45%,transparent); }
++.beacon-orb[data-level='3'] { background:var(--accent); box-shadow:0 0 0 8px color-mix(in srgb,var(--accent) 40%,transparent); }
++.beacon-orb[data-level='4'] { background:var(--surface-orange); box-shadow:0 0 0 9px color-mix(in srgb,var(--surface-orange) 40%,transparent); animation:beacon-pulse 2.6s ease-in-out infinite; }
++@keyframes beacon-pulse { 0%,100% { box-shadow:0 0 0 9px color-mix(in srgb,var(--surface-orange) 40%,transparent); } 50% { box-shadow:0 0 0 14px color-mix(in srgb,var(--surface-orange) 22%,transparent); } }
++
++/* ---------- quick share feed ---------- */
++.signal-scroller { display:flex; gap:12px; overflow-x:auto; padding:2px 28px 6px; margin-inline:-28px; scroll-snap-type:x proximity; }
++.signal-card { scroll-snap-align:start; flex:0 0 auto; width:148px; display:flex; flex-direction:column; gap:6px; background:var(--card); border-radius:20px; padding:14px; box-shadow:0 8px 20px -16px color-mix(in srgb,var(--foreground) 45%,transparent); }
++.signal-card img { width:100%; height:84px; object-fit:cover; border-radius:12px; }
++.signal-card-icon { display:flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:12px; background:var(--secondary); }
++.signal-card-icon svg { width:17px; height:17px; stroke-width:1.5; }
++.signal-add { scroll-snap-align:start; flex:0 0 auto; width:76px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; border-radius:20px; border:1.5px dashed var(--border); color:var(--muted-foreground); }
++
+ .entrance { animation:enter .45s ease both; }
+ @keyframes enter { from { opacity:0; transform:translateY(7px); } to { opacity:1; transform:translateY(0); } }
+ @media(min-width:640px) { body { background:var(--muted); } .app-shell { border-inline:1px solid var(--border); } }
+diff --git a/components/harbor/app.tsx b/components/harbor/app.tsx
+index 2f1f27f..56f21fa 100644
+--- a/components/harbor/app.tsx
++++ b/components/harbor/app.tsx
+@@ -10,6 +10,8 @@ import { Conversation } from './conversation'
+ import { DispatchScreen } from './dispatch'
+ import { SettingsScreen } from './settings'
+ import { SlackTide } from './slack-tide'
++import { QuickShare } from './signals'
++import { DailyGame } from './game'
+ 
+ export function HarborApp() {
+  const [route,setRoute]=useState('home'); const {state}=useHarbor()
+@@ -31,8 +33,10 @@ export function HarborApp() {
+    {page==='chat'&&<Conversation key={route} person={route.split('/')[1]||'mom'} navigate={navigate}/>}
+    {page==='dispatch'&&<DispatchScreen navigate={navigate}/>}
+    {page==='tide'&&<SlackTide navigate={navigate}/>}
++   {page==='quick'&&<QuickShare navigate={navigate}/>}
++   {page==='game'&&<DailyGame navigate={navigate}/>}
+    {page==='settings'&&<SettingsScreen navigate={navigate}/>}
+-   {!['home','inbox','harvest','garden','chat','dispatch','tide','settings'].includes(page)&&<div className="page-content"><p>This path is still growing.</p><button className="text-link" onClick={()=>navigate('home')}>Back home</button></div>}
++   {!['home','inbox','harvest','garden','chat','dispatch','tide','quick','game','settings'].includes(page)&&<div className="page-content"><p>This path is still growing.</p><button className="text-link" onClick={()=>navigate('home')}>Back home</button></div>}
+   </>}</main>
+   <nav className="bottom-nav" aria-label="Main navigation">{[{id:'home',label:'Home',icon:House},{id:'harvest',label:'Harvest',icon:Sun},{id:'garden',label:'Garden',icon:Flower2}].map(({id,label,icon:Icon})=><a key={id} href={`#${id}`} className="nav-item" aria-current={page===id?'page':undefined}><span className="nav-icon"><Icon/><span className="sr-only">{label}</span></span></a>)}</nav>
+   <Toaster theme="light" position="top-center"/>
+diff --git a/components/harbor/beacon.tsx b/components/harbor/beacon.tsx
+new file mode 100644
+index 0000000..851cd8e
+--- /dev/null
++++ b/components/harbor/beacon.tsx
+@@ -0,0 +1,19 @@
++'use client'
++import { Flame } from 'lucide-react'
++import { beaconWarmth } from '@/lib/harbor/model'
++import { useHarbor } from '@/lib/harbor/store'
++
++/** The Lighthouse Beacon: an ambient, non-numeric read of time-since-last-connection. Warms gently, settles after a call — never a countdown, never a guilt cue. */
++export function Beacon({compact=true}:{compact?: boolean}) {
++ const {state}=useHarbor(); if(!state) return null
++ const {level,label,settled}=beaconWarmth(state)
++ const copy=settled?'Settled, right after your last call.':label
++ if(compact) return <section className="surface beacon-strip" aria-label="Your lighthouse">
++  <span className="beacon-orb" data-level={level} aria-hidden="true"/>
++  <div className="flex-1 min-w-0"><p className="text-sm font-medium flex items-center gap-2"><Flame className="size-4 muted-icon"/>Your lighthouse</p><p className="small-copy">{copy}</p></div>
++ </section>
++ return <section className="soft-surface flex items-center gap-5" aria-label="Your lighthouse">
++  <span className="beacon-orb beacon-orb-lg" data-level={level} aria-hidden="true"/>
++  <div><h2 className="font-serif text-xl">Your lighthouse</h2><p className="small-copy">{copy} It warms a little with time, and settles again after any call — never a countdown, never a scold.</p></div>
++ </section>
++}
+diff --git a/components/harbor/dispatch.tsx b/components/harbor/dispatch.tsx
+index 6bcf892..dbb815c 100644
+--- a/components/harbor/dispatch.tsx
++++ b/components/harbor/dispatch.tsx
+@@ -1,6 +1,5 @@
+ 'use client'
+-import { useEffect, useState } from 'react'
+-import useSWR from 'swr'
++import { useState } from 'react'
+ import { ArrowLeft, Camera, ChevronRight, Clock3, Mail, Mic, Plus, ShieldCheck } from 'lucide-react'
+ import { Button } from '@/components/ui/button'
+ import { Input } from '@/components/ui/input'
+@@ -8,17 +7,11 @@ import { Textarea } from '@/components/ui/textarea'
+ import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
+ import { Badge } from '@/components/ui/badge'
+ import { useHarbor, makeId } from '@/lib/harbor/store'
+-import { getMedia, saveMedia } from '@/lib/harbor/media'
++import { saveMedia } from '@/lib/harbor/media'
+ import type { Dispatch } from '@/lib/harbor/model'
+ import { ResolutionChoices } from './resolution'
++import { LocalMedia } from './media-view'
+ import { toast } from 'sonner'
+-function LocalMedia({id,kind}:{id:string;kind:string}) {
+- const {data,error}=useSWR(['harbor-media',id],()=>getMedia(id));const [url,setUrl]=useState<string>()
+- useEffect(()=>{if(!data)return;const url=URL.createObjectURL(data);setUrl(url);return()=>URL.revokeObjectURL(url)},[data])
+- if(error)return <p className="small-copy">This attachment could not be opened. Your note is still here.</p>
+- if(!url)return <p className="small-copy">Opening your local attachment…</p>
+- return kind==='audio'?<audio controls src={url} className="w-full"/>:<img src={url} alt="A little moment captured by Mom in this demo" className="w-full max-h-72 rounded-xl object-cover"/>
+-}
+ export function DispatchScreen({navigate}:{navigate:(page:string)=>void}) {
+  const {state,update}=useHarbor();const [selected,setSelected]=useState<string|null>(null);const [busy,setBusy]=useState(false)
+  if(!state)return null
+diff --git a/components/harbor/game.tsx b/components/harbor/game.tsx
+new file mode 100644
+index 0000000..35e9632
+--- /dev/null
++++ b/components/harbor/game.tsx
+@@ -0,0 +1,37 @@
++'use client'
++import { Dices, Sprout } from 'lucide-react'
++import { Button } from '@/components/ui/button'
++import { Textarea } from '@/components/ui/textarea'
++import { Field, FieldLabel } from '@/components/ui/field'
++import { gameForDay, localDay, people } from '@/lib/harbor/model'
++import { makeId, useHarbor } from '@/lib/harbor/store'
++import { toast } from 'sonner'
++
++/** The daily family game ritual: one tiny shared prompt, always visible, no streak counter anywhere. */
++export function DailyGame({navigate}:{navigate:(page:string)=>void}) {
++ const {state,update,log}=useHarbor(); if(!state) return null
++ const day=localDay(); const prompt=gameForDay(day); const mine=state.games[day]
++ const submit=(e: React.FormEvent<HTMLFormElement>)=>{
++  e.preventDefault()
++  const text=String(new FormData(e.currentTarget).get('answer')||'').trim()
++  if(!text) return
++  const first=!mine
++  update(s=>({...s,games:{...s.games,[day]:text}}))
++  if(first) log({id:makeId(),at:new Date().toISOString(),person:'family',kind:'played',text:`Answered today’s little question: “${prompt.q}”`,source:'game'})
++  toast.success(first?'Thanks for playing along.':'Your answer is updated.')
++ }
++ return <div className="entrance"><div className="page-intro"><div className="eyebrow mb-2">A tiny shared ritual</div><h1>Today’s little question.</h1><p>No streak to keep. Answer today, skip tomorrow — either is fine.</p></div>
++ <div className="page-content !pt-0 flow">
++  <section className="gold-surface flow"><div className="flex items-center gap-2"><Dices className="size-5"/><span className="eyebrow !text-foreground">One question, every day</span></div><h2 className="font-serif text-2xl leading-snug">{prompt.q}</h2></section>
++  <section className="flow"><div className="section-heading"><h2>What the family said</h2></div>
++   {(['mom','dad'] as const).map(id=>{const p=people.find(x=>x.id===id)!; return <div key={id} className="moment-row"><span className="moment-icon"><Sprout/></span><span className="flex-1 min-w-0"><span className="text-sm block font-medium">{p.name}</span><span className="small-copy">{prompt[id]}</span></span></div>})}
++   {mine&&<div className="moment-row"><span className="moment-icon"><Sprout/></span><span className="flex-1 min-w-0"><span className="text-sm block font-medium">You</span><span className="small-copy">{mine}</span></span></div>}
++  </section>
++  <form key={day} className="surface flow" onSubmit={submit}>
++   <Field><FieldLabel htmlFor="game-answer">{mine?'Change your answer':'Your answer'}</FieldLabel><Textarea id="game-answer" name="answer" maxLength={200} required placeholder="Whatever comes to mind…" defaultValue={mine??''}/></Field>
++   <Button type="submit">{mine?'Update my answer':'Share my answer'}</Button>
++   <p className="small-copy">Totally optional. Nothing is lost by skipping a day.</p>
++  </form>
++  <button className="text-link justify-center" onClick={()=>navigate('home')}>Back home</button>
++ </div></div>
++}
+diff --git a/components/harbor/garden.tsx b/components/harbor/garden.tsx
+index 5f59147..0eb0a42 100644
+--- a/components/harbor/garden.tsx
++++ b/components/harbor/garden.tsx
+@@ -1,12 +1,13 @@
+ 'use client'
+ import { useState } from 'react'
+-import { ArrowRight, CalendarClock, ChevronRight, Flower2, Heart, MessageCircle, Phone, Sprout } from 'lucide-react'
++import { ArrowRight, CalendarClock, ChevronRight, Dices, Flower2, Heart, MessageCircle, Phone, Sprout } from 'lucide-react'
+ import { Button } from '@/components/ui/button'
+ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+ import { useHarbor } from '@/lib/harbor/store'
+ import { localDay, people, type Moment } from '@/lib/harbor/model'
+-export const momentIcon={called:Phone,reacted:Heart,proposed_later:CalendarClock,message:MessageCircle,dismissed:Sprout}
+-export const momentLabel={called:'A conversation',reacted:'A little love',proposed_later:'A plan for later',message:'A little note',dismissed:'A moment to yourself'}
++import { Beacon } from './beacon'
++export const momentIcon={called:Phone,reacted:Heart,proposed_later:CalendarClock,message:MessageCircle,dismissed:Sprout,played:Dices}
++export const momentLabel={called:'A conversation',reacted:'A little love',proposed_later:'A plan for later',message:'A little note',dismissed:'A moment to yourself',played:'A little game, together'}
+ const pins=[{left:'25%',top:'37%'},{left:'52%',top:'27%'},{left:'67%',top:'48%'},{left:'39%',top:'59%'},{left:'21%',top:'57%'},{left:'48%',top:'42%'},{left:'60%',top:'67%'},{left:'73%',top:'32%'}]
+ export function Garden({navigate}:{navigate:(page:string)=>void}) {
+  const {state}=useHarbor();const [month,setMonth]=useState(localDay().slice(0,7));const [selected,setSelected]=useState<Moment|null>(null);const [recap,setRecap]=useState(false)
+@@ -15,6 +16,7 @@ export function Garden({navigate}:{navigate:(page:string)=>void}) {
+  return <div className="entrance"><div className="page-intro !pb-0"><div className="eyebrow mb-2">The little things add up</div><h1>Look what&apos;s growing.</h1><p>A garden made of moments, not milestones.</p></div>
+  <div className="garden-scene"><img src="/images/garden.png" alt="A hand-painted garden of daisies and buttercups, with stepping stones and a little watering can"/>{moments.slice(-8).map((m,i)=><button key={m.id} className="plant-pin" style={pins[i]} aria-label={`Open moment: ${m.text}`} onClick={()=>setSelected(m)}><Flower2 strokeWidth={1.4}/></button>)}</div>
+  <div className="page-content !pt-0"><div className="flow"><div className="text-center"><p className="font-serif text-xl">{moments.length} little moments, rooted in love.</p><p className="small-copy">Tap a flower to remember. Nothing here ever wilts.</p></div>
++ <Beacon compact={false}/>
+  <section className="soft-surface flex items-center gap-5"><div className="jar" role="img" aria-label={`${state.jarDays.length} ${state.jarDays.length===1?'day':'days'} in your jar of happiness`}><span className="jar-lid" aria-hidden="true"/><span className="jar-body" aria-hidden="true"><span className="jar-fill" style={{height:`${state.jarDays.length===0?6:Math.min(94,18+state.jarDays.length*7)}%`}}>{Array.from({length:Math.min(state.jarDays.length,12)},(_,i)=><Heart key={i}/>)}</span></span><span className="jar-count" aria-hidden="true">{state.jarDays.length}</span></div><div><h2 className="font-serif text-xl">Your jar of happiness</h2><p className="small-copy">{state.settings.minimum?`${state.jarDays.length} ${state.jarDays.length===1?'day':'days'} of your kind of enough. It fills, never drains.`:'You decide what feels like enough. Every little bit counts, on your terms.'}</p><button className="text-link" onClick={()=>navigate('settings')}>{state.settings.minimum?'Your definition of enough':'Choose your kind of enough'}<ChevronRight/></button></div></section>
+  <section className="flow"><div className="section-heading"><h2>A month to remember</h2><Flower2 className="size-5 muted-icon"/></div><label className="sr-only" htmlFor="recap-month">Recap month</label><select className="select" id="recap-month" value={month} onChange={e=>setMonth(e.target.value)}>{months.map(m=><option key={m} value={m}>{new Date(`${m}-01T12:00`).toLocaleDateString('en',{month:'long',year:'numeric'})}</option>)}</select><button className="gold-surface text-left flow" onClick={()=>setRecap(true)}><div className="flex justify-between items-start"><span className="eyebrow">Your {monthName} chapter</span><Sunflower/></div><h3 className="font-serif text-3xl leading-tight">Not always in the same place.<br/>Still, growing together.</h3><div className="flex justify-between items-center"><p className="small-copy">{filtered.length} moments worth keeping.</p><span className="icon-button border"><ArrowRight/></span></div></button></section>
+  <section><div className="section-heading"><h2>Little things, kept.</h2></div>{filtered.length?filtered.slice().reverse().map(m=>{const Icon=momentIcon[m.kind];return <button key={m.id} className="moment-row w-full text-left" onClick={()=>setSelected(m)}><span className="moment-icon"><Icon/></span><span className="flex-1 min-w-0"><span className="text-sm block font-medium">{m.text}</span><span className="small-copy">{people.find(p=>p.id===m.person)?.name??'Family'} · {new Date(m.at).toLocaleDateString('en',{month:'short',day:'numeric'})}</span></span><ChevronRight className="size-4 shrink-0"/></button>}):<p className="small-copy py-6">A fresh page. Your next connection can be the first little flower.</p>}</section><p className="demo-footnote">Seeded sample moments + your own demo connections</p>
+diff --git a/components/harbor/home.tsx b/components/harbor/home.tsx
+index e167366..d991eec 100644
+--- a/components/harbor/home.tsx
++++ b/components/harbor/home.tsx
+@@ -1,8 +1,10 @@
+ 'use client'
+-import { ArrowRight, ChevronRight, Flower2, Heart, Mail, Sprout, Users, Waves } from 'lucide-react'
++import { ArrowRight, ChevronRight, Dices, Flower2, Heart, Mail, Sprout, Users, Waves } from 'lucide-react'
+ import { useHarbor } from '@/lib/harbor/store'
+-import { people } from '@/lib/harbor/model'
++import { gameForDay, localDay, people } from '@/lib/harbor/model'
+ import { cn } from '@/lib/utils'
++import { Beacon } from './beacon'
++import { SignalFeed } from './signals'
+ export function Avatar({person,small=false}:{person:string;small?:boolean}) {
+  const p=people.find(x=>x.id===person)??people[0]
+  return <span className={cn('avatar',p.style,small&&'!size-9 !text-base')} aria-hidden="true">{p.id==='family'?<Users className="size-5" strokeWidth={1.5}/>:p.initials}</span>
+@@ -19,11 +21,14 @@ export function Home({navigate}:{navigate:(page:string)=>void}) {
+     <button className="hero-footer" onClick={()=>navigate('garden')}><Flower2/> Good things are growing <ChevronRight/></button>
+    </section>
+   </div>
+-  <div className="page-content"><div className="flow">
++  <div className="page-content !pb-0 !pt-4"><Beacon/></div>
++  <div className="page-content !pt-0"><div className="flow">
+    <section className="flex flex-col gap-3" aria-labelledby="inbox-heading"><div className="section-heading"><h2 id="inbox-heading">Your people</h2><button className="text-link" onClick={()=>navigate('inbox')}>Inbox <ArrowRight/></button></div>
+     <div className="chat-grid">{people.map(p=>{const messages=state.messages[p.id]??[];const last=messages.at(-1);return <button key={p.id} className="chat-tile" onClick={()=>navigate(`chat/${p.id}`)}><div className="flex items-center justify-between w-full"><Avatar person={p.id}/>{!state.read.includes(p.id)&&<span className="unread-dot" aria-label="Unread message"/>}</div><span className="chat-name">{p.name}<ChevronRight className="size-4 text-muted-foreground"/></span><span className="chat-preview">{last?.mine?'You: ':''}{last?.text??p.note}</span><span className="chat-time">{messages.length>1?'A moment shared':p.time}</span></button>})}</div>
+    </section>
+    <button className="together-card" onClick={()=>navigate('chat/family')}><div className="flex items-center gap-3"><Users className="size-7" strokeWidth={1.2}/><div><strong>A little time, together.</strong><p>Study, cook, or just be.</p></div></div><ArrowRight className="size-5"/></button>
++   <SignalFeed/>
++   <button className="gold-surface flex items-center gap-3 text-left" onClick={()=>navigate('game')}><Dices className="size-6" strokeWidth={1.4}/><div className="flex-1"><p className="font-serif text-lg">Today’s little question</p><p className="small-copy">{gameForDay(localDay()).q}</p></div><ChevronRight className="size-4"/></button>
+    <section className="flex flex-col gap-2"><div className="section-heading"><h2>From home, with love</h2><Mail className="size-5 muted-icon"/></div><button className="surface text-left flex items-center gap-4" onClick={()=>navigate('dispatch')}><div className="moment-icon"><Mail/></div><div className="flex-1"><p className="font-serif text-lg">The little things edition</p><p className="small-copy">{pending?`${pending} little ${pending===1?'note':'notes'} from Mom. No rush to reply.`:'A place for all the ordinary, lovely things.'}</p></div><ChevronRight className="size-4"/></button></section>
+    <button className="text-link justify-center" onClick={()=>navigate('tide')}><Waves/> Find a quiet moment <ChevronRight/></button>
+    <p className="notice justify-center"><Heart/> Close, even from a little further away.</p>
+diff --git a/components/harbor/media-view.tsx b/components/harbor/media-view.tsx
+new file mode 100644
+index 0000000..7efb849
+--- /dev/null
++++ b/components/harbor/media-view.tsx
+@@ -0,0 +1,11 @@
++'use client'
++import { useEffect, useState } from 'react'
++import useSWR from 'swr'
++import { getMedia } from '@/lib/harbor/media'
++export function LocalMedia({id,kind}:{id:string;kind:string}) {
++ const {data,error}=useSWR(['harbor-media',id],()=>getMedia(id));const [url,setUrl]=useState<string>()
++ useEffect(()=>{if(!data)return;const url=URL.createObjectURL(data);setUrl(url);return()=>URL.revokeObjectURL(url)},[data])
++ if(error)return <p className="small-copy">This attachment could not be opened. Your note is still here.</p>
++ if(!url)return <p className="small-copy">Opening your local attachment…</p>
++ return kind==='audio'?<audio controls src={url} className="w-full"/>:<img src={url} alt="A little moment captured in this demo" className="w-full max-h-72 rounded-xl object-cover"/>
++}
+diff --git a/components/harbor/signals.tsx b/components/harbor/signals.tsx
+new file mode 100644
+index 0000000..d6a42aa
+--- /dev/null
++++ b/components/harbor/signals.tsx
+@@ -0,0 +1,100 @@
++'use client'
++import { useState } from 'react'
++import { Camera, ChevronRight, Film, Newspaper, Plus, ShieldCheck, UtensilsCrossed } from 'lucide-react'
++import { Button } from '@/components/ui/button'
++import { Input } from '@/components/ui/input'
++import { Textarea } from '@/components/ui/textarea'
++import { Field, FieldLabel } from '@/components/ui/field'
++import { Badge } from '@/components/ui/badge'
++import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
++import { useHarbor, makeId } from '@/lib/harbor/store'
++import { saveMedia } from '@/lib/harbor/media'
++import { exaggerateRecap, people, type Signal, type SignalKind } from '@/lib/harbor/model'
++import { LocalMedia } from './media-view'
++import { ResolutionChoices } from './resolution'
++import { toast } from 'sonner'
++
++const kindIcon: Record<SignalKind, typeof Camera> = { photo: Camera, watching: Film, meal: UtensilsCrossed, recap: Newspaper }
++const kindLabel: Record<SignalKind, string> = { photo: 'A little photo', watching: 'Something watched', meal: 'A meal status', recap: 'Today’s dramatic recap' }
++function signalGist(s: Signal) {
++ if(s.kind==='photo') return s.caption||'A little photo, no words needed.'
++ if(s.kind==='watching') return s.title||'Something worth a look.'
++ if(s.kind==='meal') return s.meal==='just_ate'?'Just ate.':'About to eat.'
++ return s.recapText||s.recapInput||''
++}
++
++/** Home's horizontal strip of recent low-friction signals — every card is visible on its own; a response is offered, never required. */
++export function SignalFeed() {
++ const {state}=useHarbor(); const [selected,setSelected]=useState<Signal|null>(null); const [done,setDone]=useState(false)
++ if(!state) return null
++ const recent=state.signals.slice(-8).reverse()
++ return <section className="flow"><div className="section-heading"><h2>A little something</h2><a className="text-link" href="#quick">Quick share <ChevronRight/></a></div>
++  <div className="signal-scroller">
++   <a href="#quick" className="signal-add" aria-label="Send a quick share"><Plus/><span className="small-copy">Add</span></a>
++   {recent.map(s=>{const Icon=kindIcon[s.kind];const p=people.find(x=>x.id===s.person);return <button key={s.id} className="signal-card text-left" onClick={()=>{setSelected(s);setDone(false)}}>{s.kind==='photo'&&s.mediaId?<LocalMedia id={s.mediaId} kind="photo"/>:<span className="signal-card-icon"><Icon/></span>}<span className="text-sm font-medium block line-clamp-2">{signalGist(s)}</span><span className="small-copy">{p?.name??'Family'}</span></button>})}
++   {!recent.length&&<p className="small-copy py-2">Nothing yet. The first little share can be yours.</p>}
++  </div>
++  <Dialog open={!!selected} onOpenChange={open=>!open&&setSelected(null)}>
++   <DialogContent>
++    {selected&&<>
++     <DialogHeader><DialogTitle>{kindLabel[selected.kind]}</DialogTitle><DialogDescription>{people.find(p=>p.id===selected.person)?.name??'Family'} · {new Date(selected.at).toLocaleDateString('en',{month:'short',day:'numeric'})}</DialogDescription></DialogHeader>
++     {selected.kind==='photo'&&selected.mediaId&&<LocalMedia id={selected.mediaId} kind="photo"/>}
++     {selected.kind==='recap'?<article className="dispatch-paper flow"><p className="eyebrow text-center">Today’s dramatic recap</p><p className="whitespace-pre-wrap text-base leading-relaxed">{selected.recapText}</p></article>:<p className="font-serif text-xl">{signalGist(selected)}</p>}
++     {selected.note&&selected.kind==='watching'&&<p className="small-copy">{selected.note}</p>}
++     {done?<p className="small-copy" role="status">Saved to your garden.</p>:<><p className="small-copy text-center">No right way to reply. Choose what feels like you, or just close this.</p><ResolutionChoices person={selected.person} source="signal" onDone={()=>setDone(true)}/></>}
++    </>}
++   </DialogContent>
++  </Dialog>
++ </section>
++}
++
++/** A composer lighter than Dispatch — one tap or a line of text, delivered right away, no headline or topic required. */
++export function QuickShare({navigate}:{navigate:(page:string)=>void}) {
++ const {state,update}=useHarbor(); const [kind,setKind]=useState<SignalKind>('photo'); const [person,setPerson]=useState('mom')
++ const [caption,setCaption]=useState(''); const [mediaId,setMediaId]=useState<string>()
++ const [title,setTitle]=useState(''); const [note,setNote]=useState('')
++ const [recapInput,setRecapInput]=useState(''); const [recapText,setRecapText]=useState('')
++ const [busy,setBusy]=useState(false)
++ if(!state) return null
++ const upload=async(file:File)=>{if(!file.type.startsWith('image/')){toast.error('Choose an image file.');return}if(file.size>10*1024*1024){toast.error('Please choose a file smaller than 10 MB.');return}setBusy(true);try{const id=makeId();await saveMedia(id,file);setMediaId(id);toast.success('Photo saved only on this device.')}catch{toast.error('Your browser could not save this photo.')}finally{setBusy(false)}}
++ const share=(signal:Omit<Signal,'id'|'at'|'person'>)=>{update(s=>({...s,signals:[...s.signals,{...signal,id:makeId(),at:new Date().toISOString(),person}]}));toast.success('Sent — a little something, no big production.');navigate('home')}
++ return <div className="entrance"><div className="page-intro"><div className="eyebrow mb-2">Faster than a full dispatch</div><h1>Quick share.</h1><p>Small, low-effort ways to reach out — no headline required.</p></div>
++ <div className="page-content !pt-0 flow">
++  <Badge variant="secondary">Simulated family view · demo composer</Badge>
++  <Field><FieldLabel htmlFor="qs-from">From</FieldLabel><select id="qs-from" className="select" value={person} onChange={e=>setPerson(e.target.value)}>{people.filter(p=>p.id!=='family').map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>
++  <div className="season-options" role="radiogroup" aria-label="What kind of quick share">
++   {([['photo','Photo',Camera],['watching','Watch',Film],['meal','Meal',UtensilsCrossed],['recap','Recap',Newspaper]] as const).map(([id,label,Icon])=><label key={id}><input type="radio" name="kind" value={id} checked={kind===id} onChange={()=>setKind(id)}/><span><Icon className="size-4"/>{label}</span></label>)}
++  </div>
++
++  {kind==='photo'&&<div className="surface flow">
++   <Field><FieldLabel htmlFor="qs-photo">A photo</FieldLabel><Input id="qs-photo" type="file" accept="image/*" disabled={busy} onChange={e=>{const f=e.target.files?.[0];if(f)void upload(f)}}/></Field>
++   {mediaId&&<LocalMedia id={mediaId} kind="photo"/>}
++   <Field><FieldLabel htmlFor="qs-caption">An optional line</FieldLabel><Input id="qs-caption" maxLength={140} placeholder="No words needed, really" value={caption} onChange={e=>setCaption(e.target.value)}/></Field>
++   <Button disabled={!mediaId||busy} onClick={()=>share({kind:'photo',mediaId,caption:caption.trim()||undefined})}>Send this photo</Button>
++  </div>}
++
++  {kind==='watching'&&<div className="surface flow">
++   <Field><FieldLabel htmlFor="qs-title">What I just watched</FieldLabel><Input id="qs-title" maxLength={100} value={title} onChange={e=>setTitle(e.target.value)}/></Field>
++   <Field><FieldLabel htmlFor="qs-note">An optional line</FieldLabel><Textarea id="qs-note" maxLength={200} value={note} onChange={e=>setNote(e.target.value)}/></Field>
++   <Button disabled={!title.trim()} onClick={()=>share({kind:'watching',title:title.trim(),note:note.trim()||undefined})}>Send this along</Button>
++  </div>}
++
++  {kind==='meal'&&<div className="surface flow">
++   <p className="small-copy">One tap. No words needed — that’s the whole point.</p>
++   <div className="grid grid-cols-2 gap-2">
++    <Button variant="outline" onClick={()=>share({kind:'meal',meal:'about_to_eat'})}>About to eat</Button>
++    <Button variant="outline" onClick={()=>share({kind:'meal',meal:'just_ate'})}>Just ate</Button>
++   </div>
++  </div>}
++
++  {kind==='recap'&&<div className="surface flow">
++   <Field><FieldLabel htmlFor="qs-recap">Three little, ordinary things from today</FieldLabel><Textarea id="qs-recap" maxLength={400} placeholder="Woke up late. Ate leftover rice. Watched the rain for a bit." value={recapInput} onChange={e=>{setRecapInput(e.target.value);setRecapText('')}}/></Field>
++   {!recapText?<Button variant="outline" disabled={!recapInput.trim()} onClick={()=>setRecapText(exaggerateRecap(recapInput))}>Make it dramatic</Button>:<>
++    <article className="dispatch-paper flow"><p className="eyebrow text-center">Today’s dramatic recap</p><p className="whitespace-pre-wrap text-base leading-relaxed">{recapText}</p></article>
++    <div className="flex gap-2"><Button onClick={()=>share({kind:'recap',recapInput,recapText})}>Share this headline</Button><Button variant="ghost" onClick={()=>setRecapText('')}>Try again</Button></div>
++   </>}
++  </div>}
++
++  <p className="notice"><ShieldCheck/>Delivered right away in this local demo. Nothing is sent anywhere real.</p>
++ </div></div>
++}
+diff --git a/lib/harbor/model.ts b/lib/harbor/model.ts
+index 08a8b8d..8e3c6a0 100644
+--- a/lib/harbor/model.ts
++++ b/lib/harbor/model.ts
+@@ -1,15 +1,17 @@
+-export type Resolution = 'called' | 'reacted' | 'proposed_later' | 'message' | 'dismissed'
+-export type Moment = { id: string; at: string; person: string; kind: Resolution; text: string; source: 'manual' | 'walking_stop' | 'dispatch'; proposedTime?: string; feedback?: 'good' | 'bad'; reminderDone?: boolean; cueId?: string }
++export type Resolution = 'called' | 'reacted' | 'proposed_later' | 'message' | 'dismissed' | 'played'
++export type Moment = { id: string; at: string; person: string; kind: Resolution; text: string; source: 'manual' | 'walking_stop' | 'dispatch' | 'signal' | 'game'; proposedTime?: string; feedback?: 'good' | 'bad'; reminderDone?: boolean; cueId?: string }
+ export type ChatMessage = { id: string; text: string; mine: boolean; at: string; liked?: boolean }
+ export type Interval = { start: string; end: string }
+ export type Dispatch = { id: string; title: string; body: string; topic: string; kind: 'headline' | 'photo' | 'audio'; status: 'draft' | 'rendered' | 'queued' | 'delivered' | 'logged'; due?: string; mediaId?: string }
++export type SignalKind = 'photo' | 'watching' | 'meal' | 'recap'
++export type Signal = { id: string; at: string; person: string; kind: SignalKind; mediaId?: string; caption?: string; title?: string; note?: string; meal?: 'about_to_eat' | 'just_ate'; recapInput?: string; recapText?: string }
+ export type HarborState = {
+  version: 1; name: string; sharing: boolean; momConsent: boolean;
+  schedules: Record<string, { you: Interval[]; mom: Interval[] }>;
+  season: 'Quiet' | 'Steady' | 'Full'; milestone: { title: string; date: string };
+  messages: Record<string, ChatMessage[]>; read: string[]; drafts: Record<string,string>;
+  moments: Moment[]; jarDays: string[]; cues: { id: string; at: string }[];
+- dispatches: Dispatch[];
++ dispatches: Dispatch[]; signals: Signal[]; games: Record<string, string>;
+  settings: { cuesEnabled: boolean; walkingMinutes: number; sessionMinutes: number; dailyCap: number; cooldownMinutes: number; minimum: 'any' | 'call' | null; sound: 'chime' | 'soft' | 'silent'; reducedMotion: boolean };
+ }
+ export const people = [
+@@ -34,6 +36,48 @@ export function overlaps(a: Interval[], b: Interval[]): Interval[] {
+ export function formatTime(value: string) { const m=minutes(value); return `${Math.floor(m/60)%12||12}:${String(m%60).padStart(2,'0')} ${m>=720?'pm':'am'}` }
+ export function sharedWindows(state: HarborState, day: string) { const s=state.schedules[day]; return state.sharing && state.momConsent && s ? overlaps(s.you,s.mom) : [] }
+ export function isFuture(value: string, now = new Date()) { const t=new Date(value).getTime(); return Number.isFinite(t) && t>now.getTime() }
++
++/* ---------- daily family game: no streaks, no backend — a stable prompt per day with pre-written family answers ---------- */
++export type GamePrompt = { q: string; mom: string; dad: string }
++export const gamePrompts: GamePrompt[] = [
++ { q:'Tea, coffee, or neither today?', mom:'Chai, obviously. Extra ginger today.', dad:'Black coffee. The tomatoes needed watering early.' },
++ { q:'Window seat or aisle?', mom:'Window. I like watching the world go by.', dad:'Aisle. More room for my knees.' },
++ { q:'One good thing about today, however small?', mom:'The jasmine finally opened.', dad:'Found my old radio in the garage. Still works.' },
++ { q:'Sweet or savory breakfast?', mom:'Sweet. Always sweet.', dad:'Savory, every time.' },
++ { q:'Beach or mountains?', mom:'Mountains. Somewhere quiet.', dad:'Beach. I like the noise, actually.' },
++ { q:'If today had a theme song, what would it be?', mom:'Something old, from a film we watched together once.', dad:'Whatever was on the radio in the car.' },
++ { q:'Early bird or night owl, honestly?', mom:'Early bird. Mornings feel like mine.', dad:'Night owl, but I pretend otherwise.' },
++ { q:'What smell reminds you of home right now?', mom:'Whatever is simmering on the stove.', dad:'Fresh-cut grass, if I am honest.' },
++ { q:'Rain or sunshine today?', mom:'A little rain. Good for the garden.', dad:'Sunshine. Always rooting for sunshine.' },
++ { q:'One word for how today felt?', mom:'Full.', dad:'Steady.' },
++ { q:'Cat person, dog person, or neither?', mom:'Dog person, no contest.', dad:'Whichever one leaves me alone the longest.' },
++ { q:'One small thing you are looking forward to?', mom:'Hearing about your day, actually.', dad:'The weekend. No particular reason.' },
++]
++export function gameForDay(day: string): GamePrompt { let h=0; for(const c of day) h=(h*31+c.charCodeAt(0))>>>0; return gamePrompts[h%gamePrompts.length] }
++
++/* ---------- exaggerated daily recap: a deliberately over-the-top reframe, generated client-side, no AI call ---------- */
++const recapOpeners=['BREAKING NEWS FROM THE HOME FRONT:','BULLETIN, HOT OFF THE PRESS:','STOP THE PRESSES:','BY POPULAR DEMAND, TODAY’S HEADLINES:','THIS JUST IN:']
++const recapClosers=['Witnesses describe the day as "surprisingly eventful."','Experts are calling it a triumph of the ordinary.','More updates as this developing story continues.','A day for the history books, some say.','Sources close to the story call it "just another day" — we respectfully disagree.']
++function seededPick<T>(arr: T[], seed: string) { let h=0; for(const c of seed) h=(h*31+c.charCodeAt(0))>>>0; return arr[h%arr.length] }
++export function exaggerateRecap(input: string): string {
++ const lines=input.split(/\n|\.(?=\s|$)/).map(s=>s.trim()).filter(Boolean).slice(0,3)
++ if(!lines.length) return ''
++ const opener=seededPick(recapOpeners,input); const closer=seededPick(recapClosers,input+'x')
++ const body=lines.map((l,i)=>i===0?l.charAt(0).toUpperCase()+l.slice(1)+'.':`And if that were not enough: ${l.charAt(0).toLowerCase()+l.slice(1)}.`).join(' ')
++ return `${opener} ${body} ${closer}`
++}
++
++/* ---------- lighthouse beacon: warms gently with time since the last connection, settles after a call — never a guilt clock ---------- */
++export type BeaconLevel = 0 | 1 | 2 | 3 | 4
++const beaconLabels=['Just settled, warm and glowing.','Still holding on to today’s glow.','A little warmer, whenever you’re ready.','Glowing a bit brighter now — no rush at all.','Glowing bright, patiently waiting.']
++export function beaconWarmth(state: HarborState, now = new Date()) {
++ const last=state.moments.filter(m=>m.kind!=='dismissed').slice().sort((a,b)=>a.at.localeCompare(b.at)).at(-1)
++ if(!last) return { level:4 as BeaconLevel, label:'Waiting for your first little moment.', settled:false, hours:Infinity }
++ const hours=(now.getTime()-new Date(last.at).getTime())/3600000
++ const level:BeaconLevel = hours<6?0:hours<24?1:hours<72?2:hours<168?3:4
++ return { level, label:beaconLabels[level], settled:last.kind==='called'&&hours<6, hours }
++}
++
+ export function addMoment(state: HarborState, moment: Moment): HarborState {
+  if(state.moments.some(x=>x.id===moment.id)) return state
+  const qualifies=state.settings.minimum==='any' ? moment.kind!=='dismissed' : state.settings.minimum==='call' && moment.kind==='called'
+@@ -59,7 +103,11 @@ export function seedState(now = new Date()): HarborState {
+   ['called','mom','A long chat about absolutely nothing.'], ['reacted','dad','The first tomatoes in Dad’s garden.'], ['message','aanya','A little encouragement before her presentation.'], ['called','family','Sunday chai, together from afar.'], ['reacted','mom','Her new recipe, made with love.'],
+  ].map((a,i)=>{ const at=new Date(now); at.setDate(at.getDate()-i-1); return {id:`seed-${i}`,at:at.toISOString(),kind:a[0] as Resolution,person:a[1],text:a[2],source:'manual'} })
+  moments.push(...(['called','reacted','message'] as Resolution[]).map((kind,i)=>({id:`march-${i}`,at:new Date(now.getFullYear(),2,12+i,17).toISOString(),person:'mom',kind,text:['A recipe passed down over the phone.','A little love, just because.','A photo of spring back home.'][i],source:'manual' as const})))
+- return {version:1,name:'Maya',sharing:false,momConsent:false,schedules:{[today]:{you:[{start:'20:40',end:'22:00'}],mom:[{start:'20:00',end:'21:30'}]}},season:'Full',milestone:{title:'Midterms',date:localDay(milestone)},messages:Object.fromEntries(people.map(p=>[p.id,[{id:`hello-${p.id}`,text:p.note,mine:false,at:new Date(now.getTime()-3600000).toISOString()}]])),read:[],drafts:{},moments,jarDays:[],cues:[],dispatches:[{id:'from-mom',title:'A little taste of home.',body:'The kitchen smelled like your favorite dal today. I made a little extra out of habit. Some things don’t change, even when you’re miles away.\n\nThe balcony jasmine is blooming, too. Thought you’d like to know.',topic:'Just a little catch-up. No college talk today.',kind:'headline',status:'delivered'}],settings:{cuesEnabled:false,walkingMinutes:10,sessionMinutes:20,dailyCap:2,cooldownMinutes:120,minimum:null,sound:'chime',reducedMotion:false}}
++ const signals: Signal[] = [
++  {id:'seed-meal',at:new Date(now.getTime()-3600000).toISOString(),person:'mom',kind:'meal',meal:'just_ate',note:'Made a little extra of your favorite, out of habit.'},
++  {id:'seed-watch',at:new Date(now.getTime()-86400000+3600000*3).toISOString(),person:'dad',kind:'watching',title:'A documentary about the Amazon',note:'Made me think of your old school project.'},
++ ]
++ return {version:1,name:'Maya',sharing:false,momConsent:false,schedules:{[today]:{you:[{start:'20:40',end:'22:00'}],mom:[{start:'20:00',end:'21:30'}]}},season:'Full',milestone:{title:'Midterms',date:localDay(milestone)},messages:Object.fromEntries(people.map(p=>[p.id,[{id:`hello-${p.id}`,text:p.note,mine:false,at:new Date(now.getTime()-3600000).toISOString()}]])),read:[],drafts:{},moments,jarDays:[],cues:[],dispatches:[{id:'from-mom',title:'A little taste of home.',body:'The kitchen smelled like your favorite dal today. I made a little extra out of habit. Some things don’t change, even when you’re miles away.\n\nThe balcony jasmine is blooming, too. Thought you’d like to know.',topic:'Just a little catch-up. No college talk today.',kind:'headline',status:'delivered'}],signals,games:{},settings:{cuesEnabled:false,walkingMinutes:10,sessionMinutes:20,dailyCap:2,cooldownMinutes:120,minimum:null,sound:'chime',reducedMotion:false}}
+ }
+ export function parseState(raw: string): HarborState | null {
+  try {
+@@ -68,8 +116,10 @@ export function parseState(raw: string): HarborState | null {
+   if(!['Quiet','Steady','Full'].includes(s.season) || typeof s.milestone.title!=='string' || !/^\d{4}-\d{2}-\d{2}$/.test(s.milestone.date)) return null
+   if(!Object.values(s.schedules).every(v=>v && validIntervals(v.you)&&validIntervals(v.mom))) return null
+   if(!Object.values(s.messages).every(ms=>Array.isArray(ms)&&ms.every(m=>typeof m.text==='string'&&typeof m.mine==='boolean'&&typeof m.id==='string'))) return null
+-  if(!Array.isArray(s.moments)||!s.moments.every(m=>m && typeof m.id==='string' && typeof m.text==='string' && typeof m.person==='string' && Number.isFinite(Date.parse(m.at)) && ['called','reacted','proposed_later','message','dismissed'].includes(m.kind))) return null
++  if(!Array.isArray(s.moments)||!s.moments.every(m=>m && typeof m.id==='string' && typeof m.text==='string' && typeof m.person==='string' && Number.isFinite(Date.parse(m.at)) && ['called','reacted','proposed_later','message','dismissed','played'].includes(m.kind))) return null
+   if(!Array.isArray(s.dispatches)||!s.dispatches.every(d=>d&&typeof d.id==='string'&&typeof d.title==='string'&&typeof d.body==='string'&&typeof d.topic==='string'&&['draft','rendered','queued','delivered','logged'].includes(d.status))) return null
++  if(!Array.isArray(s.signals)||!s.signals.every(x=>x&&typeof x.id==='string'&&typeof x.person==='string'&&Number.isFinite(Date.parse(x.at))&&['photo','watching','meal','recap'].includes(x.kind))) return null
++  if(!s.games||typeof s.games!=='object'||Array.isArray(s.games)||!Object.entries(s.games).every(([k,v])=>typeof k==='string'&&typeof v==='string')) return null
+   if(!Array.isArray(s.cues)||!s.cues.every(c=>c&&typeof c.id==='string'&&Number.isFinite(Date.parse(c.at)))) return null
+   if(!Array.isArray(s.jarDays)||!s.jarDays.every(d=>typeof d==='string')||!Array.isArray(s.read)||!s.read.every(d=>typeof d==='string')) return null
+   const v=s.settings
