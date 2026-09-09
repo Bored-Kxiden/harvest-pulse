@@ -10,6 +10,8 @@ import { Conversation } from './conversation'
 import { DispatchScreen } from './dispatch'
 import { SettingsScreen } from './settings'
 import { SlackTide } from './slack-tide'
+import { QuickShare } from './signals'
+import { DailyGame } from './game'
 
 export function HarborApp() {
  const [route,setRoute]=useState('home'); const {state}=useHarbor()
@@ -31,8 +33,10 @@ export function HarborApp() {
    {page==='chat'&&<Conversation key={route} person={route.split('/')[1]||'mom'} navigate={navigate}/>}
    {page==='dispatch'&&<DispatchScreen navigate={navigate}/>}
    {page==='tide'&&<SlackTide navigate={navigate}/>}
+   {page==='quick'&&<QuickShare navigate={navigate}/>}
+   {page==='game'&&<DailyGame navigate={navigate}/>}
    {page==='settings'&&<SettingsScreen navigate={navigate}/>}
-   {!['home','inbox','harvest','garden','chat','dispatch','tide','settings'].includes(page)&&<div className="page-content"><p>This path is still growing.</p><button className="text-link" onClick={()=>navigate('home')}>Back home</button></div>}
+   {!['home','inbox','harvest','garden','chat','dispatch','tide','quick','game','settings'].includes(page)&&<div className="page-content"><p>This path is still growing.</p><button className="text-link" onClick={()=>navigate('home')}>Back home</button></div>}
   </>}</main>
   <nav className="bottom-nav" aria-label="Main navigation">{[{id:'home',label:'Home',icon:House},{id:'harvest',label:'Harvest',icon:Sun},{id:'garden',label:'Garden',icon:Flower2}].map(({id,label,icon:Icon})=><a key={id} href={`#${id}`} className="nav-item" aria-current={page===id?'page':undefined}><span className="nav-icon"><Icon/><span className="sr-only">{label}</span></span></a>)}</nav>
   <Toaster theme="light" position="top-center"/>

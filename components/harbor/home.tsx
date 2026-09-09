@@ -1,8 +1,10 @@
 'use client'
-import { ArrowRight, ChevronRight, Flower2, Heart, Mail, Sprout, Users, Waves } from 'lucide-react'
+import { ArrowRight, ChevronRight, Dices, Flower2, Heart, Mail, Sprout, Users, Waves } from 'lucide-react'
 import { useHarbor } from '@/lib/harbor/store'
-import { people } from '@/lib/harbor/model'
+import { gameForDay, localDay, people } from '@/lib/harbor/model'
 import { cn } from '@/lib/utils'
+import { Beacon } from './beacon'
+import { SignalFeed } from './signals'
 export function Avatar({person,small=false}:{person:string;small?:boolean}) {
  const p=people.find(x=>x.id===person)??people[0]
  return <span className={cn('avatar',p.style,small&&'!size-9 !text-base')} aria-hidden="true">{p.id==='family'?<Users className="size-5" strokeWidth={1.5}/>:p.initials}</span>
@@ -19,11 +21,14 @@ export function Home({navigate}:{navigate:(page:string)=>void}) {
     <button className="hero-footer" onClick={()=>navigate('garden')}><Flower2/> Good things are growing <ChevronRight/></button>
    </section>
   </div>
-  <div className="page-content"><div className="flow">
+  <div className="page-content !pb-0 !pt-4"><Beacon/></div>
+  <div className="page-content !pt-0"><div className="flow">
    <section className="flex flex-col gap-3" aria-labelledby="inbox-heading"><div className="section-heading"><h2 id="inbox-heading">Your people</h2><button className="text-link" onClick={()=>navigate('inbox')}>Inbox <ArrowRight/></button></div>
     <div className="chat-grid">{people.map(p=>{const messages=state.messages[p.id]??[];const last=messages.at(-1);return <button key={p.id} className="chat-tile" onClick={()=>navigate(`chat/${p.id}`)}><div className="flex items-center justify-between w-full"><Avatar person={p.id}/>{!state.read.includes(p.id)&&<span className="unread-dot" aria-label="Unread message"/>}</div><span className="chat-name">{p.name}<ChevronRight className="size-4 text-muted-foreground"/></span><span className="chat-preview">{last?.mine?'You: ':''}{last?.text??p.note}</span><span className="chat-time">{messages.length>1?'A moment shared':p.time}</span></button>})}</div>
    </section>
    <button className="together-card" onClick={()=>navigate('chat/family')}><div className="flex items-center gap-3"><Users className="size-7" strokeWidth={1.2}/><div><strong>A little time, together.</strong><p>Study, cook, or just be.</p></div></div><ArrowRight className="size-5"/></button>
+   <SignalFeed/>
+   <button className="gold-surface flex items-center gap-3 text-left" onClick={()=>navigate('game')}><Dices className="size-6" strokeWidth={1.4}/><div className="flex-1"><p className="font-serif text-lg">Today’s little question</p><p className="small-copy">{gameForDay(localDay()).q}</p></div><ChevronRight className="size-4"/></button>
    <section className="flex flex-col gap-2"><div className="section-heading"><h2>From home, with love</h2><Mail className="size-5 muted-icon"/></div><button className="surface text-left flex items-center gap-4" onClick={()=>navigate('dispatch')}><div className="moment-icon"><Mail/></div><div className="flex-1"><p className="font-serif text-lg">The little things edition</p><p className="small-copy">{pending?`${pending} little ${pending===1?'note':'notes'} from Mom. No rush to reply.`:'A place for all the ordinary, lovely things.'}</p></div><ChevronRight className="size-4"/></button></section>
    <button className="text-link justify-center" onClick={()=>navigate('tide')}><Waves/> Find a quiet moment <ChevronRight/></button>
    <p className="notice justify-center"><Heart/> Close, even from a little further away.</p>
