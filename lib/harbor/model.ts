@@ -6,7 +6,7 @@ export type Dispatch = { id: string; title: string; body: string; topic: string;
 export type SignalKind = 'photo' | 'watching' | 'meal' | 'recap'
 export type Signal = { id: string; at: string; person: string; kind: SignalKind; mediaId?: string; caption?: string; title?: string; note?: string; meal?: 'about_to_eat' | 'just_ate'; recapInput?: string; recapText?: string }
 export type HarborState = {
- version: 1; name: string; sharing: boolean; momConsent: boolean;
+ version: 1; name: string; sharing: boolean; momConsent: boolean; sharingSetupDone: boolean;
  schedules: Record<string, { you: Interval[]; mom: Interval[] }>;
  season: 'Quiet' | 'Steady' | 'Full'; milestone: { title: string; date: string };
  messages: Record<string, ChatMessage[]>; read: string[]; drafts: Record<string,string>;
@@ -107,12 +107,12 @@ export function seedState(now = new Date()): HarborState {
   {id:'seed-meal',at:new Date(now.getTime()-3600000).toISOString(),person:'mom',kind:'meal',meal:'just_ate',note:'Made a little extra of your favorite, out of habit.'},
   {id:'seed-watch',at:new Date(now.getTime()-86400000+3600000*3).toISOString(),person:'dad',kind:'watching',title:'A documentary about the Amazon',note:'Made me think of your old school project.'},
  ]
- return {version:1,name:'Maya',sharing:false,momConsent:false,schedules:{[today]:{you:[{start:'20:40',end:'22:00'}],mom:[{start:'20:00',end:'21:30'}]}},season:'Full',milestone:{title:'Midterms',date:localDay(milestone)},messages:Object.fromEntries(people.map(p=>[p.id,[{id:`hello-${p.id}`,text:p.note,mine:false,at:new Date(now.getTime()-3600000).toISOString()}]])),read:[],drafts:{},moments,jarDays:[],cues:[],dispatches:[{id:'from-mom',title:'A little taste of home.',body:'The kitchen smelled like your favorite dal today. I made a little extra out of habit. Some things don’t change, even when you’re miles away.\n\nThe balcony jasmine is blooming, too. Thought you’d like to know.',topic:'Just a little catch-up. No college talk today.',kind:'headline',status:'delivered'}],signals,games:{},settings:{cuesEnabled:false,walkingMinutes:10,sessionMinutes:20,dailyCap:2,cooldownMinutes:120,minimum:null,sound:'chime',reducedMotion:false}}
+ return {version:1,name:'Maya',sharing:false,momConsent:false,sharingSetupDone:false,schedules:{[today]:{you:[{start:'20:40',end:'22:00'}],mom:[{start:'20:00',end:'21:30'}]}},season:'Full',milestone:{title:'Midterms',date:localDay(milestone)},messages:Object.fromEntries(people.map(p=>[p.id,[{id:`hello-${p.id}`,text:p.note,mine:false,at:new Date(now.getTime()-3600000).toISOString()}]])),read:[],drafts:{},moments,jarDays:[],cues:[],dispatches:[{id:'from-mom',title:'A little taste of home.',body:'The kitchen smelled like your favorite dal today. I made a little extra out of habit. Some things don’t change, even when you’re miles away.\n\nThe balcony jasmine is blooming, too. Thought you’d like to know.',topic:'Just a little catch-up. No college talk today.',kind:'headline',status:'delivered'}],signals,games:{},settings:{cuesEnabled:false,walkingMinutes:10,sessionMinutes:20,dailyCap:2,cooldownMinutes:120,minimum:null,sound:'chime',reducedMotion:false}}
 }
 export function parseState(raw: string): HarborState | null {
  try {
   const s=JSON.parse(raw) as HarborState
-  if(s.version!==1 || typeof s.name!=='string' || typeof s.sharing!=='boolean' || typeof s.momConsent!=='boolean' || !s.settings || !s.schedules || !s.milestone || !s.messages || !s.drafts) return null
+  if(s.version!==1 || typeof s.name!=='string' || typeof s.sharing!=='boolean' || typeof s.momConsent!=='boolean' || typeof s.sharingSetupDone!=='boolean' || !s.settings || !s.schedules || !s.milestone || !s.messages || !s.drafts) return null
   if(!['Quiet','Steady','Full'].includes(s.season) || typeof s.milestone.title!=='string' || !/^\d{4}-\d{2}-\d{2}$/.test(s.milestone.date)) return null
   if(!Object.values(s.schedules).every(v=>v && validIntervals(v.you)&&validIntervals(v.mom))) return null
   if(!Object.values(s.messages).every(ms=>Array.isArray(ms)&&ms.every(m=>typeof m.text==='string'&&typeof m.mine==='boolean'&&typeof m.id==='string'))) return null
