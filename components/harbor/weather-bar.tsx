@@ -28,22 +28,9 @@ export function WeatherBar() {
 
  return <section className="weather-card" aria-labelledby="weather-heading">
   <div className="weather-head">
-   <div className="min-w-0">
-    <p className="eyebrow" id="weather-heading">How life feels right now</p>
-    <h2 className="font-serif text-2xl mt-1">{current.label}</h2>
-    <p className="small-copy">{current.caption}</p>
-   </div>
-   <div className="weather-wheel" aria-hidden="true">
-    <span className="weather-wheel-face"/>
-    <div className="weather-wheel-spin" style={{ transform: `rotate(${-index * (360 / weathers.length)}deg)` }}>
-     {weathers.map((w, i) => {
-      const Icon = weatherIcons[w.id]
-      const step = 360 / weathers.length
-      return <span key={w.id} className="weather-wheel-slot" data-active={i === index}
-       style={{ transform: `rotate(${i * step}deg) translateY(-42px) rotate(${(index - i) * step}deg)` }}><Icon/></span>
-     })}
-    </div>
-   </div>
+   <p className="eyebrow" id="weather-heading">How life feels right now</p>
+   <h2 className="font-serif text-2xl mt-1">{current.label}</h2>
+   <p className="small-copy">{current.caption}</p>
   </div>
 
   <div ref={track} className="weather-track" data-dragging={dragging}

@@ -20,7 +20,7 @@ export function Home({ navigate, bloomId }: { navigate: (page: string) => void; 
   </div>
 
   <div className="garden-holder">
-   <GardenView weather={state.weather} bloomId={bloomId} onAddPerson={() => navigate('settings')} height={344}/>
+   <GardenView weather={state.weather} bloomId={bloomId} onAddPerson={() => navigate('settings')} height={404}/>
   </div>
 
   <div className="page-content flow">

@@ -72,12 +72,16 @@ export const DETAIL_ZOOM = 1.12
 
 export function clampZoom(k: number) { return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, k)) }
 
+/** The sky wheel owns the top of the frame and the hint the bottom, so the ground fits between them. */
+const SKY_BAND = 92
+const HINT_BAND = 42
+
 export function fitCamera(plots: Plot[], width: number, height: number): Camera {
  const b = sceneBounds(plots)
  if (!width || !height) return { x: 0, y: 0, k: 1 }
- /* A little slack so nothing sits against the frame, and a nudge up to clear the hint. */
- const k = clampZoom(Math.min(width / b.width, height / b.height) * 0.92)
- return { x: width / 2 - (b.x + b.width / 2) * k, y: height / 2 - 10 - (b.y + b.height / 2) * k, k }
+ const usable = Math.max(130, height - SKY_BAND - HINT_BAND)
+ const k = clampZoom(Math.min(width / b.width, usable / b.height) * 0.96)
+ return { x: width / 2 - (b.x + b.width / 2) * k, y: SKY_BAND + usable / 2 - (b.y + b.height / 2) * k, k }
 }
 
 /** Zoom about a point so the ground under the finger stays under the finger. */

@@ -7,6 +7,7 @@ import { useHarbor } from '@/lib/harbor/store'
 import { bloomScale, callsFor, dominantFlower, feelings, flowerSpec, formatDuration, type Moment, type Weather } from '@/lib/harbor/model'
 import { blobPath, DETAIL_ZOOM, fitCamera, flowerSpot, focusCamera, GROUND_SQUASH, plotFor, rand, zoomAt, type Camera, type Plot } from '@/lib/harbor/garden'
 import { FlowerGlyph, FlowerMark } from './flowers'
+import { SkyWheel } from './sky-wheel'
 
 const ground: Record<string, { top: string; inner: string; soil: string }> = {
  green: { top: '#B7D6AB', inner: '#C9E3BD', soil: '#8FAF85' },
@@ -102,6 +103,7 @@ export function GardenView({ weather, bloomId, onAddPerson, height = 340 }: { we
  const sorted = [...plots].sort((a, b) => a.y - b.y)
 
  return <div ref={frame} className="garden-frame" data-weather={weather} style={{ height }}>
+  <SkyWheel weather={weather} width={size.w} height={size.h}/>
   <svg ref={svgRef} className="garden-canvas" viewBox={`0 0 ${size.w || 1} ${size.h || 1}`} width={size.w || undefined} height={size.h || undefined}
    role="application" aria-label="Your garden. Drag to move, pinch or use the buttons to zoom."
    onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={endPointer} onPointerCancel={endPointer}>
