@@ -12,13 +12,18 @@ export type Moment = {
 
 export type ChatMessage = { id: string; text: string; mine: boolean; at: string; liked?: boolean }
 export type Interval = { start: string; end: string }
-export type Note = { id: string; at: string; person: string; kind: 'note' | 'snapshot'; text?: string; mediaId?: string }
+export type Note = { id: string; at: string; person: string; text: string }
+
+/** An instant: one picture, taken now rather than chosen. Kept only if someone keeps it. */
+export type Snap = { id: string; at: string; person: string; mediaId?: string; caption?: string; prompted?: boolean; promptDay?: string; saved?: boolean; simulated?: boolean }
+/** A snap window only exists between two people who both said yes, and either can end it. */
+export type SnapPact = { personId: string; status: 'invited' | 'active'; since: string }
 
 export type Weather = 'clear' | 'bright' | 'cloudy' | 'rain' | 'storm'
 export type FlowerKind = 'daisy' | 'tulip' | 'poppy' | 'cosmos' | 'marigold' | 'bluebell' | 'aster' | 'sunflower'
 
 export type HarborState = {
- version: 2; name: string
+ version: 3; name: string
  people: Person[]
  sharing: boolean; momConsent: boolean; sharingSetupDone: boolean
  schedules: Record<string, { you: Interval[]; mom: Interval[] }>
@@ -26,6 +31,7 @@ export type HarborState = {
  messages: Record<string, ChatMessage[]>; read: string[]; drafts: Record<string, string>
  moments: Moment[]; cues: { id: string; at: string }[]
  notes: Note[]; games: Record<string, string>
+ snaps: Snap[]; pacts: SnapPact[]; snapWindows: Record<string, string>
  settings: { cuesEnabled: boolean; walkingMinutes: number; sessionMinutes: number; dailyCap: number; cooldownMinutes: number; sound: 'chime' | 'soft' | 'silent'; reducedMotion: boolean }
 }
 
@@ -109,6 +115,23 @@ export function formatDuration(m: number | undefined) {
  return rest ? `${h} hr ${rest} min` : `${h} hr`
 }
 
+/* ---------- snap windows: only ever between two people who both said yes ---------- */
+export function activePacts(state: HarborState) { return state.pacts.filter(p => p.status === 'active' && state.people.some(x => x.id === p.personId)) }
+/** A genuinely random moment, rolled once a day — not a slot anyone can plan around. */
+export function rollSnapWindow(now = new Date()) {
+ const earliest = now.getTime() + 2 * 60000
+ const close = new Date(now); close.setHours(22, 30, 0, 0)
+ const latest = close.getTime() > earliest + 60000 ? close.getTime() : earliest + 45 * 60000
+ return new Date(earliest + Math.floor(Math.random() * (latest - earliest))).toISOString()
+}
+export function answeredWindow(state: HarborState, day: string) { return state.snaps.some(s => s.person === 'you' && s.promptDay === day) }
+export function snapWindowDue(state: HarborState, now = new Date()) {
+ if (!activePacts(state).length) return false
+ const day = localDay(now)
+ const at = state.snapWindows[day]
+ return !!at && Date.parse(at) <= now.getTime() && !answeredWindow(state, day)
+}
+
 export function addMoment(state: HarborState, moment: Moment): HarborState {
  if (state.moments.some(x => x.id === moment.id)) return state
  return { ...state, moments: [...state.moments, moment] }
@@ -170,17 +193,22 @@ export function seedState(now = new Date()): HarborState {
   return { id: `seed-call-${i}`, at: at.toISOString(), person, kind: 'called' as const, text, source: 'manual' as const, minutes: mins, feeling, flower, topic }
  })
  const notes: Note[] = [
-  { id: 'seed-note-mom', at: new Date(now.getTime() - 3600000).toISOString(), person: 'mom', kind: 'note', text: 'Made a little extra of your favorite, out of habit.' },
-  { id: 'seed-note-dad', at: new Date(now.getTime() - 5 * 3600000).toISOString(), person: 'dad', kind: 'note', text: 'Radio still works. Unbelievable.' },
-  { id: 'seed-note-aanya', at: new Date(now.getTime() - 26 * 3600000).toISOString(), person: 'aanya', kind: 'note', text: 'saving a story for you' },
+  { id: 'seed-note-mom', at: new Date(now.getTime() - 3600000).toISOString(), person: 'mom', text: 'Made a little extra of your favorite, out of habit.' },
+  { id: 'seed-note-dad', at: new Date(now.getTime() - 5 * 3600000).toISOString(), person: 'dad', text: 'Radio still works. Unbelievable.' },
+  { id: 'seed-note-aanya', at: new Date(now.getTime() - 26 * 3600000).toISOString(), person: 'aanya', text: 'saving a story for you' },
+ ]
+ const snaps: Snap[] = [
+  { id: 'seed-snap-mom', at: new Date(now.getTime() - 2 * 3600000).toISOString(), person: 'mom', caption: 'the jasmine, finally', simulated: true },
+  { id: 'seed-snap-dad', at: new Date(now.getTime() - 30 * 3600000).toISOString(), person: 'dad', caption: 'first tomato of the year', saved: true, simulated: true },
+  { id: 'seed-snap-aanya', at: new Date(now.getTime() - 52 * 3600000).toISOString(), person: 'aanya', caption: 'library, 1am, send help', simulated: true },
  ]
  return {
-  version: 2, name: 'Maya', people: seedPeople.map(p => ({ ...p })),
+  version: 3, name: 'Maya', people: seedPeople.map(p => ({ ...p })),
   sharing: false, momConsent: false, sharingSetupDone: false,
   schedules: { [today]: { you: [{ start: '20:40', end: '22:00' }], mom: [{ start: '20:00', end: '21:30' }] } },
   weather: 'bright', milestone: { title: 'Midterms', date: localDay(milestone) },
   messages: Object.fromEntries(seedPeople.map(p => [p.id, [{ id: `hello-${p.id}`, text: p.note ?? 'Thinking of you.', mine: false, at: new Date(now.getTime() - 3600000).toISOString() }]])),
-  read: [], drafts: {}, moments, cues: [], notes, games: {},
+  read: [], drafts: {}, moments, cues: [], notes, games: {}, snaps, pacts: [], snapWindows: {},
   settings: { cuesEnabled: true, walkingMinutes: 10, sessionMinutes: 20, dailyCap: 2, cooldownMinutes: 120, sound: 'chime', reducedMotion: false },
  }
 }
@@ -188,14 +216,17 @@ export function seedState(now = new Date()): HarborState {
 export function parseState(raw: string): HarborState | null {
  try {
   const s = JSON.parse(raw) as HarborState
-  if (s.version !== 2 || typeof s.name !== 'string' || typeof s.sharing !== 'boolean' || typeof s.momConsent !== 'boolean' || typeof s.sharingSetupDone !== 'boolean') return null
+  if (s.version !== 3 || typeof s.name !== 'string' || typeof s.sharing !== 'boolean' || typeof s.momConsent !== 'boolean' || typeof s.sharingSetupDone !== 'boolean') return null
   if (!s.settings || !s.schedules || !s.milestone || !s.messages || !s.drafts) return null
   if (!Array.isArray(s.people) || !s.people.length || !s.people.every(p => p && typeof p.id === 'string' && typeof p.name === 'string' && typeof p.initials === 'string' && ['green', 'gold', 'orange', 'sky'].includes(p.tone))) return null
   if (!weathers.some(w => w.id === s.weather) || typeof s.milestone.title !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s.milestone.date)) return null
   if (!Object.values(s.schedules).every(v => v && validIntervals(v.you) && validIntervals(v.mom))) return null
   if (!Object.values(s.messages).every(ms => Array.isArray(ms) && ms.every(m => typeof m.text === 'string' && typeof m.mine === 'boolean' && typeof m.id === 'string'))) return null
   if (!Array.isArray(s.moments) || !s.moments.every(m => m && typeof m.id === 'string' && typeof m.text === 'string' && typeof m.person === 'string' && Number.isFinite(Date.parse(m.at)) && ['called', 'reacted', 'proposed_later', 'message', 'dismissed', 'played'].includes(m.kind) && (m.flower === undefined || flowerLibrary.some(f => f.id === m.flower)))) return null
-  if (!Array.isArray(s.notes) || !s.notes.every(n => n && typeof n.id === 'string' && typeof n.person === 'string' && Number.isFinite(Date.parse(n.at)) && ['note', 'snapshot'].includes(n.kind))) return null
+  if (!Array.isArray(s.notes) || !s.notes.every(n => n && typeof n.id === 'string' && typeof n.person === 'string' && typeof n.text === 'string' && Number.isFinite(Date.parse(n.at)))) return null
+  if (!Array.isArray(s.snaps) || !s.snaps.every(x => x && typeof x.id === 'string' && typeof x.person === 'string' && Number.isFinite(Date.parse(x.at)))) return null
+  if (!Array.isArray(s.pacts) || !s.pacts.every(p => p && typeof p.personId === 'string' && ['invited', 'active'].includes(p.status))) return null
+  if (!s.snapWindows || typeof s.snapWindows !== 'object' || Array.isArray(s.snapWindows) || !Object.values(s.snapWindows).every(v => typeof v === 'string')) return null
   if (!s.games || typeof s.games !== 'object' || Array.isArray(s.games) || !Object.entries(s.games).every(([k, v]) => typeof k === 'string' && typeof v === 'string')) return null
   if (!Array.isArray(s.cues) || !s.cues.every(c => c && typeof c.id === 'string' && Number.isFinite(Date.parse(c.at)))) return null
   if (!Array.isArray(s.read) || !s.read.every(d => typeof d === 'string')) return null

@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { ChevronRight, ImageUp, LockKeyhole, Play, ShieldCheck, Trash2, UserRoundPlus, Waves } from 'lucide-react'
+import { Camera, ChevronRight, ImageUp, LockKeyhole, Play, ShieldCheck, Trash2, UserRoundPlus, Waves } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -9,7 +9,7 @@ import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { chime, makeId, useHarbor } from '@/lib/harbor/store'
 import { clearMedia, saveMedia } from '@/lib/harbor/media'
-import { callsFor, initialsOf, type Person, type Tone } from '@/lib/harbor/model'
+import { activePacts, callsFor, initialsOf, localDay, rollSnapWindow, type Person, type Tone } from '@/lib/harbor/model'
 import { Avatar } from './avatar'
 
 const tones: Tone[] = ['green', 'gold', 'orange', 'sky']
@@ -21,8 +21,14 @@ export function SettingsScreen({ navigate }: { navigate: (page: string) => void 
  const [adding, setAdding] = useState(false)
  const [newName, setNewName] = useState('')
  const [removing, setRemoving] = useState<Person | null>(null)
+ const [pactFor, setPactFor] = useState<Person | null>(null)
  if (!state) return null
  const settings = state.settings
+ const pactOf = (id: string) => state.pacts.find(p => p.personId === id)
+ const setPact = (id: string, status: 'invited' | 'active' | null) => update(s => ({
+  ...s,
+  pacts: status ? [...s.pacts.filter(p => p.personId !== id), { personId: id, status, since: new Date().toISOString() }] : s.pacts.filter(p => p.personId !== id),
+ }))
 
  const addPerson = () => {
   const name = newName.trim(); if (!name) return
@@ -78,6 +84,28 @@ export function SettingsScreen({ navigate }: { navigate: (page: string) => void 
    </section>
 
    <section className="surface flow">
+    <div className="section-heading"><div className="flex items-center gap-2"><Camera className="size-5"/><h2 className="font-serif text-xl">Snap windows</h2></div></div>
+    <p className="small-copy">Once a day, at a moment nobody picks, you both get the same nudge to take one picture of whatever you&apos;re doing. It only exists between two people who each said yes, and either of you can end it.</p>
+    {state.people.map(person => {
+     const pact = pactOf(person.id)
+     return <div key={person.id} className="person-row">
+      <Avatar person={person.id} size="sm"/>
+      <span className="flex-1 min-w-0"><span className="text-sm font-medium block truncate">{person.name}</span><span className="small-copy">{pact?.status === 'active' ? 'On — you both agreed' : pact?.status === 'invited' ? 'Waiting on them' : 'Not set up'}</span></span>
+      {pact?.status === 'active'
+       ? <Button variant="ghost" onClick={() => setPact(person.id, null)}>End</Button>
+       : pact?.status === 'invited'
+        ? <Button variant="outline" onClick={() => setPact(person.id, 'active')}>Simulate yes</Button>
+        : <Button variant="outline" onClick={() => setPactFor(person)}>Invite</Button>}
+     </div>
+    })}
+    {!!activePacts(state).length && <>
+     <p className="notice"><ShieldCheck/>{state.snapWindows[localDay()] ? `Today's moment is set for ${new Date(state.snapWindows[localDay()]).toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit' })}. You are not told in advance in the real thing.` : 'Rolling today’s moment…'}</p>
+     <Button variant="outline" onClick={() => { update(s => ({ ...s, snapWindows: { ...s.snapWindows, [localDay()]: new Date(Date.now() - 1000).toISOString() } })); toast.success('Today’s window is open now.') }}>Open today&apos;s window now (demo)</Button>
+     <Button variant="ghost" onClick={() => update(s => ({ ...s, snapWindows: { ...s.snapWindows, [localDay()]: rollSnapWindow() } }))}>Roll a new moment</Button>
+    </>}
+   </section>
+
+   <section className="surface flow">
     <div className="flex items-center justify-between"><div className="flex items-center gap-2"><Waves className="size-5"/><h2 className="font-serif text-xl">Slack Tide</h2></div><Switch aria-label="Enable cues" checked={settings.cuesEnabled} onCheckedChange={enabled => enabled ? setPrivacy(true) : update(s => ({ ...s, settings: { ...s.settings, cuesEnabled: false } }))}/></div>
     <p className="small-copy">A gentle cue at the end of a walk. In this web demo you stand in for the sensor; nothing runs in the background.</p>
     <form className="flow" key={`${settings.walkingMinutes}-${settings.dailyCap}-${settings.cooldownMinutes}`} onSubmit={e => {
@@ -116,6 +144,13 @@ export function SettingsScreen({ navigate }: { navigate: (page: string) => void 
    <DialogHeader><DialogTitle>Who else belongs here?</DialogTitle><DialogDescription>They get their own patch of ground. Every call you have with them grows a flower in it.</DialogDescription></DialogHeader>
    <Field><FieldLabel htmlFor="new-person">Their name</FieldLabel><Input id="new-person" maxLength={40} value={newName} placeholder="Nani" onChange={e => setNewName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addPerson() } }}/></Field>
    <Button disabled={!newName.trim()} onClick={addPerson}><UserRoundPlus data-icon="inline-start"/>Give them a patch</Button>
+  </DialogContent></Dialog>
+
+  <Dialog open={!!pactFor} onOpenChange={value => !value && setPactFor(null)}><DialogContent>
+   <DialogHeader><DialogTitle>A snap window with {pactFor?.name}?</DialogTitle><DialogDescription>Once a day, at a random moment, you both get the same nudge to take one picture of whatever you happen to be doing. Nothing is scheduled and nothing is scored.</DialogDescription></DialogHeader>
+   <p className="notice"><ShieldCheck/>It takes both of you. {pactFor?.name} has to accept on their side, and either of you can end it at any time without explaining.</p>
+   <Button onClick={() => { if (pactFor) { setPact(pactFor.id, 'invited'); toast.success(`Asked ${pactFor.name}.`) } setPactFor(null) }}>Ask {pactFor?.name}</Button>
+   <Button variant="ghost" onClick={() => setPactFor(null)}>Not now</Button>
   </DialogContent></Dialog>
 
   <Dialog open={!!removing} onOpenChange={value => !value && setRemoving(null)}><DialogContent>
