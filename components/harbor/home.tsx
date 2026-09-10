@@ -6,9 +6,10 @@ import { Avatar } from './avatar'
 import { FlowerGlyph } from './flowers'
 import { GardenView } from './garden-view'
 import { NotesStrip } from './notes'
+import type { SnapIntent } from './snap'
 import { WeatherBar } from './weather-bar'
 
-export function Home({ navigate, bloomId }: { navigate: (page: string) => void; bloomId?: string }) {
+export function Home({ navigate, bloomId, onOpenSnap }: { navigate: (page: string) => void; bloomId?: string; onOpenSnap: (intent: SnapIntent) => void }) {
  const { state } = useHarbor()
  if (!state) return null
  const total = state.moments.filter(m => m.kind === 'called' && m.flower).length
@@ -47,7 +48,7 @@ export function Home({ navigate, bloomId }: { navigate: (page: string) => void; 
     </div>
    </section>
 
-   <NotesStrip navigate={navigate}/>
+   <NotesStrip navigate={navigate} onOpenSnap={onOpenSnap}/>
 
    <button className="text-link justify-center" onClick={() => navigate('cue')}><Waves/> Find a quiet moment <ChevronRight/></button>
    <p className="demo-footnote">An interactive demo · saved only on this device</p>

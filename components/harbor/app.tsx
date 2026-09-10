@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, CalendarDays, House, Sprout, UserRound } from 'lucide-react'
 import { Toaster } from '@/components/ui/sonner'
 import { makeId, useHarbor } from '@/lib/harbor/store'
-import { localDay } from '@/lib/harbor/model'
+import { activePacts, localDay, rollSnapWindow, snapWindowDue } from '@/lib/harbor/model'
 import { Home } from './home'
 import { Schedule } from './schedule'
 import { SettingsScreen } from './settings'
@@ -11,6 +11,7 @@ import { Conversation } from './conversation'
 import { CueOverlay, CueScreen, type Cue } from './cue'
 import { CallFlow } from './call'
 import { DailyQuestion } from './daily-question'
+import { SnapPrompt, SnapSheet, type SnapIntent } from './snap'
 
 const tabs = [{ id: 'home', label: 'Home', icon: House }, { id: 'schedule', label: 'Schedule', icon: CalendarDays }, { id: 'settings', label: 'Account', icon: UserRound }]
 
@@ -21,7 +22,24 @@ export function HarborApp() {
  const [call, setCall] = useState<{ person: string; topic?: string } | null>(null)
  const [bloom, setBloom] = useState<string>()
  const [question, setQuestion] = useState(false)
+ const [snap, setSnap] = useState<SnapIntent | null>(null)
+ const [windowDue, setWindowDue] = useState(false)
  const asked = useRef(false)
+ const day = localDay()
+ const needsWindow = !!state && activePacts(state).length > 0 && !state.snapWindows[day]
+
+ /* One roll a day, the moment a pact exists — nobody, including this app, knows it in advance. */
+ useEffect(() => { if (needsWindow) update(s => ({ ...s, snapWindows: { ...s.snapWindows, [day]: rollSnapWindow() } })) }, [needsWindow, day])
+
+ useEffect(() => {
+  if (!state) return
+  let skipped = false
+  try { skipped = sessionStorage.getItem('harbor-window') === day } catch { /* storage can be blocked; the window simply asks again */ }
+  const check = () => setWindowDue(!skipped && snapWindowDue(state))
+  check()
+  const timer = setInterval(check, 20000)
+  return () => clearInterval(timer)
+ }, [state, day])
 
  useEffect(() => {
   const sync = () => { setRoute(location.hash.slice(1) || 'home'); window.scrollTo(0, 0) }
@@ -64,7 +82,7 @@ export function HarborApp() {
   <main id="main">{!state
    ? <div className="page-content flex min-h-96 flex-col items-center justify-center gap-4" role="status"><Sprout className="size-10"/><p className="font-serif text-xl">Making a little room for you…</p></div>
    : <>
-    {page === 'home' && <Home navigate={navigate} bloomId={bloom}/>}
+    {page === 'home' && <Home navigate={navigate} bloomId={bloom} onOpenSnap={setSnap}/>}
     {page === 'schedule' && <Schedule navigate={navigate}/>}
     {page === 'settings' && <SettingsScreen navigate={navigate}/>}
     {page === 'chat' && <Conversation key={route} person={route.split('/')[1] || state.people[0]?.id} navigate={navigate} onCall={person => setCall({ person })}/>}
@@ -81,6 +99,10 @@ export function HarborApp() {
   {cue && <CueOverlay cue={cue} onDismiss={() => setCue(null)} onCall={topic => { setCue(null); setCall({ person: cue.person, topic }) }}/>}
   {call && <CallFlow person={call.person} topic={call.topic} onCancel={() => setCall(null)}
    onDone={momentId => { setCall(null); setBloom(momentId); navigate('home'); setTimeout(() => setBloom(undefined), 2600) }}/>}
+  {snap && <SnapSheet intent={snap} onClose={() => setSnap(null)}/>}
+  {windowDue && !snap && !cue && !call && !question && <SnapPrompt
+   onTake={() => { setWindowDue(false); setSnap({ view: 'capture', promptDay: day }) }}
+   onSkip={() => { setWindowDue(false); try { sessionStorage.setItem('harbor-window', day) } catch { /* nothing to remember if storage is blocked */ } }}/>}
   <DailyQuestion open={question} onOpenChange={closeQuestion}/>
   <Toaster theme="light" position="top-center"/>
  </div>
