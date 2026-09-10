@@ -1,41 +1,56 @@
 'use client'
-import { ArrowRight, ChevronRight, Dices, Flower2, Heart, Mail, Sprout, Users, Waves } from 'lucide-react'
+import { ChevronRight, Waves } from 'lucide-react'
 import { useHarbor } from '@/lib/harbor/store'
-import { gameForDay, localDay, people } from '@/lib/harbor/model'
-import { cn } from '@/lib/utils'
-import { Beacon } from './beacon'
-import { SignalFeed } from './signals'
-export function Avatar({person,small=false}:{person:string;small?:boolean}) {
- const p=people.find(x=>x.id===person)??people[0]
- return <span className={cn('avatar',p.style,small&&'!size-9 !text-base')} aria-hidden="true">{p.id==='family'?<Users className="size-5" strokeWidth={1.5}/>:p.initials}</span>
-}
-export function Home({navigate}:{navigate:(page:string)=>void}) {
- const {state}=useHarbor(); if(!state) return null
- const pending=state.dispatches.filter(d=>d.status==='delivered').length
+import { callsFor, dominantFlower } from '@/lib/harbor/model'
+import { Avatar } from './avatar'
+import { FlowerGlyph } from './flowers'
+import { GardenView } from './garden-view'
+import { NotesStrip } from './notes'
+import { WeatherBar } from './weather-bar'
+
+export function Home({ navigate, bloomId }: { navigate: (page: string) => void; bloomId?: string }) {
+ const { state } = useHarbor()
+ if (!state) return null
+ const total = state.moments.filter(m => m.kind === 'called' && m.flower).length
  return <div className="entrance">
-  <div className="home-hero-frame">
-   <section className="home-hero" aria-label="Welcome home">
-    <img className="hero-image" src="/images/meadow.png" alt="A hand-painted meadow of daisies, with a little home in the distance" fetchPriority="high"/>
-    <span className="hero-chip" aria-hidden="true"><Avatar person="mom" small/></span>
-    <div className="hero-copy"><div className="eyebrow mb-2">A little closer, every day</div><h1 className="font-serif">Hey, {state.name}.<br/>There&apos;s a little love<br/>waiting for you.</h1><p>Your people. Your pace.</p></div>
-    <button className="hero-footer" onClick={()=>navigate('garden')}><Flower2/> Good things are growing <ChevronRight/></button>
-   </section>
+  <div className="home-greeting">
+   <div className="eyebrow">A little closer, every day</div>
+   <h1 className="font-serif">Hey, {state.name}.</h1>
+   <p className="small-copy">{total ? `${total} calls have grown here.` : 'Your first call plants the first flower.'}</p>
   </div>
-  <div className="page-content !pb-0 !pt-4"><Beacon/></div>
-  <div className="page-content !pt-0"><div className="flow">
-   <section className="flex flex-col gap-3" aria-labelledby="inbox-heading"><div className="section-heading"><h2 id="inbox-heading">Your people</h2><button className="text-link" onClick={()=>navigate('inbox')}>Inbox <ArrowRight/></button></div>
-    <div className="chat-grid">{people.map(p=>{const messages=state.messages[p.id]??[];const last=messages.at(-1);return <button key={p.id} className="chat-tile" onClick={()=>navigate(`chat/${p.id}`)}><div className="flex items-center justify-between w-full"><Avatar person={p.id}/>{!state.read.includes(p.id)&&<span className="unread-dot" aria-label="Unread message"/>}</div><span className="chat-name">{p.name}<ChevronRight className="size-4 text-muted-foreground"/></span><span className="chat-preview">{last?.mine?'You: ':''}{last?.text??p.note}</span><span className="chat-time">{messages.length>1?'A moment shared':p.time}</span></button>})}</div>
+
+  <div className="garden-holder">
+   <GardenView weather={state.weather} bloomId={bloomId} onAddPerson={() => navigate('settings')} height={404}/>
+  </div>
+
+  <div className="page-content flow">
+   <WeatherBar/>
+
+   <section className="flex flex-col gap-3" aria-labelledby="people-heading">
+    <div className="section-heading"><h2 id="people-heading">Your people</h2></div>
+    <div className="chat-grid">
+     {state.people.map(p => {
+      const messages = state.messages[p.id] ?? []
+      const lastMessage = messages.at(-1)
+      const flower = dominantFlower(state, p.id)
+      const calls = callsFor(state, p.id).length
+      return <button key={p.id} className="chat-tile" onClick={() => navigate(`chat/${p.id}`)}>
+       <div className="flex items-start justify-between w-full">
+        <Avatar person={p.id}/>
+        {flower ? <FlowerGlyph kind={flower} size={30} className="chat-tile-flower"/> : null}
+       </div>
+       <span className="chat-name">{p.name}<ChevronRight className="size-4 text-muted-foreground"/></span>
+       <span className="chat-preview">{lastMessage?.mine ? 'You: ' : ''}{lastMessage?.text ?? p.note ?? 'Say hello whenever.'}</span>
+       <span className="chat-time">{calls ? `${calls} ${calls === 1 ? 'flower' : 'flowers'} in their patch` : 'No calls yet'}</span>
+      </button>
+     })}
+    </div>
    </section>
-   <button className="together-card" onClick={()=>navigate('chat/family')}><div className="flex items-center gap-3"><Users className="size-7" strokeWidth={1.2}/><div><strong>A little time, together.</strong><p>Study, cook, or just be.</p></div></div><ArrowRight className="size-5"/></button>
-   <SignalFeed/>
-   <button className="gold-surface flex items-center gap-3 text-left" onClick={()=>navigate('game')}><Dices className="size-6" strokeWidth={1.4}/><div className="flex-1"><p className="font-serif text-lg">Today’s little question</p><p className="small-copy">{gameForDay(localDay()).q}</p></div><ChevronRight className="size-4"/></button>
-   <section className="flex flex-col gap-2"><div className="section-heading"><h2>From home, with love</h2><Mail className="size-5 muted-icon"/></div><button className="surface text-left flex items-center gap-4" onClick={()=>navigate('dispatch')}><div className="moment-icon"><Mail/></div><div className="flex-1"><p className="font-serif text-lg">The little things edition</p><p className="small-copy">{pending?`${pending} little ${pending===1?'note':'notes'} from Mom. No rush to reply.`:'A place for all the ordinary, lovely things.'}</p></div><ChevronRight className="size-4"/></button></section>
-   <button className="text-link justify-center" onClick={()=>navigate('tide')}><Waves/> Find a quiet moment <ChevronRight/></button>
-   <p className="notice justify-center"><Heart/> Close, even from a little further away.</p>
+
+   <NotesStrip navigate={navigate}/>
+
+   <button className="text-link justify-center" onClick={() => navigate('cue')}><Waves/> Find a quiet moment <ChevronRight/></button>
    <p className="demo-footnote">An interactive demo · saved only on this device</p>
-  </div></div>
+  </div>
  </div>
-}
-export function Inbox({navigate}:{navigate:(page:string)=>void}) {
- return <><div className="page-intro"><span className="eyebrow">The people who feel like home</span><h1>Your inbox</h1><p>No read receipts. No rush. Just you and your people.</p></div><div className="page-content flow">{people.map(p=><button key={p.id} className="surface flex items-center gap-4 text-left" onClick={()=>navigate(`chat/${p.id}`)}><Avatar person={p.id}/><span className="flex-1"><strong>{p.name}</strong><span className="small-copy block">Open your conversation</span></span><ChevronRight className="size-5"/></button>)}<p className="notice"><Sprout/> All conversations use sample family data.</p></div></>
 }
