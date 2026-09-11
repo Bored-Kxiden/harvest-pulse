@@ -12,6 +12,7 @@ import { CueOverlay, CueScreen, type Cue } from './cue'
 import { CallFlow } from './call'
 import { DailyQuestion } from './daily-question'
 import { SnapPrompt, SnapSheet, type SnapIntent } from './snap'
+import { FieldTest } from './field'
 
 const tabs = [{ id: 'home', label: 'Home', icon: House }, { id: 'schedule', label: 'Schedule', icon: CalendarDays }, { id: 'settings', label: 'Account', icon: UserRound }]
 
@@ -87,7 +88,8 @@ export function HarborApp() {
     {page === 'settings' && <SettingsScreen navigate={navigate}/>}
     {page === 'chat' && <Conversation key={route} person={route.split('/')[1] || state.people[0]?.id} navigate={navigate} onCall={person => setCall({ person })}/>}
     {page === 'cue' && <CueScreen navigate={navigate} onFire={fireCue}/>}
-    {!['home', 'schedule', 'settings', 'chat', 'cue'].includes(page) && <div className="page-content"><p>This path is still growing.</p><button className="text-link" onClick={() => navigate('home')}>Back home</button></div>}
+    {page === 'field' && <FieldTest navigate={navigate}/>}
+    {!['home', 'schedule', 'settings', 'chat', 'cue', 'field'].includes(page) && <div className="page-content"><p>This path is still growing.</p><button className="text-link" onClick={() => navigate('home')}>Back home</button></div>}
    </>}</main>
 
   <nav className="bottom-nav" aria-label="Main navigation">

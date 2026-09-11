@@ -392,6 +392,19 @@
 .rhythm { height:20px; border-radius:8px; background:var(--secondary); overflow:hidden; position:relative; }
 .rhythm-free { position:absolute; top:0; bottom:0; background:var(--accent); border-radius:6px; min-width:2px; }
 
+/* ---------- field prototype ---------- */
+.field-holder { padding-inline:12px; }
+.field-frame { position:relative; height:min(62vh,560px); border-radius:24px; overflow:hidden; background:#FFFFFF; box-shadow:0 10px 30px -22px color-mix(in srgb,var(--foreground) 80%,transparent); border:1px solid var(--border); }
+.field-canvas { display:block; touch-action:none; cursor:grab; }
+.field-canvas:active { cursor:grabbing; }
+.field-controls { position:absolute; right:10px; top:10px; display:flex; flex-direction:column; gap:6px; }
+.field-readout { position:absolute; left:10px; bottom:10px; display:flex; align-items:center; gap:8px; padding:6px 12px; border-radius:99px; background:color-mix(in srgb,var(--card) 90%,transparent); font-size:11px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--muted-foreground); }
+.field-meter { display:block; width:54px; height:4px; border-radius:99px; background:var(--secondary); overflow:hidden; }
+.field-meter i { display:block; height:100%; background:var(--accent); transition:width .12s linear; }
+.field-jumps { display:flex; flex-wrap:wrap; gap:8px; }
+.field-jump { border-radius:99px; border:1px solid var(--input); padding:8px 14px; min-height:40px; font-size:13.5px; font-weight:600; background:var(--card); }
+.field-jump:hover { background:var(--secondary); }
+
 /* ---------- account ---------- */
 .person-row { display:flex; align-items:center; gap:12px; padding-block:10px; border-bottom:1px solid var(--border); }
 .person-row:last-of-type { border-bottom:0; }
