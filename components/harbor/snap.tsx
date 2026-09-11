@@ -2,9 +2,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { BookHeart, Camera, Check, ImageUp, RotateCcw, ShieldCheck, Sparkles, X } from 'lucide-react'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Field, FieldLabel } from '@/components/ui/field'
 import { makeId, useHarbor } from '@/lib/harbor/store'
 import { saveMedia } from '@/lib/harbor/media'
 import { activePacts, type Snap } from '@/lib/harbor/model'
@@ -19,20 +16,6 @@ export function originOf(element: Element | null): SnapOrigin | undefined {
  if (!element) return undefined
  const rect = element.getBoundingClientRect()
  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, scale: Math.max(0.12, rect.width / Math.max(window.innerWidth, 1)) }
-}
-
-/** The corner button on the notes row. Shows the latest instant stacked behind the lens. */
-export function SnapTile({ onOpen }: { onOpen: (intent: SnapIntent) => void }) {
- const { state } = useHarbor()
- if (!state) return null
- const latest = state.snaps.slice().sort((a, b) => b.at.localeCompare(a.at))[0]
- return <button type="button" className="note-item snap-tile" onClick={e => onOpen({ view: 'capture', origin: originOf(e.currentTarget) })}>
-  <span className="snap-tile-stack">
-   {latest && <span className="snap-tile-back">{latest.mediaId ? <LocalPhoto id={latest.mediaId} className="snap-fill"/> : <SnapPlaceholder snap={latest} small/>}</span>}
-   <span className="snap-tile-lens"><Camera/></span>
-  </span>
-  <span className="note-name">Snap</span>
- </button>
 }
 
 function SnapPlaceholder({ snap, small = false }: { snap: Snap; small?: boolean }) {
@@ -50,13 +33,13 @@ export function SnapPrompt({ onTake, onSkip }: { onTake: () => void; onSkip: () 
  const { state } = useHarbor()
  if (!state) return null
  const withWhom = activePacts(state).map(p => state.people.find(x => x.id === p.personId)?.name).filter(Boolean).join(' and ')
- return <div className="snap-prompt" role="dialog" aria-modal="true" aria-label="Time for a snap">
-  <div className="snap-prompt-card">
-   <span className="snap-prompt-mark"><Sparkles/></span>
-   <h1 className="font-serif text-3xl">It&apos;s time.</h1>
-   <p className="small-copy text-center">Whatever you&apos;re doing right now — that&apos;s the one. {withWhom} got the same nudge at the same moment.</p>
-   <Button onClick={onTake}><Camera data-icon="inline-start"/>Take it</Button>
-   <button type="button" className="cue-out" onClick={onSkip}>skip today</button>
+ return <div className="curtain" style={{ zIndex: 68 }} role="dialog" aria-modal="true" aria-label="Time for a snap">
+  <div className="curtain-sheet">
+   <span className="halo"><span className="path-icon" style={{ width: 72, height: 72, borderRadius: '50%' }}><Sparkles/></span></span>
+   <h1 className="curtain-title">It&apos;s time.</h1>
+   <p className="curtain-sub">Whatever you&apos;re doing right now — that&apos;s the one. {withWhom} got the same nudge at the same moment.</p>
+   <button type="button" className="btn btn-block" onClick={onTake}><Camera/>Take it</button>
+   <button type="button" className="btn btn-quiet" onClick={onSkip}>skip today</button>
   </div>
  </div>
 }
@@ -162,10 +145,10 @@ export function SnapSheet({ intent, onClose }: { intent: SnapIntent; onClose: ()
   {view === 'review' && shot && <div className="snap-stage">
    <div className="snap-lens"><img src={shot.url} alt="The snap you just took" className="snap-fill"/></div>
    <div className="snap-review">
-    <Field><FieldLabel htmlFor="snap-caption">A line, if you want one</FieldLabel><Input id="snap-caption" maxLength={80} placeholder="no reason" value={caption} onChange={e => setCaption(e.target.value)}/></Field>
-    <button type="button" className="snap-keep" aria-pressed={keep} onClick={() => setKeep(k => !k)}><BookHeart/><span><b>Keep it in the scrapbook</b><span className="small-copy block">Otherwise it just fades.</span></span><span className="snap-keep-box">{keep && <Check/>}</span></button>
-    <Button disabled={busy} onClick={send}>{busy ? 'Sending…' : `Send to ${state.people.length === 1 ? state.people[0].name : 'your people'}`}</Button>
-    <Button variant="ghost" onClick={() => { setShot(null); setView('capture') }}><RotateCcw data-icon="inline-start"/>Take another</Button>
+    <div><label className="field-label" htmlFor="snap-caption">A line, if you want one</label><input className="input" id="snap-caption" maxLength={80} placeholder="no reason" value={caption} onChange={e => setCaption(e.target.value)}/></div>
+    <button type="button" className="snap-keep" aria-pressed={keep} onClick={() => setKeep(k => !k)}><BookHeart/><span className="line-body"><b>Keep it in the scrapbook</b><span>Otherwise it just fades.</span></span><span className="snap-keep-box">{keep && <Check/>}</span></button>
+    <button type="button" className="btn btn-block" disabled={busy} onClick={send}>{busy ? 'Sending…' : `Send to ${state.people.length === 1 ? state.people[0].name : 'your people'}`}</button>
+    <button type="button" className="btn btn-quiet btn-block" onClick={() => { setShot(null); setView('capture') }}><RotateCcw/>Take another</button>
    </div>
   </div>}
 
@@ -181,7 +164,7 @@ export function SnapSheet({ intent, onClose }: { intent: SnapIntent; onClose: ()
      {snap.saved && <span className="snap-cell-kept"><BookHeart/></span>}
      {snap.prompted && <span className="snap-cell-tag">window</span>}
     </button>)}</div>
-    : <p className="small-copy p-6 text-center">{tab === 'saved' ? 'Nothing kept yet. Open an instant and keep the ones worth keeping.' : 'No instants yet. The camera is one tap away.'}</p>}
+    : <p className="empty-line">{tab === 'saved' ? 'Nothing kept yet. Open an instant and keep the ones worth keeping.' : 'No instants yet. The camera is one tap away.'}</p>}
    <p className="snap-foot">{tab === 'saved' ? 'Kept on purpose. These stay until you remove them.' : 'Instants fade on their own. Keep the ones you want to hold on to.'}</p>
   </div>}
 
@@ -195,9 +178,9 @@ export function SnapSheet({ intent, onClose }: { intent: SnapIntent; onClose: ()
      <span className="small-copy">{new Date(viewing.at).toLocaleString('en', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
     </span>
    </div>
-   {viewing.caption && <p className="font-serif text-xl text-center px-6">{viewing.caption}</p>}
-   <Button variant={viewing.saved ? 'default' : 'outline'} onClick={() => toggleSaved(viewing)}><BookHeart data-icon="inline-start"/>{viewing.saved ? 'Kept in your scrapbook' : 'Keep this one'}</Button>
-   {viewing.simulated && <p className="notice justify-center"><ShieldCheck/>Sample instant from the demo family.</p>}
+   {viewing.caption && <p style={{ fontFamily: 'var(--font-round), sans-serif', fontSize: 19, fontWeight: 700, color: '#FFFDF8', textAlign: 'center', padding: '0 24px' }}>{viewing.caption}</p>}
+   <button type="button" className={viewing.saved ? 'btn' : 'btn btn-soft'} onClick={() => toggleSaved(viewing)}><BookHeart/>{viewing.saved ? 'Kept in your scrapbook' : 'Keep this one'}</button>
+   {viewing.simulated && <p className="notice" style={{ color: 'rgba(255,253,248,.7)', justifyContent: 'center' }}><ShieldCheck/>Sample instant from the demo family.</p>}
   </div>}
  </div>
 }

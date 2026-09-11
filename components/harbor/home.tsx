@@ -1,57 +1,146 @@
 'use client'
-import { ChevronRight, Waves } from 'lucide-react'
+import { useState } from 'react'
+import { Bell, CalendarDays, ChevronRight, Clock3, Phone, Sprout, Users, Waves } from 'lucide-react'
 import { useHarbor } from '@/lib/harbor/store'
-import { callsFor, dominantFlower } from '@/lib/harbor/model'
+import {
+ blocksFor, callsFor, dominantFlower, feelings, formatDuration, formatTime, freeWindows,
+ localDay, minutes, sharedWindows, weatherIndex, type Moment,
+} from '@/lib/harbor/model'
+import type { Bloom } from '@/lib/harbor/meadow'
 import { Avatar } from './avatar'
+import { FeelingsCard, greetingFor } from './feelings'
 import { FlowerGlyph } from './flowers'
-import { GardenView } from './garden-view'
-import { NotesStrip } from './notes'
+import { Garden } from './garden'
+import { NotesRail } from './notes'
 import type { SnapIntent } from './snap'
-import { WeatherBar } from './weather-bar'
 
-export function Home({ navigate, bloomId, onOpenSnap }: { navigate: (page: string) => void; bloomId?: string; onOpenSnap: (intent: SnapIntent) => void }) {
+const tabs = [
+ { id: 'people', label: 'People', icon: Users },
+ { id: 'schedule', label: 'Schedule', icon: CalendarDays },
+ { id: 'activities', label: 'Activities', icon: Bell },
+] as const
+type Tab = typeof tabs[number]['id']
+
+export function Home({ navigate, bloomId, onOpenSnap, onCall, onOpenMoment, onAddPerson }: {
+ navigate: (page: string) => void; bloomId?: string
+ onOpenSnap: (intent: SnapIntent) => void; onCall: (personId: string) => void
+ onOpenMoment: (moment: Moment) => void; onAddPerson: () => void
+}) {
+ const { state } = useHarbor()
+ const [tab, setTab] = useState<Tab>('people')
+ if (!state) return null
+
+ const total = state.people.reduce((n, p) => n + callsFor(state, p.id).length, 0)
+ const day = localDay()
+ const recent = state.moments.filter(m => m.kind === 'called' && m.flower).slice().sort((a, b) => b.at.localeCompare(a.at)).slice(0, 5)
+
+ return <div className="entrance">
+  <div className="section section-first" style={{ marginTop: 8, marginBottom: 16 }}>
+   <p className="eyebrow">A little closer, every day</p>
+   <h1 style={{ fontSize: 36, fontWeight: 700, letterSpacing: '-.8px', color: 'var(--ink)', margin: '6px 0' }}>Hey, {state.name}.</h1>
+   <p style={{ margin: 0, fontSize: 16, color: '#6E7D6F' }}>{greetingFor(weatherIndex(state.weather))}</p>
+  </div>
+
+  <div className="garden-wrap">
+   <Garden weather={state.weather} bloomId={bloomId} height={300} onAddPerson={onAddPerson}
+    onOpenBloom={(bloom: Bloom) => onOpenMoment(bloom.moment)}/>
+  </div>
+
+  <div className="section"><FeelingsCard/></div>
+
+  <section className="section" aria-labelledby="people-heading">
+   <div className="row-head"><h2 id="people-heading">Your people</h2></div>
+   <div className="tabs" role="tablist" aria-label="Your people">
+    {tabs.map(({ id, label, icon: Icon }) => <button key={id} type="button" role="tab" className="tab" aria-selected={tab === id} onClick={() => setTab(id)}>
+     <Icon/>{label}
+    </button>)}
+   </div>
+
+   {tab === 'people' && <div className="people-grid">
+    {state.people.map(person => {
+     const flower = dominantFlower(state, person.id)
+     const calls = callsFor(state, person.id).length
+     const messages = state.messages[person.id] ?? []
+     const lastMessage = messages.at(-1)
+     const unread = !!lastMessage && !lastMessage.mine && !state.read.includes(person.id)
+     return <div key={person.id} className="person-card">
+      <button type="button" className="person-top" style={{ width: '100%' }} onClick={() => navigate(`chat/${person.id}`)} aria-label={`Open your conversation with ${person.name}`}>
+       <span style={{ position: 'relative' }}>
+        <Avatar person={person.id}/>
+        {unread && <span className="person-unread"/>}
+       </span>
+       {flower ? <FlowerGlyph kind={flower} size={28}/> : <ChevronRight className="size-4" style={{ color: 'var(--ink-faint)' }}/>}
+      </button>
+      <h3>{person.name}</h3>
+      <p className="person-note">{lastMessage?.mine ? 'You: ' : ''}{lastMessage?.text ?? person.note ?? 'Say hello whenever.'}</p>
+      <span className="person-foot"><Sprout/>{calls ? `${calls} ${calls === 1 ? 'flower' : 'flowers'} in their patch` : 'No calls yet'}</span>
+      <button type="button" className="call-now" onClick={() => onCall(person.id)}><Phone/>Call now</button>
+     </div>
+    })}
+   </div>}
+
+   {tab === 'schedule' && <TodayAtAGlance navigate={navigate}/>}
+
+   {tab === 'activities' && <div className="stack">
+    {recent.length ? recent.map(moment => {
+     const who = state.people.find(p => p.id === moment.person)
+     const feeling = feelings.find(f => f.id === moment.feeling)
+     return <button key={moment.id} type="button" className="line" onClick={() => onOpenMoment(moment)}>
+      <span className={`line-icon tint-${who?.tone ?? 'green'}`}><FlowerGlyph kind={moment.flower ?? 'daisy'} size={22}/></span>
+      <span className="line-body">
+       <b>{moment.topic ? moment.topic : `A call with ${who?.name ?? 'family'}`}</b>
+       <span>{formatDuration(moment.minutes)} · {feeling?.label.toLowerCase() ?? 'steady'} · {new Date(moment.at).toLocaleDateString('en', { month: 'short', day: 'numeric' })}</span>
+      </span>
+      <ChevronRight/>
+     </button>
+    }) : <p className="empty-line">No calls yet. The first one plants the first flower.</p>}
+   </div>}
+  </section>
+
+  <NotesRail navigate={navigate} onOpenSnap={onOpenSnap}/>
+
+  <div className="section">
+   <button type="button" className="line" onClick={() => navigate('cue')}>
+    <span className="line-icon tint-sky"><Waves/></span>
+    <span className="line-body"><b>Find a quiet moment</b><span>A cue at the end of a walk, never a demand</span></span>
+    <ChevronRight/>
+   </button>
+  </div>
+
+  <p className="footnote"><Sprout style={{ color: 'var(--leaf)' }}/>Small steps. Lighter days.<Sprout style={{ color: 'var(--leaf)' }}/></p>
+  <p className="demo-footnote" style={{ marginTop: 10 }}>An interactive demo · saved only on this device</p>
+  <div style={{ height: 8 }}/>
+ </div>
+}
+
+/** The quick read of today, the same one the schedule screen keeps in full. */
+function TodayAtAGlance({ navigate }: { navigate: (page: string) => void }) {
  const { state } = useHarbor()
  if (!state) return null
- const total = state.moments.filter(m => m.kind === 'called' && m.flower).length
- return <div className="entrance">
-  <div className="home-greeting">
-   <div className="eyebrow">A little closer, every day</div>
-   <h1 className="font-serif">Hey, {state.name}.</h1>
-   <p className="small-copy">{total ? `${total} calls have grown here.` : 'Your first call plants the first flower.'}</p>
-  </div>
+ const day = localDay()
+ const mine = blocksFor(state, day, 'you').slice().sort((a, b) => minutes(a.start) - minutes(b.start))
+ const free = freeWindows(mine)
+ const shared = sharedWindows(state, day)
+ const partner = state.people[0]
 
-  <div className="garden-holder">
-   <GardenView weather={state.weather} bloomId={bloomId} onAddPerson={() => navigate('settings')} height={404}/>
-  </div>
+ return <div className="stack">
+  {mine.length ? mine.map((block, i) => <div key={i} className="line">
+   <span className="line-icon tint-gold"><Clock3/></span>
+   <span className="line-body"><b>{block.label || 'Busy'}</b><span>{formatTime(block.start)} – {formatTime(block.end)}</span></span>
+  </div>) : <p className="empty-line">Nothing marked today. A whole open day.</p>}
 
-  <div className="page-content flow">
-   <WeatherBar/>
-
-   <section className="flex flex-col gap-3" aria-labelledby="people-heading">
-    <div className="section-heading"><h2 id="people-heading">Your people</h2></div>
-    <div className="chat-grid">
-     {state.people.map(p => {
-      const messages = state.messages[p.id] ?? []
-      const lastMessage = messages.at(-1)
-      const flower = dominantFlower(state, p.id)
-      const calls = callsFor(state, p.id).length
-      return <button key={p.id} className="chat-tile" onClick={() => navigate(`chat/${p.id}`)}>
-       <div className="flex items-start justify-between w-full">
-        <Avatar person={p.id}/>
-        {flower ? <FlowerGlyph kind={flower} size={30} className="chat-tile-flower"/> : null}
-       </div>
-       <span className="chat-name">{p.name}<ChevronRight className="size-4 text-muted-foreground"/></span>
-       <span className="chat-preview">{lastMessage?.mine ? 'You: ' : ''}{lastMessage?.text ?? p.note ?? 'Say hello whenever.'}</span>
-       <span className="chat-time">{calls ? `${calls} ${calls === 1 ? 'flower' : 'flowers'} in their patch` : 'No calls yet'}</span>
-      </button>
-     })}
+  {shared.length
+   ? <div className="line" style={{ background: 'var(--gold-soft)', boxShadow: 'none' }}>
+    <span className="line-icon" style={{ background: 'rgba(255,253,248,.7)' }}><Users/></span>
+    <span className="line-body"><b>{formatTime(shared[0].start)} – {formatTime(shared[0].end)}</b><span>Free at the same time as {partner?.name ?? 'them'}</span></span>
+   </div>
+   : free.length
+    ? <div className="line" style={{ background: '#E4F0E2', boxShadow: 'none' }}>
+     <span className="line-icon" style={{ background: 'rgba(255,253,248,.7)' }}><Sprout/></span>
+     <span className="line-body"><b>{formatTime(free[0].start)} – {formatTime(free[0].end)}</b><span>Your longest open stretch today</span></span>
     </div>
-   </section>
+    : null}
 
-   <NotesStrip navigate={navigate} onOpenSnap={onOpenSnap}/>
-
-   <button className="text-link justify-center" onClick={() => navigate('cue')}><Waves/> Find a quiet moment <ChevronRight/></button>
-   <p className="demo-footnote">An interactive demo · saved only on this device</p>
-  </div>
+  <button type="button" className="link" style={{ alignSelf: 'flex-start' }} onClick={() => navigate('schedule')}>Open the full week <ChevronRight/></button>
  </div>
 }

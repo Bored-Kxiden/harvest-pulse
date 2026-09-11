@@ -2,7 +2,7 @@
 import useSWR from 'swr'
 import { toast } from 'sonner'
 import { addMoment, parseState, seedState, type HarborState, type Moment } from './model'
-const KEY = 'harbor-demo-v3'
+const KEY = 'harbor-demo-v4'
 let current: HarborState | undefined
 let warned = false
 function persist(state: HarborState) {
