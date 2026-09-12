@@ -127,7 +127,7 @@ export function AccountScreen({ navigate }: { navigate: (page: string) => void }
     })}
     {!!activePacts(state).length && <>
      <p className="note-strip"><ShieldCheck aria-hidden="true"/>{state.snapWindows[localDay()]
-      ? `Today's moment is set for ${new Date(state.snapWindows[localDay()]).toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit' })}. You are not told in advance in the real thing.`
+      ? `Today's moment is set for ${new Date(state.snapWindows[localDay()]).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}. You are not told in advance in the real thing.`
       : 'Rolling today’s moment…'}</p>
      <button type="button" className="btn btn-soft btn-block" onClick={() => { update(s => ({ ...s, snapWindows: { ...s.snapWindows, [localDay()]: new Date(Date.now() - 1000).toISOString() } })); toast.success('Today’s window is open now.') }}>Open Today&rsquo;s Window (Demo)</button>
      <button type="button" className="btn btn-quiet btn-block" onClick={() => update(s => ({ ...s, snapWindows: { ...s.snapWindows, [localDay()]: rollSnapWindow() } }))}>Roll a new moment</button>

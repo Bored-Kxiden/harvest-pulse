@@ -80,7 +80,7 @@ export function CueOverlay({ cue, onDismiss, onCall }: { cue: Cue; onDismiss: ()
     <h1 className="curtain-title">A little love, then.</h1>
     <p className="curtain-sub">One line is plenty. No call, no explanation.</p>
     <div><label className="label" htmlFor="cue-line">Your line</label>
-     <input className="input" id="cue-line" maxLength={120} placeholder="thinking of you, that's all" value={line} onChange={e => setLine(e.target.value)}/></div>
+     <input className="input" id="cue-line" maxLength={120} placeholder="thinking of you, that’s all…" value={line} onChange={e => setLine(e.target.value)} autoComplete="off"/></div>
     <button type="button" className="btn btn-block" disabled={!line.trim()} onClick={() => { finish({ kind: 'reacted', text: line.trim(), topic }); toast.success('Sent. Nothing owed either way.'); onDismiss() }}><Check/>Send it</button>
     <button type="button" className="btn btn-quiet btn-block" onClick={() => setStep('cue')}>back</button>
    </div>}
@@ -89,7 +89,7 @@ export function CueOverlay({ cue, onDismiss, onCall }: { cue: Cue; onDismiss: ()
     <h1 className="curtain-title">When would suit you?</h1>
     <p className="curtain-sub">A possibility, not a promise. It becomes today&apos;s next nudge and nothing more.</p>
     <div><label className="label" htmlFor="cue-when">A better time</label>
-     <input className="input" id="cue-when" type="datetime-local" value={when} onChange={e => { setWhen(e.target.value); setError('') }} aria-invalid={!!error}/></div>
+     <input className="input" id="cue-when" type="datetime-local" autoComplete="off" value={when} onChange={e => { setWhen(e.target.value); setError('') }} aria-invalid={!!error}/></div>
     {error && <p className="small" style={{ color: 'var(--destructive)' }} role="alert">{error}</p>}
     <button type="button" className="btn btn-block" onClick={() => {
      if (!isFuture(when)) { setError('Choose a time still ahead of you.'); return }
@@ -134,7 +134,7 @@ export function CueScreen({ navigate, onFire }: { navigate: (page: string) => vo
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Footprints className="size-5" style={{ color: 'var(--ink)' }}/><h2 style={{ fontSize: 19 }}>Try a walking-stop moment</h2></div>
     <p className="small">Manual simulation only. No sensors are active in this web demo.</p>
     <div><label className="label" htmlFor="walk-demo">Minutes walked</label>
-     <input className="input" id="walk-demo" type="number" min={0} max={300} value={walked} onChange={e => setWalked(e.target.value)}/></div>
+     <input className="input" id="walk-demo" type="number" inputMode="numeric" min={0} max={300} autoComplete="off" value={walked} onChange={e => setWalked(e.target.value)}/></div>
     <div className="switch-row">
      <label htmlFor="stopped" style={{ fontSize: 15 }}>I have fully stopped walking</label>
      <button type="button" id="stopped" className="toggle" aria-pressed={stopped} aria-label="I have fully stopped walking" onClick={() => setStopped(v => !v)}/>

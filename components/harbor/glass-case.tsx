@@ -10,7 +10,7 @@ export function GlassCase({ moment, onClose }: { moment: Moment; onClose: () => 
  const who = state?.people.find(p => p.id === moment.person)
  const feeling = feelings.find(f => f.id === moment.feeling)
  const rows: [string, string][] = [
-  ['Date', new Date(moment.at).toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })],
+  ['Date', new Date(moment.at).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })],
   ['Duration', formatDuration(moment.minutes)],
  ]
  if (moment.topic) rows.push(['What it was about', moment.topic])

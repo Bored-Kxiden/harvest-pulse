@@ -76,7 +76,7 @@ export function CallFlow({ person, topic, onDone, onCancel }: { person: string; 
      </span>
     </div>
     <div><label className="label" htmlFor="call-about">What was it about? (optional)</label>
-     <input className="input" id="call-about" maxLength={90} placeholder="the tomatoes, mostly" value={about} onChange={e => setAbout(e.target.value)}/></div>
+     <input className="input" id="call-about" maxLength={90} placeholder="the tomatoes, mostly…" value={about} onChange={e => setAbout(e.target.value)} autoComplete="off"/></div>
     <button type="button" className="btn btn-block" onClick={() => setStep('flower')}>Choose a flower <Sparkles/></button>
    </div>}
 

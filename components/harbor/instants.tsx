@@ -100,7 +100,7 @@ export function StoryViewer({ start, onClose }: { start: number; onClose: () => 
   </div>
 
   <form className="story-reply" onSubmit={e => { e.preventDefault(); if (!reply.trim()) return; setReply(''); toast.success(`Sent to ${who?.name ?? 'them'}.`) }}>
-   <input className="story-input" value={reply} onChange={e => setReply(e.target.value)}
+   <input className="story-input" value={reply} onChange={e => setReply(e.target.value)} spellCheck={false}
     placeholder={`Reply to ${who?.name ?? 'them'}…`} aria-label={`Reply to ${who?.name ?? 'them'}`} autoComplete="off"/>
    <button type="button" className="story-icon" aria-label={snap.saved ? 'Remove from your scrapbook' : 'Keep in your scrapbook'} aria-pressed={!!snap.saved} onClick={keep}>
     <Heart style={{ fill: snap.saved ? '#F0A24B' : 'none', color: snap.saved ? '#F0A24B' : undefined }}/>

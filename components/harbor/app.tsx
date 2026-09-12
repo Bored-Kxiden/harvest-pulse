@@ -29,6 +29,7 @@ export function HarborApp() {
  const [route, setRoute] = useState('home')
  const { state, update } = useHarbor()
  const [lift, setLift] = useState(0)
+ const [dragging, setDragging] = useState(false)
  const [cue, setCue] = useState<Cue | null>(null)
  const [call, setCall] = useState<{ person: string; topic?: string } | null>(null)
  const [fresh, setFresh] = useState<string>()
@@ -101,10 +102,10 @@ export function HarborApp() {
  }
 
  const total = state ? state.moments.filter(m => m.kind === 'called' && m.flower).length : 0
- const sheetTop = 0.52 + (0.11 - 0.52) * lift
  const chipLabel = chipWeather ? weathers[weatherIndex(weather)].label : total ? 'Your garden is blooming' : 'Plant your first flower'
 
- return <div className="stage" data-reduced-motion={state?.settings.reducedMotion}>
+ return <div className="stage" data-reduced-motion={state?.settings.reducedMotion} data-dragging={dragging}
+  style={{ ['--lift' as string]: lift }}>
   <Meadow weather={weather} sheetLift={lift} freshBloomId={fresh} onOpenBloom={setMoment}/>
 
   <header className="topbar">
@@ -128,18 +129,22 @@ export function HarborApp() {
   <InstantsRail onOpenStory={i => setStory(i)} onOpenCamera={() => setCamera({})}/>
 
   <button type="button" className="meadow-chip"
-   style={{ bottom: `calc(${((1 - sheetTop) * 100).toFixed(2)}dvh + 16px)`, opacity: lift > 0.72 ? 0 : 1, pointerEvents: lift > 0.72 ? 'none' : 'auto' }}
+   style={{ opacity: lift > 0.72 ? 0 : 1, pointerEvents: lift > 0.72 ? 'none' : 'auto' }}
    onClick={turnWeather} aria-label={`Weather in your meadow: ${weathers[weatherIndex(weather)].label}. Turn it over.`}>
    <span className="weather-turn" aria-hidden="true"><Icon key={`${weather}-${chipWeather}`}/></span>
    {chipLabel}
    <svg className="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
   </button>
 
-  <Sheet lift={lift} onLift={setLift} label="Harbor">
+  <Sheet lift={lift} onLift={setLift} onDragging={setDragging} label="Harbor">
    {!state
-    ? <div className="wrap" role="status" style={{ display: 'grid', placeItems: 'center', gap: 12, paddingTop: 48 }}>
-     <Sprout style={{ width: 34, height: 34, color: 'var(--leaf)' }} aria-hidden="true"/>
-     <p style={{ fontFamily: 'var(--font-round), sans-serif', fontSize: 19, fontWeight: 700, color: 'var(--ink)' }}>Making a little room for you…</p>
+    ? <div className="wrap flow" role="status" aria-live="polite" aria-busy="true">
+     <span className="sr-only">Making a little room for you…</span>
+     <div className="skeleton" style={{ height: 178 }} aria-hidden="true"/>
+     <div className="skeleton" style={{ height: 22, width: '45%', borderRadius: 11 }} aria-hidden="true"/>
+     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 11 }} aria-hidden="true">
+      <div className="skeleton" style={{ height: 168 }}/><div className="skeleton" style={{ height: 168 }}/>
+     </div>
     </div>
     : <>
      {page === 'home' && <Home navigate={navigate} onCall={person => setCall({ person })} onOpenMoment={setMoment}

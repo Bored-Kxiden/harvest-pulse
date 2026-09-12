@@ -108,7 +108,7 @@ export function Schedule({ navigate }: { navigate: (page: string) => void }) {
    <div className="card cal" style={{ ['--i' as string]: 1 }}>
     <div className="cal-week">
      <button type="button" className="cal-step" aria-label="Previous week" onClick={() => setAnchor(shiftDay(week[0], -7))}><ChevronLeft aria-hidden="true"/></button>
-     <b>Week of {new Date(`${week[0]}T12:00:00`).toLocaleDateString('en', { month: 'long', day: 'numeric' })}</b>
+     <b>Week of {new Date(`${week[0]}T12:00:00`).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}</b>
      <button type="button" className="cal-step" aria-label="Next week" onClick={() => setAnchor(shiftDay(week[0], 7))}><ChevronRight aria-hidden="true"/></button>
     </div>
 
@@ -168,7 +168,7 @@ export function Schedule({ navigate }: { navigate: (page: string) => void }) {
   <Dialog open={!!naming} onOpenChange={value => { if (!value) { setNaming(null); setLabel('') } }}><DialogContent>
    <DialogHeader>
     <DialogTitle>What is this?</DialogTitle>
-    <DialogDescription>{naming && `${new Date(`${naming.day}T12:00:00`).toLocaleDateString('en', { weekday: 'long' })}, ${formatTime(naming.start)} – ${formatTime(naming.end)}. The name is only ever for you.`}</DialogDescription>
+    <DialogDescription>{naming && `${new Date(`${naming.day}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long' })}, ${formatTime(naming.start)} – ${formatTime(naming.end)}. The name is only ever for you.`}</DialogDescription>
    </DialogHeader>
    <input className="input" maxLength={60} placeholder="Lecture, shift, dinner…" value={label} autoComplete="off"
     onChange={e => setLabel(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveNamed() } }}/>
@@ -182,7 +182,7 @@ export function Schedule({ navigate }: { navigate: (page: string) => void }) {
    {editing && <>
     <DialogHeader>
      <DialogTitle>{editing.block.label || 'Busy'}</DialogTitle>
-     <DialogDescription>{new Date(`${editing.day}T12:00:00`).toLocaleDateString('en', { weekday: 'long', month: 'short', day: 'numeric' })} · {formatTime(editing.block.start)} – {formatTime(editing.block.end)}{editing.block.linked ? ' · from your calendar' : ''}</DialogDescription>
+     <DialogDescription>{new Date(`${editing.day}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })} · {formatTime(editing.block.start)} – {formatTime(editing.block.end)}{editing.block.linked ? ' · from your calendar' : ''}</DialogDescription>
     </DialogHeader>
     <button type="button" className="btn btn-soft btn-block" onClick={() => {
      setBlocks(editing.day, blocksFor(state, editing.day, 'you').filter((_, i) => i !== editing.index))

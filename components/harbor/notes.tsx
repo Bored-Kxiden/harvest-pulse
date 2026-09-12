@@ -49,7 +49,7 @@ export function NotesScreen({ navigate, onOpenCamera, onOpenStory }: {
        <Avatar person={note.person} size="sm"/>
        <span className="row-body">
         <b>{who?.name ?? 'You'}</b>
-        <span>{new Date(note.at).toLocaleString('en', { weekday: 'long', hour: 'numeric', minute: '2-digit' })}</span>
+        <span>{new Date(note.at).toLocaleString(undefined, { weekday: 'long', hour: 'numeric', minute: '2-digit' })}</span>
        </span>
       </div>
       <p style={{ fontFamily: 'var(--font-script), cursive', fontSize: 23, lineHeight: 1.25, color: 'var(--ink-deep)', margin: '10px 2px 0', position: 'relative', zIndex: 1 }}>{note.text}</p>
@@ -73,7 +73,7 @@ export function NotesScreen({ navigate, onOpenCamera, onOpenStory }: {
        <span className={`polaroid-shot tint-${who?.tone ?? 'green'}`}>
         {snap.mediaId ? <LocalPhoto id={snap.mediaId}/> : <Sprig kind="cosmos" style={{ width: 54 }}/>}
        </span>
-       <span className="polaroid-date">{new Date(snap.at).toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+       <span className="polaroid-date">{new Date(snap.at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
        <span className="polaroid-note">{snap.caption ?? 'no reason'}</span>
       </button>
      })}

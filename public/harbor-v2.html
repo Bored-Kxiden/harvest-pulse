@@ -153,13 +153,14 @@ input,select,textarea{font-family:inherit}
 
 /* ---------- the meadow chip ---------- */
 .meadow-chip {
- position: absolute; z-index: 11; left: 18px; display: flex; align-items: center; gap: 9px;
+ position: absolute; z-index: 11; left: 18px; bottom: calc(48dvh + 16px); display: flex; align-items: center; gap: 9px;
+ transform: translate3d(0, calc(-41dvh * var(--lift, 0)), 0);
  padding: 11px 17px; border-radius: 99px; background: rgb(254 252 245 / .94);
  font-family: var(--round), sans-serif; font-weight: 700; font-size: 14.5px; color: var(--ink-deep);
  box-shadow: var(--shadow-card); white-space: nowrap;
- transition: transform .24s cubic-bezier(.22,.9,.28,1), bottom .42s cubic-bezier(.22,.9,.28,1), opacity .3s;
+ transition: transform .42s cubic-bezier(.22, .9, .28, 1), opacity .3s;
 }
-.meadow-chip:active { transform: scale(.96) }
+.meadow-chip:active { transform: translate3d(0, calc(-41dvh * var(--lift, 0)), 0) scale(.96) }
 .meadow-chip svg { width: 18px; height: 18px; flex-shrink: 0 }
 .meadow-chip .caret { width: 14px; height: 14px; stroke-width: 2.4; color: var(--ink-faint) }
 /* The weather glyph turns over as the sky does. */
@@ -169,17 +170,21 @@ input,select,textarea{font-family:inherit}
 
 /* ---------- the sheet ---------- */
 .sheet {
- position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;
+ position: absolute; left: 0; right: 0; top: 52dvh; height: 89dvh; z-index: 20;
+ transform: translate3d(0, calc(-41dvh * var(--lift, 0)), 0);
+ transition: transform .42s cubic-bezier(.22, .9, .28, 1);
  display: flex; flex-direction: column;
  background: linear-gradient(180deg, var(--ivory) 0%, var(--ivory) 62%, var(--ivory-deep) 100%);
  border-radius: 30px 30px 0 0; box-shadow: var(--shadow-lift);
  overscroll-behavior: contain;
 }
+.stage[data-dragging='true'] .sheet,
+.stage[data-dragging='true'] .meadow-chip { transition: none }
 .sheet::before {
  content: ''; position: absolute; inset: 0 0 auto; height: 30px; border-radius: 30px 30px 0 0;
  box-shadow: inset 0 1.5px 0 rgb(255 255 255 / .9); pointer-events: none;
 }
-.sheet-grab { display: grid; place-items: center; width: 100%; height: 26px; flex-shrink: 0; touch-action: none }
+.sheet-grab { display: grid; place-items: center; width: 100%; height: 44px; margin-bottom: -18px; flex-shrink: 0; touch-action: none }
 .sheet-grab span { width: 42px; height: 5px; border-radius: 99px; background: #CFD8C9; transition: background .2s, width .24s cubic-bezier(.22,.9,.28,1) }
 .sheet-grab:hover span { background: #B9C6B2; width: 52px }
 .sheet-scroll {
@@ -203,7 +208,7 @@ input,select,textarea{font-family:inherit}
 .row-head h2 { font-size: 23px; font-weight: 700; color: var(--ink-deep); letter-spacing: -.4px; display: flex; align-items: center; gap: 8px }
 .squiggle { width: 46px; height: 10px; color: var(--leaf); opacity: .7; flex-shrink: 0 }
 .pill-link {
- display: inline-flex; align-items: center; gap: 4px; padding: 8px 13px; border-radius: 99px;
+ display: inline-flex; align-items: center; gap: 4px; min-height: 40px; padding: 8px 14px; border-radius: 99px;
  background: var(--paper); box-shadow: var(--shadow-soft);
  font-family: var(--round), sans-serif; font-weight: 700; font-size: 13px; color: var(--ink);
  transition: transform .2s cubic-bezier(.22,.9,.28,1);
@@ -270,9 +275,11 @@ textarea.input { min-height: 92px; resize: none; line-height: 1.5 }
 .feelings-sprig { position: absolute; right: -6px; top: 6px; width: 96px; opacity: .95; pointer-events: none }
 .mood { position: relative; height: 48px; margin-top: 14px; padding-inline: 24px; touch-action: none }
 .mood-rail { position: absolute; left: 24px; right: 24px; top: 50%; height: 11px; margin-top: -5.5px; border-radius: 99px; background: #E3EEDE }
-.mood-fill { position: absolute; left: 24px; top: 50%; height: 11px; margin-top: -5.5px; border-radius: 99px; background: linear-gradient(90deg, #BDE0BF, #86C293); transition: width .42s cubic-bezier(.22,.9,.28,1) }
-.mood-knob { position: absolute; top: 50%; width: 48px; height: 48px; margin: -24px 0 0 -24px; border-radius: 50%; background: #E4F0E2; display: grid; place-items: center; box-shadow: 0 8px 16px -8px rgb(31 107 67 / .6); transition: left .42s cubic-bezier(.22,.9,.28,1), transform .2s }
-.mood[data-dragging='true'] .mood-knob, .mood[data-dragging='true'] .mood-fill { transition: none }
+.mood-fill { position: absolute; left: 24px; right: 24px; top: 50%; height: 11px; margin-top: -5.5px; border-radius: 99px; background: linear-gradient(90deg, #BDE0BF, #86C293); transform-origin: left center; transform: scaleX(var(--p, 0)); transition: transform .42s cubic-bezier(.22, .9, .28, 1) }
+/* The run is exactly the knob travel, so a percentage translate lands it on the mark. */
+.mood-run { position: absolute; left: 24px; right: 24px; top: 50%; height: 0; transform: translateX(calc(var(--p, 0) * 100%)); transition: transform .42s cubic-bezier(.22, .9, .28, 1) }
+.mood-knob { position: absolute; left: 0; top: 0; width: 48px; height: 48px; margin: -24px 0 0 -24px; border-radius: 50%; background: #E4F0E2; display: grid; place-items: center; box-shadow: 0 8px 16px -8px rgb(31 107 67 / .6); transition: transform .2s }
+.mood[data-dragging='true'] .mood-run, .mood[data-dragging='true'] .mood-fill { transition: none }
 .mood[data-dragging='true'] .mood-knob { transform: scale(1.08) }
 .mood-knob svg { width: 22px; height: 22px; color: var(--ink) }
 .mood-scale { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-faint); margin-top: 4px; padding-inline: 2px }
@@ -288,8 +295,8 @@ textarea.input { min-height: 92px; resize: none; line-height: 1.5 }
 .person-foot { display: flex; align-items: center; gap: 5px; margin-top: 7px; font-size: 11.5px; color: var(--ink-soft); position: relative; z-index: 1 }
 .person-foot svg { width: 13px; height: 13px; flex-shrink: 0 }
 .call-now {
- display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 38px; margin-top: 10px;
- border-radius: 13px; background: rgb(254 252 245 / .82); color: var(--ink);
+ display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 44px; margin-top: 10px;
+ border-radius: 14px; background: rgb(254 252 245 / .82); color: var(--ink);
  font-family: var(--round), sans-serif; font-weight: 700; font-size: 13px; position: relative; z-index: 1;
  box-shadow: inset 0 0 0 1.5px rgb(31 107 67 / .16);
  transition: transform .18s cubic-bezier(.22,.9,.28,1), background .18s;
@@ -585,6 +592,10 @@ img.camera-feed { transform: none }
 .entrance { animation: rise .45s cubic-bezier(.22,.9,.28,1) both }
 [data-reduced-motion='true'] *, [data-reduced-motion='true'] *::before, [data-reduced-motion='true'] *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important } }
+
+/* ---------- loading ---------- */
+.skeleton { border-radius: 22px; background: linear-gradient(100deg, #F1EADB 30%, #F8F2E6 48%, #F1EADB 66%); background-size: 300% 100%; animation: shimmer 1.5s ease-in-out infinite }
+@keyframes shimmer { from { background-position: 140% 0 } to { background-position: -40% 0 } }
 /* one-file extras */
 .toast{position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 14px);transform:translateX(-50%);z-index:90;padding:12px 18px;border-radius:16px;background:var(--ink);color:#FEFCF5;font-family:var(--round);font-weight:700;font-size:14px;box-shadow:0 14px 30px -16px rgba(19,73,44,.9);opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;max-width:calc(100% - 40px);text-align:center}
 .toast[data-on='1']{opacity:1;transform:translateX(-50%) translateY(4px)}
@@ -1337,11 +1348,11 @@ canvas.addEventListener('pointerdown', e => {
 const REST = 0.52, UP = 0.11, SLOP = 6
 const sheet = $('sheet'), scroller = $('sheetScroll'), grab = $('sheetGrab')
 let drag = null
+const stage = document.querySelector('.stage')
 function setLift(v) {
  S.lift = Math.min(1, Math.max(0, v))
- sheet.style.top = ((REST + (UP - REST) * S.lift) * 100).toFixed(2) + 'dvh'
+ stage.style.setProperty('--lift', String(S.lift))
  const chip = $('chip')
- chip.style.bottom = 'calc(' + ((1 - (REST + (UP - REST) * S.lift)) * 100).toFixed(2) + 'dvh + 16px)'
  chip.style.opacity = S.lift > 0.72 ? '0' : '1'
  chip.style.pointerEvents = S.lift > 0.72 ? 'none' : 'auto'
  grab.setAttribute('aria-expanded', String(S.lift > 0.5))
@@ -1356,7 +1367,7 @@ function moveDrag(e) {
  const dy = e.clientY - drag.y
  if (drag.collapseOnly && dy <= SLOP) return
  if (!drag.moved && Math.abs(dy) < SLOP) return
- if (!drag.moved) { drag.moved = true; sheet.style.transition = 'none' }
+ if (!drag.moved) { drag.moved = true; stage.dataset.dragging = 'true' }
  setLift(drag.from - dy / (window.innerHeight * (REST - UP)))
  const now = performance.now()
  drag.v = (e.clientY - drag.last) / Math.max(now - drag.at, 1)
@@ -1364,7 +1375,7 @@ function moveDrag(e) {
 }
 function endDrag() {
  const d = drag; drag = null
- sheet.style.transition = ''
+ stage.dataset.dragging = 'false'
  if (!d || !d.moved) return
  if (Math.abs(d.v) > 0.5) setLift(d.v < 0 ? 1 : 0)
  else setLift(S.lift > 0.5 ? 1 : 0)
@@ -1390,7 +1401,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeScrim
 
 function openCase(call) {
  const f = flowerSpec(call.flower), who = person(call.person), feel = FEELINGS[call.feeling]
- const rows = [['Date', new Date(call.at).toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })], ['Duration', fmtDuration(call.minutes)]]
+ const rows = [['Date', new Date(call.at).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })], ['Duration', fmtDuration(call.minutes)]]
  if (call.topic) rows.push(['What it was about', call.topic])
  rows.push(['How you felt', feel.label + ' — ' + feel.caption.toLowerCase().replace(/\.$/, '')])
  openScrim('<div class="panel">' +
@@ -1454,8 +1465,8 @@ function card_feelings(w) {
  return '<section class="card feelings" style="--i:0">' + SPRIG.tulip.replace('person-sprig', 'feelings-sprig') +
   '<span class="eyebrow">Your feelings right now</span><h2>' + w.label + '</h2><p>' + w.caption + '</p>' +
   '<div class="mood" id="mood" role="slider" tabindex="0" aria-valuemin="0" aria-valuemax="4" aria-valuenow="' + weatherIndex() + '" aria-label="How life feels right now" aria-valuetext="' + w.label + '. ' + w.caption + '">' +
-   '<span class="mood-rail"></span><span class="mood-fill" style="width:calc((100% - 48px) * ' + f + ')"></span>' +
-   '<span class="mood-knob" style="left:calc(24px + (100% - 48px) * ' + f + ')">' + I.sprout + '</span></div>' +
+   '<span class="mood-rail"></span><span class="mood-fill" style="--p:' + f + '"></span>' +
+   '<span class="mood-run" style="--p:' + f + '"><span class="mood-knob">' + I.sprout + '</span></span></div>' +
   '<div class="mood-scale"><span>Low</span><span>On your path</span><span>Easy</span></div></section>'
 }
 function notesRail() {
@@ -1524,7 +1535,7 @@ SCREENS.schedule = () => {
   '<p class="note-strip" style="--i:0">' + I.shield + 'Only the times. What a block is called stays on this phone, even when you share.</p>' +
   '<div class="card cal" style="--i:1"><div class="cal-week">' +
    '<button class="cal-step" data-week="-1" aria-label="Previous week">' + I.back + '</button>' +
-   '<b>Week of ' + days[0].toLocaleDateString('en', { month: 'long', day: 'numeric' }) + '</b>' +
+   '<b>Week of ' + days[0].toLocaleDateString(undefined, { month: 'long', day: 'numeric' }) + '</b>' +
    '<button class="cal-step" data-week="1" aria-label="Next week">' + I.caret + '</button></div>' +
    '<div class="cal-head" aria-hidden="true"><span></span>' + days.map((d, i) =>
     '<span data-today="' + (dayKey(d) === today) + '">' + LETTERS[i] + '<i>' + d.getDate() + '</i></span>').join('') + '</div>' +
@@ -1585,7 +1596,7 @@ SCREENS.notes = () => {
     const who = person(s.person)
     return '<button class="polaroid" data-keep="' + s.id + '"><span class="polaroid-tape"></span>' +
      '<span class="polaroid-shot tint-' + who.tone + '">' + flowerSVG(who.bag[0], 54) + '</span>' +
-     '<span class="polaroid-date">' + new Date(Date.now() - s.ago * 60000).toLocaleDateString('en', { day: 'numeric', month: 'short', year: 'numeric' }) + '</span>' +
+     '<span class="polaroid-date">' + new Date(Date.now() - s.ago * 60000).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) + '</span>' +
      '<span class="polaroid-note">' + esc(s.caption) + '</span></button>'
    }).join('') + '<p class="scrap-note">Collect moments,<br>not things.</p></div>' +
    '<p class="fineprint" style="--i:9">Instants fade on their own. Tap one to keep it.</p></div>'
@@ -1597,7 +1608,7 @@ SCREENS.notes = () => {
    return '<article class="card card-pad" style="--i:' + (i + 1) + '">' + SPRIG[i % 2 ? 'cosmos' : 'leaf'] +
     '<div class="row" style="box-shadow:none;background:transparent;padding:0">' +
     '<span class="avatar avatar-' + who.tone + ' avatar-sm">' + who.initials + '</span>' +
-    '<span class="row-body"><b>' + esc(who.name) + '</b><span>' + new Date(n.at).toLocaleString('en', { weekday: 'long', hour: 'numeric', minute: '2-digit' }) + '</span></span></div>' +
+    '<span class="row-body"><b>' + esc(who.name) + '</b><span>' + new Date(n.at).toLocaleString(undefined, { weekday: 'long', hour: 'numeric', minute: '2-digit' }) + '</span></span></div>' +
     '<p style="font-family:var(--script);font-size:23px;line-height:1.25;color:var(--ink-deep);margin:10px 2px 0;position:relative;z-index:1">' + esc(n.text) + '</p></article>'
   }).join('') +
   '<button class="row" style="--i:8" data-act="story"><span class="row-icon" style="background:var(--tint-blue)">' + I.camera + '</span>' +
@@ -1669,7 +1680,7 @@ function wire() {
   if (i === 0) {
    openScrim('<div class="panel"><h3 style="font-size:21px;color:var(--ink-deep);margin-bottom:4px">A little something</h3>' +
     '<p class="small" style="margin-bottom:12px">One line. It fades on its own after a couple of days, and nobody owes you an answer.</p>' +
-    '<input class="input" id="noteText" maxlength="90" placeholder="ate cereal for dinner again…" value="' + esc(S.myNote) + '" autocomplete="off">' +
+    '<input class="input" id="noteText" maxlength="90" placeholder="ate cereal for dinner again…" spellcheck="false" value="' + esc(S.myNote) + '" autocomplete="off">' +
     '<button class="btn btn-block" style="margin-top:12px" id="noteSave">Leave This Note</button></div>')
    $('noteSave').onclick = () => { S.myNote = $('noteText').value.trim(); closeScrim(); route(S.page); toast('Left for your people. No reply needed.') }
    $('noteText').focus()
@@ -1716,8 +1727,8 @@ function setWeather(id, quiet) {
   if (card) {
    card.querySelector('h2').textContent = w.label
    card.querySelector('.feelings > p').textContent = w.caption
-   card.querySelector('.mood-fill').style.width = 'calc((100% - 48px) * ' + f + ')'
-   card.querySelector('.mood-knob').style.left = 'calc(24px + (100% - 48px) * ' + f + ')'
+   card.querySelector('.mood-fill').style.setProperty('--p', String(f))
+   card.querySelector('.mood-run').style.setProperty('--p', String(f))
    card.querySelector('.mood').setAttribute('aria-valuenow', weatherIndex())
   }
  }
@@ -1812,7 +1823,7 @@ function paintDraft() {
 function nameBlock(key, from, to) {
  const when = new Date(key + 'T12:00:00')
  openScrim('<div class="panel"><h3 style="font-size:21px;color:var(--ink-deep)">What is this?</h3>' +
-  '<p class="small" style="margin:4px 0 12px">' + when.toLocaleDateString('en', { weekday: 'long' }) + ', ' + clockLabel(from) + ' – ' + clockLabel(to) + '. The name is only ever for you.</p>' +
+  '<p class="small" style="margin:4px 0 12px">' + when.toLocaleDateString(undefined, { weekday: 'long' }) + ', ' + clockLabel(from) + ' – ' + clockLabel(to) + '. The name is only ever for you.</p>' +
   '<input class="input" id="blockLabel" maxlength="60" placeholder="Lecture, shift, dinner…" autocomplete="off">' +
   '<div class="chips" style="margin:12px 0">' + ['Lecture', 'Work', 'Study', 'Gym', 'Dinner', 'Travel'].map(x =>
    '<button class="chip-choice" data-preset="' + x + '" aria-pressed="false">' + x + '</button>').join('') + '</div>' +

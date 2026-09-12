@@ -175,8 +175,10 @@ function Feelings({ onWeatherShown }: { onWeatherShown: () => void }) {
     if (e.key === 'End') { e.preventDefault(); setIndex(last) }
    }}>
    <span className="mood-rail"/>
-   <span className="mood-fill" style={{ width: `calc((100% - 48px) * ${index / last})` }}/>
-   <span className="mood-knob" style={{ left: `calc(24px + (100% - 48px) * ${index / last})` }}><Sprout aria-hidden="true"/></span>
+   <span className="mood-fill" style={{ ['--p' as string]: index / last }}/>
+   <span className="mood-run" style={{ ['--p' as string]: index / last }}>
+    <span className="mood-knob"><Sprout aria-hidden="true"/></span>
+   </span>
   </div>
   <div className="mood-scale"><span>Low</span><span>On your path</span><span>Easy</span></div>
  </section>
