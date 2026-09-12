@@ -332,9 +332,12 @@ export function paintGround(ctx: CanvasRenderingContext2D, lens: Lens, cells: Ce
  const strength = windStrength[weather]
  const near: { c: Cell; x: number; y: number; r: number; s: number }[] = []
  const dabs: number[][] = [[], [], [], [], [], []]  /* three greens, deep, water, wild */
- /* Below the sheet's lip nothing is seen, and that is exactly where the projection
-    blows up, so the cull is what keeps the near rows from becoming a wall. */
- const floor = view.band + 70
+ /* Below the sheet's lip nothing is normally seen, and that is exactly where the
+    projection blows up, so the cull is what keeps the near rows from becoming a
+    wall. reveal tracks that lip's actual current position rather than assuming
+    it never moves, so pulling the card down past rest paints the rest of the
+    ground instead of leaving it blank. */
+ const floor = view.reveal + 70
 
  for (let i = 0; i < cells.length; i++) {
   const c = cells[i]

@@ -16,12 +16,21 @@ const tones: Tone[] = ['green', 'gold', 'orange', 'sky']
 function fullscreenElement(): Element | null {
  return document.fullscreenElement ?? (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement ?? null
 }
+/** Already running with no browser chrome at all, launched from a home screen icon
+    rather than a tab. Reached a different way on iPhone (Safari never gained the
+    Fullscreen API for anything but a video), so a page that got here already did
+    the thing this whole control is for. */
+function isStandalone(): boolean {
+ return window.matchMedia('(display-mode: standalone)').matches
+  || (navigator as Navigator & { standalone?: boolean }).standalone === true
+}
 
 export function AccountScreen({ navigate }: { navigate: (page: string) => void }) {
  const { state, update, reset } = useHarbor()
  const [privacy, setPrivacy] = useState(false)
  const [fullscreen, setFullscreen] = useState(false)
  const [fullscreenSupported, setFullscreenSupported] = useState(false)
+ const [standalone, setStandalone] = useState(false)
  const [resetOpen, setResetOpen] = useState(false)
  const [adding, setAdding] = useState(false)
  const [newName, setNewName] = useState('')
@@ -30,13 +39,15 @@ export function AccountScreen({ navigate }: { navigate: (page: string) => void }
  if (!state) return null
  const settings = state.settings
  const pactOf = (id: string) => state.pacts.find(p => p.personId === id)
- /* The demo otherwise runs like any other web page, browser bars and all. This is
-    the one control that hands mobile Safari or Chrome's own chrome out of the way,
-    so the app can fill the screen the way an installed one would. Not every mobile
-    browser honours it (notably Safari on iPhone), so it only appears where it works. */
+ /* The demo otherwise runs like any other web page, browser bars and all. Where the
+    Fullscreen API genuinely works this is a live toggle; where it does not (every
+    browser on an iPhone, since that is a WebKit limitation and not a Safari one),
+    the row stays put and says the one thing that does work there instead, rather
+    than just disappearing as if the feature never existed. */
  useEffect(() => {
   const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> | void }
   setFullscreenSupported(!!(document.fullscreenEnabled || (document as unknown as { webkitFullscreenEnabled?: boolean }).webkitFullscreenEnabled || el.webkitRequestFullscreen))
+  setStandalone(isStandalone())
   const sync = () => setFullscreen(!!fullscreenElement())
   sync()
   document.addEventListener('fullscreenchange', sync)
@@ -88,15 +99,14 @@ export function AccountScreen({ navigate }: { navigate: (page: string) => void }
  const savePace = (event: React.FormEvent<HTMLFormElement>) => {
   event.preventDefault()
   const f = new FormData(event.currentTarget)
-  const walkingMinutes = Number(f.get('walking')), sessionMinutes = Number(f.get('session'))
-  const dailyCap = Number(f.get('cap')), cooldownMinutes = Number(f.get('cooldown'))
-  if (![walkingMinutes, sessionMinutes, dailyCap, cooldownMinutes].every(Number.isInteger)
-   || walkingMinutes < 1 || walkingMinutes > 120 || sessionMinutes < 1 || sessionMinutes > 180
+  const walkingMinutes = Number(f.get('walking')), dailyCap = Number(f.get('cap')), cooldownMinutes = Number(f.get('cooldown'))
+  if (![walkingMinutes, dailyCap, cooldownMinutes].every(Number.isInteger)
+   || walkingMinutes < 1 || walkingMinutes > 120
    || dailyCap < 1 || dailyCap > 10 || cooldownMinutes < 1 || cooldownMinutes > 1440) {
    toast.error('Those values are outside the limits shown. Try numbers inside them.')
    return
   }
-  update(s => ({ ...s, settings: { ...s.settings, walkingMinutes, sessionMinutes, dailyCap, cooldownMinutes } }))
+  update(s => ({ ...s, settings: { ...s.settings, walkingMinutes, dailyCap, cooldownMinutes } }))
   toast.success('Your pace, saved.')
  }
 
@@ -167,21 +177,34 @@ export function AccountScreen({ navigate }: { navigate: (page: string) => void }
    <section className="card card-pad flow" style={{ ['--i' as string]: 3 }}>
     <div className="switch-row">
      <h2 style={{ fontSize: 19 }}><Waves style={{ width: 18, height: 18, color: '#6C9FD6' }} aria-hidden="true"/>Slack Tide</h2>
-     <button type="button" className="toggle" aria-pressed={settings.cuesEnabled} aria-label="Slack Tide cues"
+     <button type="button" className="toggle" aria-pressed={settings.cuesEnabled} aria-label="Turn Slack Tide on or off"
       onClick={() => settings.cuesEnabled ? update(s => ({ ...s, settings: { ...s.settings, cuesEnabled: false } })) : setPrivacy(true)}/>
     </div>
-    <p className="small">A gentle cue at the end of a walk. In this demo you stand in for the sensor; nothing runs in the background.</p>
-    <form className="flow" key={`${settings.walkingMinutes}-${settings.dailyCap}-${settings.cooldownMinutes}`} onSubmit={savePace}>
-     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 11 }}>
-      <div><label className="label" htmlFor="walking">Walking minutes</label><input className="input" id="walking" name="walking" type="number" inputMode="numeric" min={1} max={120} required defaultValue={settings.walkingMinutes} autoComplete="off"/></div>
-      <div><label className="label" htmlFor="session">Session minutes</label><input className="input" id="session" name="session" type="number" inputMode="numeric" min={1} max={180} required defaultValue={settings.sessionMinutes} autoComplete="off"/></div>
-      <div><label className="label" htmlFor="cap">Daily cue limit</label><input className="input" id="cap" name="cap" type="number" inputMode="numeric" min={1} max={10} required defaultValue={settings.dailyCap} autoComplete="off"/></div>
-      <div><label className="label" htmlFor="cooldown">Cooldown minutes</label><input className="input" id="cooldown" name="cooldown" type="number" inputMode="numeric" min={1} max={1440} required defaultValue={settings.cooldownMinutes} autoComplete="off"/></div>
-     </div>
+    <p className="small">A nudge to call somebody, timed for right after you have been walking, the moment you are naturally free rather than mid-errand. Off until you turn it on; in this web demo you stand in for the motion sensor yourself, with the button near the bottom of this card.</p>
+    <form className="flow pace-form" key={`${settings.walkingMinutes}-${settings.dailyCap}-${settings.cooldownMinutes}`} onSubmit={savePace}>
+     <p className="pace-line">
+      Nudge me after
+      <input className="input" id="walking" name="walking" type="number" inputMode="numeric" min={1} max={120} required
+       defaultValue={settings.walkingMinutes} autoComplete="off" aria-label="Minutes of walking before a cue can fire"/>
+      minutes of walking, so a trip to the mailbox does not count.
+     </p>
+     <p className="pace-line">
+      No more than
+      <input className="input" id="cap" name="cap" type="number" inputMode="numeric" min={1} max={10} required
+       defaultValue={settings.dailyCap} autoComplete="off" aria-label="The most cues allowed in one day"/>
+      cues in one day, however many walks that takes.
+     </p>
+     <p className="pace-line">
+      And at least
+      <input className="input" id="cooldown" name="cooldown" type="number" inputMode="numeric" min={1} max={1440} required
+       defaultValue={settings.cooldownMinutes} autoComplete="off" aria-label="The fewest minutes between two cues"/>
+      minutes between two of them, so they never stack up.
+     </p>
      <button type="submit" className="btn btn-soft btn-block">Save My Pace</button>
     </form>
     <div>
      <label className="label" htmlFor="sound">Your ringtone</label>
+     <p className="small" style={{ margin: '0 0 8px' }}>What plays when a cue arrives, two or three rings before it stops on its own.</p>
      <div style={{ display: 'flex', gap: 8 }}>
       <select id="sound" className="input" value={settings.sound} onChange={e => update(s => ({ ...s, settings: { ...s.settings, sound: e.target.value as typeof settings.sound } }))}>
        <option value="chime">Little chime</option><option value="soft">Soft note</option><option value="silent">Silence</option>
@@ -190,7 +213,7 @@ export function AccountScreen({ navigate }: { navigate: (page: string) => void }
        disabled={settings.sound === 'silent'} onClick={() => chime(settings.sound)}><Play aria-hidden="true"/></button>
      </div>
     </div>
-    <p className="small">The cue rings this two or three times, then stops on its own.</p>
+    <p className="small">See exactly what a cue looks like, without waiting for a real walk:</p>
     <button type="button" className="btn btn-soft btn-block" onClick={() => navigate('cue')}>Try a Demo Moment <ChevronRight aria-hidden="true"/></button>
    </section>
 
@@ -213,11 +236,21 @@ export function AccountScreen({ navigate }: { navigate: (page: string) => void }
      <button type="button" className="toggle" aria-pressed={settings.reducedMotion} aria-label="Reduce motion"
       onClick={() => update(s => ({ ...s, settings: { ...s.settings, reducedMotion: !s.settings.reducedMotion } }))}/>
     </div>
-    {fullscreenSupported && <div className="switch-row">
+    {/* Always here, never just missing: what it says and does adapts to the one
+        real question, whether this browser can actually be asked to drop its own
+        chrome, rather than the row itself vanishing where it can't. */}
+    <div className="switch-row" style={{ alignItems: 'flex-start' }}>
      <div><b>{fullscreen ? <Minimize aria-hidden="true" style={{ width: 15, height: 15, verticalAlign: -2, marginRight: 5 }}/> : <Maximize aria-hidden="true" style={{ width: 15, height: 15, verticalAlign: -2, marginRight: 5 }}/>}Full screen</b>
-      <p className="small">Hide your browser&rsquo;s own bars, the way an installed app would.</p></div>
-     <button type="button" className="toggle" aria-pressed={fullscreen} aria-label="Full screen" onClick={toggleFullscreen}/>
-    </div>}
+      <p className="small">
+       {standalone
+        ? 'You are already using Harbor full screen, opened from your home screen with none of the browser\u2019s own bars.'
+        : fullscreenSupported
+         ? 'Hide your browser\u2019s own bars, the way an installed app would.'
+         : 'This browser keeps its own bars on the web, an iPhone always does. Look for Add to Home Screen (or Install app) in its menu, then open Harbor from the icon it adds: that copy fills the whole screen with none.'}
+      </p></div>
+     {!standalone && fullscreenSupported &&
+      <button type="button" className="toggle" aria-pressed={fullscreen} aria-label="Full screen" onClick={toggleFullscreen}/>}
+    </div>
    </section>
 
    <button type="button" className="row" style={{ ['--i' as string]: 5 }} onClick={() => navigate('share')}>

@@ -2,6 +2,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import { useHarbor } from '@/lib/harbor/store'
 import { callsFor, type FlowerKind, type Moment, type Person, type Weather } from '@/lib/harbor/model'
+import { REST, UP } from './sheet'
 import {
  assignPlots, buildCells, buildLens, buildPlots, clampZoom, FIELD_H, FIELD_W, hash2, heightAt,
  HORIZON, MAX_REL, overviewZoom, project, tiltFor,
@@ -41,8 +42,7 @@ export const Meadow = forwardRef<MeadowHandle, {
  /** In dusk the same meadow is painted after sunset rather than repainted. */
  night?: boolean
  onOpenBloom: (moment: Moment) => void
- onOpenPerson: (personId: string) => void
-}>(function Meadow({ weather, sheetLift, freshBloomId, bare, night, onOpenBloom, onOpenPerson }, ref) {
+}>(function Meadow({ weather, sheetLift, freshBloomId, bare, night, onOpenBloom }, ref) {
  const { state } = useHarbor()
  const holder = useRef<HTMLDivElement>(null)
  const canvas = useRef<HTMLCanvasElement>(null)
@@ -60,7 +60,6 @@ export const Meadow = forwardRef<MeadowHandle, {
  const hits = useRef<Hit[]>([])
  const tagHits = useRef<Tag[]>([])
  const openBloom = useRef(onOpenBloom); openBloom.current = onOpenBloom
- const openPerson = useRef(onOpenPerson); openPerson.current = onOpenPerson
  const api = useRef<MeadowHandle>({ flyTo: () => {}, zoomBy: () => {}, recenter: () => {} })
  useImperativeHandle(ref, () => api.current, [])
 
@@ -70,7 +69,7 @@ export const Meadow = forwardRef<MeadowHandle, {
   const ctx = el.getContext('2d', { alpha: true })
   if (!ctx) return
 
-  let view: View = { w: 0, h: 0, band: 0, base: 0.2 }
+  let view: View = { w: 0, h: 0, band: 0, reveal: 0, base: 0.2 }
   let dpr = 1
   const cam: Camera = { x: FIELD_W * 0.5, y: FIELD_H * 0.62, zoom: 0.2 }
   const goal: Camera = { ...cam }
@@ -148,15 +147,18 @@ export const Meadow = forwardRef<MeadowHandle, {
   /* useImperativeHandle read this object's identity once, at mount, so the methods
      have to be written onto it, never replaced wholesale, or the ref outside keeps
      pointing at the original no-op stub forever. */
+  /* What both the sections list and a tap on a name tag in the field itself do:
+     walk the camera to that person's plot. One place to keep it right. */
+  function flyToPlot(personId: string) {
+   lay()
+   const plot = plots.find(pl => pl.id === personId)
+   if (!plot) return
+   goal.x = plot.x; goal.y = plot.y
+   goal.zoom = view.base * REST_REL
+   hold(goal)
+  }
   Object.assign(api.current, {
-   flyTo(personId: string) {
-    lay()
-    const plot = plots.find(pl => pl.id === personId)
-    if (!plot) return
-    goal.x = plot.x; goal.y = plot.y
-    goal.zoom = view.base * REST_REL
-    hold(goal)
-   },
+   flyTo: flyToPlot,
    zoomBy(factor: number) {
     goal.zoom = clampZoom(goal.zoom * factor, view.base)
     hold(goal)
@@ -173,7 +175,7 @@ export const Meadow = forwardRef<MeadowHandle, {
    dpr = Math.min(window.devicePixelRatio || 1, 2)
    /* The sheet's lip is where the meadow stops being seen, so the plan fits that band. */
    const band = rect.height * 0.54
-   view = { w: rect.width, h: rect.height, band, base: overviewZoom(rect.width, band) }
+   view = { w: rect.width, h: rect.height, band, reveal: band, base: overviewZoom(rect.width, band) }
    el.width = Math.round(rect.width * dpr)
    el.height = Math.round(rect.height * dpr)
    if (!started) {
@@ -195,6 +197,12 @@ export const Meadow = forwardRef<MeadowHandle, {
    if (!w || !h) return
    const { weather: sky, sheetLift, freshBloomId, bare: hidden, night: dusk, reduced } = live.current
    lay()
+
+   /* How much of the canvas the card is actually leaving open right now, in the
+      same terms the card itself moves in. It only ever grows past the fixed
+      band the plan is composed to fit, since band was already safe for every
+      position the card could take before it could be pulled down this far. */
+   view.reveal = Math.max(view.band, view.h * Math.min(1, Math.max(0, REST - (REST - UP) * sheetLift)))
 
    const t = reduced ? 4000 : now
    const ease = reduced ? 1 : 0.11
@@ -241,7 +249,7 @@ export const Meadow = forwardRef<MeadowHandle, {
     project(lens, b.x, b.y, b.z, p)
     if (p.x < -60 || p.x > w + 60 || p.y < -60 || p.y > h + 60) continue
     const size = b.size * 7.4 * p.s
-    if (size < 0.7 || p.y > view.band + 70) continue
+    if (size < 0.7 || p.y > view.reveal + 70) continue
     let open = 1
     if (b.moment.id === freshBloomId) {
      let at = opened.get(b.moment.id)
@@ -350,8 +358,11 @@ export const Meadow = forwardRef<MeadowHandle, {
    drag = null
    if (!begun || !pt || begun.moved >= 6) return
 
+   /* A name tag is the field's own way to reach that person's section, the same
+      trip the sections list offers, not a shortcut past the field into their
+      chat: that stays reachable from Your People. */
    for (const tag of tagHits.current) {
-    if (pt.x >= tag.x && pt.x <= tag.x + tag.w && pt.y >= tag.y && pt.y <= tag.y + tag.h) { openPerson.current(tag.id); return }
+    if (pt.x >= tag.x && pt.x <= tag.x + tag.w && pt.y >= tag.y && pt.y <= tag.y + tag.h) { flyToPlot(tag.id); return }
    }
    let found: Moment | null = null, best = Infinity
    for (const hit of hits.current) {

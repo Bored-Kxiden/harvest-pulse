@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   title: 'Harbor · A little closer, every day',
   description: 'A gentle place for family connection. Share little moments, find time together, and watch your meadow grow. Interactive mobile demo.',
   appleWebApp: { capable: true, title: 'Harbor', statusBarStyle: 'black-translucent' },
+  // Lets Android's own "Add to Home Screen" open Harbor with no browser bars at
+  // all, the same chrome-free view iOS reaches through its own Home Screen icon.
+  manifest: '/manifest.webmanifest',
 }
 export const viewport: Viewport = {
   /* The page itself does not zoom. A pinch here is almost always aimed at the meadow,

@@ -55,7 +55,7 @@ export type HarborState = {
  /** Their plans, and the handful of things you chose to keep an eye on. */
  plans: Plan[]; starred: string[]; seenAlerts: string
  snaps: Snap[]; pacts: SnapPact[]; snapWindows: Record<string, string>
- settings: { cuesEnabled: boolean; walkingMinutes: number; sessionMinutes: number; dailyCap: number; cooldownMinutes: number; sound: 'chime' | 'soft' | 'silent'; reducedMotion: boolean; theme: Theme }
+ settings: { cuesEnabled: boolean; walkingMinutes: number; dailyCap: number; cooldownMinutes: number; sound: 'chime' | 'soft' | 'silent'; reducedMotion: boolean; theme: Theme }
 }
 
 /* ---------- how life feels, read as weather: a scale, not a score ---------- */
@@ -429,7 +429,7 @@ export function seedState(now = new Date()): HarborState {
   messages: Object.fromEntries(seedPeople.map(p => [p.id, [{ id: `hello-${p.id}`, text: p.note ?? 'Thinking of you.', mine: false, at: new Date(now.getTime() - 3600000).toISOString() }]])),
   read: [], drafts: {}, moments, cues: [], notes, games: {}, snaps, pacts: [], snapWindows: {},
   plans, starred: [`plan:seed-plan-mom-1`], seenAlerts: '',
-  settings: { cuesEnabled: true, walkingMinutes: 10, sessionMinutes: 20, dailyCap: 2, cooldownMinutes: 120, sound: 'chime', reducedMotion: false, theme: 'light' },
+  settings: { cuesEnabled: true, walkingMinutes: 10, dailyCap: 2, cooldownMinutes: 120, sound: 'chime', reducedMotion: false, theme: 'light' },
  }
 }
 
@@ -457,7 +457,7 @@ export function parseState(raw: string): HarborState | null {
   if (typeof v.cuesEnabled !== 'boolean' || typeof v.reducedMotion !== 'boolean' || !['chime', 'soft', 'silent'].includes(v.sound)) return null
   /* Saved before the theme existed: carry it forward rather than throwing the demo away. */
   if (!['system', 'light', 'dark'].includes(v.theme)) v.theme = 'system'
-  if (![v.walkingMinutes, v.sessionMinutes, v.dailyCap, v.cooldownMinutes].every(n => Number.isFinite(n) && n >= 1) || v.dailyCap > 10) return null
+  if (![v.walkingMinutes, v.dailyCap, v.cooldownMinutes].every(n => Number.isFinite(n) && n >= 1) || v.dailyCap > 10) return null
   return s
  } catch { return null }
 }
