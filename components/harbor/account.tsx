@@ -1,11 +1,11 @@
 'use client'
 import { useState } from 'react'
-import { Camera, ChevronRight, ImageUp, LockKeyhole, Play, ShieldCheck, Sprout, Trash2, UserRoundPlus, Waves } from 'lucide-react'
+import { Camera, ChevronRight, ImageUp, LockKeyhole, Moon, Play, ShieldCheck, Sprout, Sun, SunMoon, Trash2, UserRoundPlus, Waves } from 'lucide-react'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { chime, makeId, useHarbor } from '@/lib/harbor/store'
 import { clearMedia, saveMedia } from '@/lib/harbor/media'
-import { activePacts, callsFor, initialsOf, localDay, rollSnapWindow, type Person, type Tone } from '@/lib/harbor/model'
+import { activePacts, callsFor, initialsOf, localDay, rollSnapWindow, themes, type Person, type Tone } from '@/lib/harbor/model'
 import { Avatar } from './avatar'
 import { Sprig } from './sprigs'
 
@@ -164,7 +164,20 @@ export function AccountScreen({ navigate }: { navigate: (page: string) => void }
     <button type="button" className="btn btn-soft btn-block" onClick={() => navigate('cue')}>Try a Demo Moment <ChevronRight aria-hidden="true"/></button>
    </section>
 
-   <section className="card card-pad" style={{ ['--i' as string]: 4 }}>
+   <section className="card card-pad flow" style={{ ['--i' as string]: 4 }}>
+    <div>
+     <b>How it looks</b>
+     <p className="small">Dusk puts the same meadow after sunset. Auto follows your phone.</p>
+    </div>
+    <div className="segment" role="radiogroup" aria-label="How it looks" style={{ marginBottom: 0 }}>
+     <span className="segment-slide" style={{ ['--i' as string]: themes.findIndex(x => x.id === settings.theme) }} aria-hidden="true"/>
+     {themes.map(({ id, label }) => <button key={id} type="button" role="radio" className="segment-tab"
+      aria-checked={settings.theme === id}
+      onClick={() => update(s => ({ ...s, settings: { ...s.settings, theme: id } }))}>
+      {id === 'system' ? <SunMoon aria-hidden="true"/> : id === 'light' ? <Sun aria-hidden="true"/> : <Moon aria-hidden="true"/>}
+      {label}
+     </button>)}
+    </div>
     <div className="switch-row">
      <div><b>A little less movement</b><p className="small">Reduce interface animations.</p></div>
      <button type="button" className="toggle" aria-pressed={settings.reducedMotion} aria-label="Reduce motion"

@@ -31,6 +31,15 @@ export function Home({ navigate, onCall, onOpenMoment, onOpenCamera, onOpenStory
 }) {
  const { state } = useHarbor()
  const [tab, setTab] = useState<Tab>('people')
+ /* Which way the panel should arrive: tabs are a row, so the new view comes in
+    from the side it lives on and the old one leaves the other way. */
+ const [from, setFrom] = useState(0)
+ const index = TABS.findIndex(t => t.id === tab)
+ const choose = (next: Tab) => {
+  if (next === tab) return
+  setFrom(Math.sign(TABS.findIndex(t => t.id === next) - index))
+  setTab(next)
+ }
  if (!state) return null
  const partner = state.people[0]
  const windows = sharedWindows(state, localDay())
@@ -51,14 +60,29 @@ export function Home({ navigate, onCall, onOpenMoment, onOpenCamera, onOpenStory
      <button type="button" className="pill-link" onClick={onExpand}>View all <ChevronRight aria-hidden="true"/></button>
     </div>
 
-    <div className="segment" role="tablist" aria-label="Your people">
-     <span className="segment-slide" style={{ ['--i' as string]: TABS.findIndex(t => t.id === tab) }} aria-hidden="true"/>
-     {TABS.map(({ id, label, icon: Icon }) => <button key={id} type="button" role="tab" className="segment-tab"
-      aria-selected={tab === id} onClick={() => setTab(id)}>
+    <div className="segment" role="tablist" aria-label="Your people"
+     onKeyDown={e => {
+      /* A tablist is one stop with arrows inside it, not three stops. */
+      const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : e.key === 'Home' ? -index : e.key === 'End' ? TABS.length - 1 - index : 0
+      if (!step) return
+      e.preventDefault()
+      const next = TABS[(index + step + TABS.length) % TABS.length]
+      choose(next.id)
+      requestAnimationFrame(() => document.getElementById(`tab-${next.id}`)?.focus())
+     }}>
+     <span className="segment-slide" style={{ ['--i' as string]: index }} aria-hidden="true"/>
+     {TABS.map(({ id, label, icon: Icon }) => <button key={id} type="button" role="tab" id={`tab-${id}`}
+      className="segment-tab" aria-selected={tab === id} aria-controls="people-panel"
+      tabIndex={tab === id ? 0 : -1} onClick={() => choose(id)}>
       <Icon aria-hidden="true"/>{label}
      </button>)}
     </div>
 
+    {/* Only this panel is replaced when the tab moves. Keying it on the tab is what
+        makes the entrance run again; nothing above or below it is touched, so the
+        card does not re-enter and the scroll stays where you left it. */}
+    <div className="panel-swap" key={tab} id="people-panel" role="tabpanel" aria-labelledby={`tab-${tab}`}
+     style={{ ['--from' as string]: from }}>
     {tab === 'people' && <div className="people-grid">
      {state.people.map((person, i) => {
       const flower = dominantFlower(state, person.id)
@@ -90,6 +114,7 @@ export function Home({ navigate, onCall, onOpenMoment, onOpenCamera, onOpenStory
 
     {tab === 'schedule' && <TodayAtAGlance navigate={navigate}/>}
     {tab === 'activities' && <Activities onOpenMoment={onOpenMoment}/>}
+    </div>
    </section>
 
    <section aria-labelledby="something-heading" style={{ ['--i' as string]: 2 }}>
@@ -152,7 +177,7 @@ function Activities({ onOpenMoment }: { onOpenMoment: (moment: Moment) => void }
    const who = state.people.find(p => p.id === moment.person)
    const feeling = feelings.find(f => f.id === moment.feeling)
    return <button key={moment.id} type="button" className="row" style={{ ['--i' as string]: i }} onClick={() => onOpenMoment(moment)}>
-    <span className={`row-icon tint-${who?.tone ?? 'green'}`}><FlowerGlyph kind={moment.flower ?? 'daisy'} size={19}/></span>
+    <span className={`row-icon tint-${who?.tone ?? 'green'}`}><FlowerGlyph kind={moment.flower ?? 'daisy'} size={19} blooming/></span>
     <span className="row-body">
      <b>{moment.topic || `A call with ${who?.name ?? 'family'}`}</b>
      <span>{formatDuration(moment.minutes)} · {feeling?.label.toLowerCase() ?? 'steady'} · {new Date(moment.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>

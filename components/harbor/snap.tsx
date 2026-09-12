@@ -18,7 +18,7 @@ export function SnapPrompt({ onTake, onSkip }: { onTake: () => void; onSkip: () 
    <span className="window-bloom">
     <span className="window-ring" aria-hidden="true"/>
     <span className="window-ring" aria-hidden="true"/>
-    <FlowerGlyph kind="cosmos" size={58}/>
+    <FlowerGlyph kind="cosmos" size={58} blooming/>
    </span>
    <span className="eyebrow" style={{ display: 'block', marginTop: 10 }}>Your window is open</span>
    <h2 style={{ fontSize: 27, color: 'var(--ink-deep)', letterSpacing: '-.6px', margin: '6px 0 6px' }}>It&rsquo;s time.</h2>

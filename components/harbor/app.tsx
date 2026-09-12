@@ -25,27 +25,62 @@ const rightTabs = [{ id: 'notes', label: 'Notes', icon: NotebookPen }, { id: 'ac
 
 
 /** The verge: the flowers that grow right at the foot of the screen, in front of everything. */
+/** The verge: the strip of meadow every screen stands in. Four clumps, four clocks,
+    so the whole row never rocks as one shape. Drawn once and shared by every page. */
 function Verge() {
- return <svg viewBox="0 0 430 132" preserveAspectRatio="none" aria-hidden="true">
-  <g className="verge-sway">
-   <path d="M6 132c-4-38 4-62 22-78-12 30-12 52-6 78z" fill="#8FBE7C"/>
-   <path d="M30 132c-8-40 6-70 34-88-18 32-22 58-16 88z" fill="#7EB16A"/>
-   <path d="M404 132c6-40-6-70-34-88 18 32 22 58 16 88z" fill="#8FBE7C"/>
-   <path d="M424 132c4-38-4-62-22-78 12 30 12 52 6 78z" fill="#7EB16A"/>
-   <ellipse cx="46" cy="54" rx="11" ry="15" fill="#F2A254"/>
-   <path d="M46 68v56" stroke="#6FA765" strokeWidth="4" strokeLinecap="round"/>
-   <ellipse cx="37" cy="52" rx="6.5" ry="12" fill="#F5B76F"/>
-   <ellipse cx="55" cy="52" rx="6.5" ry="12" fill="#EE9445"/>
-   <ellipse cx="384" cy="60" rx="11" ry="15" fill="#F7CE63"/>
-   <path d="M384 74v50" stroke="#6FA765" strokeWidth="4" strokeLinecap="round"/>
-   <ellipse cx="375" cy="58" rx="6.5" ry="12" fill="#FADC86"/>
-   <ellipse cx="393" cy="58" rx="6.5" ry="12" fill="#F2BE45"/>
+ return <svg viewBox="0 0 430 148" preserveAspectRatio="none" aria-hidden="true">
+  {/* the back band, palest and slowest */}
+  <g className="verge-sway verge-c">
+   <path d="M0 148c-2-46 8-76 30-96-14 36-16 62-8 96z" fill="#B6D9A4"/>
+   <path d="M58 148c-6-38 4-66 24-84-13 30-16 54-10 84z" fill="#AED39B"/>
+   <path d="M372 148c6-38-4-66-24-84 13 30 16 54 10 84z" fill="#AED39B"/>
+   <path d="M430 148c2-46-8-76-30-96 14 36 16 62 8 96z" fill="#B6D9A4"/>
+   <circle cx="70" cy="62" r="6.5" fill="#FBFCF6"/><circle cx="70" cy="62" r="2.4" fill="#F7C948"/>
+   <circle cx="360" cy="66" r="6" fill="#F7C3D8"/><circle cx="360" cy="66" r="2.2" fill="#F7C948"/>
   </g>
-  <g className="verge-sway verge-slow">
-   <path d="M82 132c-4-30 2-52 16-66-10 26-10 44-6 66z" fill="#A3CC8A"/>
-   <path d="M348 132c4-30-2-52-16-66 10 26 10 44 6 66z" fill="#A3CC8A"/>
-   <circle cx="98" cy="72" r="7" fill="#FBFCF6"/><circle cx="98" cy="72" r="2.6" fill="#F7C948"/>
-   <circle cx="332" cy="78" r="6" fill="#F7C3D8"/><circle cx="332" cy="78" r="2.2" fill="#F7C948"/>
+
+  {/* the grass, mid depth */}
+  <g className="verge-sway">
+   <path d="M14 148c-5-42 5-70 26-88-13 32-15 56-8 88z" fill="#8FBE7C"/>
+   <path d="M40 148c-9-44 7-78 38-98-20 36-25 64-18 98z" fill="#7EB16A"/>
+   <path d="M390 148c9-44-7-78-38-98 20 36 25 64 18 98z" fill="#8FBE7C"/>
+   <path d="M416 148c5-42-5-70-26-88 13 32 15 56 8 88z" fill="#7EB16A"/>
+   <path d="M150 148c-6-30 2-52 16-66-10 26-12 44-8 66z" fill="#9AC788"/>
+   <path d="M282 148c6-30-2-52-16-66 10 26 12 44 8 66z" fill="#9AC788"/>
+  </g>
+
+  {/* the flowers, each on its own stem */}
+  <g className="verge-sway verge-b">
+   <path d="M54 148V62" stroke="#6FA765" strokeWidth="4.2" strokeLinecap="round"/>
+   <path d="M53 104c-4-12-13-18-26-19 1 14 10 22 26 19z" fill="#9CCB8F"/>
+   <ellipse cx="54" cy="52" rx="11.5" ry="15.5" fill="#F2A254"/>
+   <ellipse cx="44" cy="50" rx="7" ry="12.5" fill="#F5B76F"/>
+   <ellipse cx="64" cy="50" rx="7" ry="12.5" fill="#EE9445"/>
+   <path d="M54 40c-3.5 4-5.5 8-5.5 12" stroke="#F7CE8F" strokeWidth="2" strokeLinecap="round" fill="none"/>
+
+   <path d="M204 148V78" stroke="#6FA765" strokeWidth="3.4" strokeLinecap="round"/>
+   <path d="M205 110c4-10 11-15 21-16-1 12-8 19-21 16z" fill="#8FBE7C"/>
+   {[0, 51, 102, 153, 204, 255, 306].map(a =>
+    <ellipse key={a} cx="204" cy="58" rx="6.2" ry="10.6" fill={a % 102 ? '#F7C3D8' : '#E9A0BF'} transform={`rotate(${a} 204 70)`}/>)}
+   <circle cx="204" cy="70" r="5" fill="#F7C948"/>
+  </g>
+
+  <g className="verge-sway verge-d">
+   <path d="M376 148V70" stroke="#6FA765" strokeWidth="4.2" strokeLinecap="round"/>
+   <path d="M377 112c4-12 13-18 26-19-1 14-10 22-26 19z" fill="#9CCB8F"/>
+   <ellipse cx="376" cy="60" rx="11.5" ry="15.5" fill="#F7CE63"/>
+   <ellipse cx="366" cy="58" rx="7" ry="12.5" fill="#FADC86"/>
+   <ellipse cx="386" cy="58" rx="7" ry="12.5" fill="#F2BE45"/>
+
+   <path d="M120 148V96" stroke="#6FA765" strokeWidth="3" strokeLinecap="round"/>
+   {[0, 72, 144, 216, 288].map(a =>
+    <ellipse key={a} cx="120" cy="84" rx="5.4" ry="8.6" fill={a % 144 ? '#FFFFFF' : '#F0F3E6'} transform={`rotate(${a} 120 92)`}/>)}
+   <circle cx="120" cy="92" r="3.8" fill="#F7C948"/>
+
+   <path d="M312 148V92" stroke="#6FA765" strokeWidth="3" strokeLinecap="round"/>
+   <path d="M311 118c-3-9-10-13-19-14 1 10 7 16 19 14z" fill="#9CCB8F"/>
+   <ellipse cx="308" cy="76" rx="7" ry="8" fill="#88A6DA"/>
+   <ellipse cx="318" cy="86" rx="7" ry="8" fill="#A9C4EC"/>
   </g>
  </svg>
 }
@@ -65,6 +100,7 @@ export function HarborApp() {
  const [windowDue, setWindowDue] = useState(false)
  const [chipWeather, setChipWeather] = useState(false)
  const asked = useRef(false)
+ const [night, setNight] = useState(false)
  const chipTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
  const day = localDay()
  const needsWindow = !!state && activePacts(state).length > 0 && !state.snapWindows[day]
@@ -96,6 +132,20 @@ export function HarborApp() {
  }, [state])
 
  useEffect(() => () => clearTimeout(chipTimer.current), [])
+
+ /* One choice, three answers: follow the system, or override it either way. The
+    meadow needs the resolved answer too, so it can put the sun down. */
+ const theme = state?.settings.theme ?? 'system'
+ useEffect(() => {
+  const root = document.documentElement
+  if (theme === 'system') root.removeAttribute('data-theme')
+  else root.setAttribute('data-theme', theme)
+  const dark = window.matchMedia('(prefers-color-scheme: dark)')
+  const resolve = () => setNight(theme === 'dark' || (theme === 'system' && dark.matches))
+  resolve()
+  dark.addEventListener('change', resolve)
+  return () => dark.removeEventListener('change', resolve)
+ }, [theme])
 
  const navigate = (next: string) => { location.hash = next }
  const page = route.split('/')[0]
@@ -131,7 +181,7 @@ export function HarborApp() {
 
  return <div className="stage" data-reduced-motion={state?.settings.reducedMotion} data-dragging={dragging} data-camera={!!camera}
   style={{ ['--lift' as string]: lift }}>
-  <Meadow weather={weather} sheetLift={lift} freshBloomId={fresh} bare={!!camera} onOpenBloom={setMoment}
+  <Meadow weather={weather} sheetLift={lift} freshBloomId={fresh} bare={!!camera} night={night} onOpenBloom={setMoment}
    onOpenPerson={id => navigate(`chat/${id}`)}/>
   <div className="verge" aria-hidden="true"><Verge/></div>
 

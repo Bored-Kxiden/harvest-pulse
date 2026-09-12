@@ -23,7 +23,7 @@ export function GlassCase({ moment, onClose }: { moment: Moment; onClose: () => 
   <div className="panel">
    <div className="vitrine">
     <span className="vitrine-shadow"/>
-    <span className="vitrine-stage"><FlowerGlyph kind={moment.flower ?? 'daisy'} size={120}/></span>
+    <span className="vitrine-stage"><FlowerGlyph kind={moment.flower ?? 'daisy'} size={120} blooming/></span>
    </div>
    <div className="panel-head"><h3>{flower.name}</h3><span className="panel-who">with {who?.name ?? 'your people'}</span></div>
    <p className="small">{flower.note}</p>

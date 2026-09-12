@@ -11,9 +11,14 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: 'Harbor', statusBarStyle: 'black-translucent' },
 }
 export const viewport: Viewport = {
-  width: 'device-width', initialScale: 1, maximumScale: 1, viewportFit: 'cover',
-  themeColor: '#9ECDE8', colorScheme: 'light',
+  /* No maximum-scale: pinch-zoom is somebody's only way to read this. */
+  width: 'device-width', initialScale: 1, viewportFit: 'cover',
+  colorScheme: 'light dark',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#9ECDE8' },
+    { media: '(prefers-color-scheme: dark)', color: '#10150F' },
+  ],
 }
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return <html lang="en" className={`light ${body.variable} ${round.variable}`}><body className="font-sans">{children}</body></html>
+  return <html lang="en" className={`${body.variable} ${round.variable}`}><body className="font-sans">{children}</body></html>
 }

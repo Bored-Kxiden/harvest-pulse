@@ -18,6 +18,26 @@ export function Sheet({ lift, onLift, onDragging, children, label }: {
  const liftRef = useRef(lift)
  liftRef.current = lift
 
+ /* Scrolling the card brushes the flowers at the foot of the screen: the speed of
+    the last frame becomes a lean, and the lean decays on its own. Written as a
+    custom property so nothing re-renders to make it happen. */
+ useEffect(() => {
+  const el = scroller.current
+  if (!el) return
+  let last = el.scrollTop, at = performance.now(), idle = 0
+  const stage = el.closest('.stage') as HTMLElement | null
+  const onScroll = () => {
+   const now = performance.now()
+   const v = (el.scrollTop - last) / Math.max(now - at, 8)
+   last = el.scrollTop; at = now
+   stage?.style.setProperty('--brush', String(Math.max(-1, Math.min(1, v * 0.55))))
+   clearTimeout(idle)
+   idle = window.setTimeout(() => stage?.style.setProperty('--brush', '0'), 130)
+  }
+  el.addEventListener('scroll', onScroll, { passive: true })
+  return () => { el.removeEventListener('scroll', onScroll); clearTimeout(idle) }
+ }, [])
+
  useEffect(() => {
   const measure = () => { height.current = window.innerHeight || 1 }
   measure()

@@ -26,6 +26,12 @@ export type Snap = { id: string; at: string; person: string; mediaId?: string; c
 export type SnapPact = { personId: string; status: 'invited' | 'active'; since: string }
 
 export type Weather = 'clear' | 'bright' | 'cloudy' | 'rain' | 'storm'
+export type Theme = 'system' | 'light' | 'dark'
+export const themes: { id: Theme; label: string }[] = [
+ { id: 'system', label: 'Auto' },
+ { id: 'light', label: 'Day' },
+ { id: 'dark', label: 'Dusk' },
+]
 export type FlowerKind = 'daisy' | 'tulip' | 'poppy' | 'cosmos' | 'marigold' | 'bluebell' | 'aster' | 'sunflower'
 
 export type HarborState = {
@@ -38,7 +44,7 @@ export type HarborState = {
  moments: Moment[]; cues: { id: string; at: string }[]
  notes: Note[]; games: Record<string, string>
  snaps: Snap[]; pacts: SnapPact[]; snapWindows: Record<string, string>
- settings: { cuesEnabled: boolean; walkingMinutes: number; sessionMinutes: number; dailyCap: number; cooldownMinutes: number; sound: 'chime' | 'soft' | 'silent'; reducedMotion: boolean }
+ settings: { cuesEnabled: boolean; walkingMinutes: number; sessionMinutes: number; dailyCap: number; cooldownMinutes: number; sound: 'chime' | 'soft' | 'silent'; reducedMotion: boolean; theme: Theme }
 }
 
 /* ---------- how life feels, read as weather: a scale, not a score ---------- */
@@ -287,7 +293,7 @@ export function seedState(now = new Date()): HarborState {
   weather: 'bright', milestone: { title: 'Midterms', date: localDay(milestone) },
   messages: Object.fromEntries(seedPeople.map(p => [p.id, [{ id: `hello-${p.id}`, text: p.note ?? 'Thinking of you.', mine: false, at: new Date(now.getTime() - 3600000).toISOString() }]])),
   read: [], drafts: {}, moments, cues: [], notes, games: {}, snaps, pacts: [], snapWindows: {},
-  settings: { cuesEnabled: true, walkingMinutes: 10, sessionMinutes: 20, dailyCap: 2, cooldownMinutes: 120, sound: 'chime', reducedMotion: false },
+  settings: { cuesEnabled: true, walkingMinutes: 10, sessionMinutes: 20, dailyCap: 2, cooldownMinutes: 120, sound: 'chime', reducedMotion: false, theme: 'system' },
  }
 }
 
@@ -311,6 +317,8 @@ export function parseState(raw: string): HarborState | null {
   if (!Array.isArray(s.read) || !s.read.every(d => typeof d === 'string')) return null
   const v = s.settings
   if (typeof v.cuesEnabled !== 'boolean' || typeof v.reducedMotion !== 'boolean' || !['chime', 'soft', 'silent'].includes(v.sound)) return null
+  /* Saved before the theme existed: carry it forward rather than throwing the demo away. */
+  if (!['system', 'light', 'dark'].includes(v.theme)) v.theme = 'system'
   if (![v.walkingMinutes, v.sessionMinutes, v.dailyCap, v.cooldownMinutes].every(n => Number.isFinite(n) && n >= 1) || v.dailyCap > 10) return null
   return s
  } catch { return null }
