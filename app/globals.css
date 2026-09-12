@@ -370,7 +370,10 @@
    garden is blooming" does something a pinch cannot: takes you straight to a person. */
 .meadow-chip {
  position: absolute; z-index: 11; left: 18px; bottom: calc(48dvh + 16px); display: flex; align-items: center;
- transform: translate3d(0, calc(-41dvh * var(--lift, 0)), 0);
+ /* Only the raised direction moves these: pulling the card down past rest to show the
+    whole field should leave the chip and the zoom buttons exactly where they were,
+    still reachable over the open meadow, rather than sliding them off the bottom. */
+ transform: translate3d(0, calc(-41dvh * max(var(--lift, 0), 0)), 0);
  border-radius: 99px; background: var(--float); box-shadow: var(--shadow-card);
  transition: transform .42s cubic-bezier(.22, .9, .28, 1), opacity .3s;
 }
@@ -405,7 +408,7 @@
 .meadow-zoom {
  position: absolute; z-index: 11; right: 14px; top: 23dvh; display: flex; flex-direction: column;
  border-radius: 20px; overflow: hidden; background: var(--float); box-shadow: var(--shadow-card);
- transform: translate3d(0, calc(-41dvh * var(--lift, 0)), 0);
+ transform: translate3d(0, calc(-41dvh * max(var(--lift, 0), 0)), 0);
  transition: transform .42s cubic-bezier(.22, .9, .28, 1), opacity .3s;
 }
 .meadow-zoom button { display: grid; place-items: center; width: 44px; height: 44px; color: var(--ink-deep) }
@@ -660,7 +663,10 @@ textarea.input { min-height: 92px; resize: none; line-height: 1.5 }
 .cal-body::-webkit-scrollbar-thumb { background: var(--grab); border-radius: 99px }
 .cal-hours { display: flex; flex-direction: column }
 .cal-hour { height: 40px; line-height: 1; font-size: 10px; color: var(--ink-faint); text-align: right; padding: 1px 5px 0 0 }
-.cal-grid { position: relative; display: grid; grid-template-columns: repeat(7, 1fr); background: var(--float-soft); border-radius: 12px; overflow: hidden; touch-action: pan-y }
+/* pan-y let the browser's own vertical scroll win the gesture before our pointer
+   handlers ever saw it, since marking a block is itself a vertical drag: touching
+   down and dragging just scrolled the page. none hands the whole gesture to us. */
+.cal-grid { position: relative; display: grid; grid-template-columns: repeat(7, 1fr); background: var(--float-soft); border-radius: 12px; overflow: hidden; touch-action: none }
 .cal-col { position: relative; border-left: 1px solid var(--hairline) }
 .cal-col:first-child { border-left: 0 }
 .cal-col[data-today='true'] { background: rgb(242 199 92 / .08) }
@@ -952,6 +958,12 @@ img.camera-feed { transform: none }
 .stage[data-camera='true'] .meadow-chip { opacity: 0; pointer-events: none; transition: opacity .34s ease }
 .stage[data-camera='true'] .meadow-canvas { pointer-events: none }
 .camera { background: linear-gradient(180deg, rgb(16 38 25 / .42) 0%, rgb(16 38 25 / .56) 55%, rgb(12 30 20 / .78) 100%) }
+
+/* The card pulled all the way down to show the whole field: the nav has nowhere to
+   send you while there is nothing to navigate but the meadow, and left in place it
+   would sit right over the sheet's own grab handle, out of a thumb's reach. It fades
+   the same way the camera's own furniture does, and returns the moment the card does. */
+.stage[data-collapsed='true'] .nav { opacity: 0; pointer-events: none; transition: opacity .3s ease }
 
 /* ---------- swapping one panel, not the page ----------
    The new view slides in from the side its tab sits on, so the row of tabs reads as
