@@ -1,131 +1,208 @@
 'use client'
-import { useState } from 'react'
-import { CalendarClock, CalendarDays, ChevronRight, Clock3, Leaf, LockKeyhole, Plus, ShieldCheck, Sun, Trash2, Users } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
+import { CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Link2, ShieldCheck, Trash2, Unlink } from 'lucide-react'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
-import { makeId, useHarbor } from '@/lib/harbor/store'
-import { formatTime, isFuture, localDay, minutes, sharedWindows, validIntervals, type Interval } from '@/lib/harbor/model'
+import { useHarbor } from '@/lib/harbor/store'
+import {
+ blocksFor, calendarProviders, clockOf, DAY_CLOSE, DAY_OPEN, formatTime, linkedWeek, localDay,
+ minutes, weekOf, type CalendarProvider, type Interval,
+} from '@/lib/harbor/model'
+import { Sprig } from './sprigs'
+
+const SLOT = 30, HOUR_PX = 40
+const OPEN = minutes(DAY_OPEN), CLOSE = minutes(DAY_CLOSE)
+const HOURS = Array.from({ length: (CLOSE - OPEN) / 60 }, (_, i) => OPEN + i * 60)
+const LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+const topOf = (start: string) => ((minutes(start) - OPEN) / 60) * HOUR_PX
+const heightOf = (v: Interval) => Math.max(((minutes(v.end) - minutes(v.start)) / 60) * HOUR_PX, 14)
+const hourLabel = (m: number) => { const h = Math.floor(m / 60); return `${h % 12 || 12}${h < 12 ? 'a' : 'p'}` }
+const shiftDay = (day: string, by: number) => { const d = new Date(`${day}T12:00:00`); d.setDate(d.getDate() + by); return localDay(d) }
+
+type Draft = { column: number; from: number; to: number }
 
 export function Schedule({ navigate }: { navigate: (page: string) => void }) {
- const { state, update, log } = useHarbor()
- const [day, setDay] = useState(localDay())
- const [shareDialog, setShareDialog] = useState(false)
- const [mutualDialog, setMutualDialog] = useState(false)
- const [editor, setEditor] = useState<'you' | 'mom' | null>(null)
- const [intervals, setIntervals] = useState<Interval[]>([])
- const [error, setError] = useState('')
- const [milestone, setMilestone] = useState(false)
- const [plan, setPlan] = useState(false)
- const [when, setWhen] = useState('')
- const [planError, setPlanError] = useState('')
+ const { state, update } = useHarbor()
+ const [anchor, setAnchor] = useState(localDay())
+ const [draft, setDraft] = useState<Draft | null>(null)
+ const [naming, setNaming] = useState<{ day: string; start: string; end: string } | null>(null)
+ const [label, setLabel] = useState('')
+ const [editing, setEditing] = useState<{ day: string; index: number; block: Interval } | null>(null)
+ const [linkOpen, setLinkOpen] = useState(false)
+ const grid = useRef<HTMLDivElement>(null)
+ const week = useMemo(() => weekOf(anchor), [anchor])
  if (!state) return null
+ const today = localDay()
 
- const partner = state.people[0]
- const windows = sharedWindows(state, day)
- const schedule = state.schedules[day] ?? { you: [], mom: [] }
- const days = Math.ceil((new Date(`${state.milestone.date}T12:00:00`).getTime() - new Date(`${localDay()}T12:00:00`).getTime()) / 86400000)
- const openEditor = (person: 'you' | 'mom') => { setIntervals(schedule[person].map(v => ({ ...v }))); setError(''); setEditor(person) }
+ const setBlocks = (day: string, next: Interval[]) => update(s => {
+  const existing = s.schedules[day] ?? { you: [], mom: [] }
+  return { ...s, schedules: { ...s.schedules, [day]: { ...existing, you: next.slice().sort((a, b) => minutes(a.start) - minutes(b.start)) } } }
+ })
+
+ /* Press and drag down a column: the draft follows the finger, snapped to the half hour. */
+ const read = (clientX: number, clientY: number) => {
+  const box = grid.current?.getBoundingClientRect()
+  if (!box) return null
+  const column = Math.min(6, Math.max(0, Math.floor(((clientX - box.left) / box.width) * 7)))
+  const raw = OPEN + ((clientY - box.top) / HOUR_PX) * 60
+  return { column, at: Math.min(CLOSE, Math.max(OPEN, Math.round(raw / SLOT) * SLOT)) }
+ }
+ const startDrag = (e: React.PointerEvent) => {
+  const hit = read(e.clientX, e.clientY)
+  if (!hit) return
+  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  setDraft({ column: hit.column, from: hit.at, to: Math.min(CLOSE, hit.at + SLOT) })
+ }
+ const moveDrag = (e: React.PointerEvent) => {
+  if (!draft) return
+  const hit = read(e.clientX, e.clientY)
+  if (!hit) return
+  setDraft({ ...draft, to: Math.max(draft.from + SLOT, Math.min(CLOSE, hit.at)) })
+ }
+ const endDrag = () => {
+  if (!draft) return
+  const { column, from, to } = draft
+  setDraft(null)
+  if (to - from < SLOT) return
+  setLabel('')
+  setNaming({ day: week[column], start: clockOf(from), end: clockOf(to) })
+ }
+ const saveNamed = () => {
+  if (!naming) return
+  setBlocks(naming.day, [...blocksFor(state, naming.day, 'you'), { start: naming.start, end: naming.end, label: label.trim() || undefined }])
+  setNaming(null); setLabel('')
+  toast.success('Marked. Harbor stays quiet then.')
+ }
+
+ const connect = (provider: CalendarProvider) => {
+  const filled = linkedWeek(anchor)
+  update(s => {
+   const schedules = { ...s.schedules }
+   for (const [day, blocks] of Object.entries(filled)) {
+    const existing = schedules[day] ?? { you: [], mom: [] }
+    schedules[day] = { ...existing, you: [...existing.you.filter(v => !v.linked), ...blocks].sort((a, b) => minutes(a.start) - minutes(b.start)) }
+   }
+   return { ...s, schedules, calendar: { provider, connectedAt: new Date().toISOString() } }
+  })
+  setLinkOpen(false)
+  toast.success(`${calendarProviders.find(c => c.id === provider)?.name} filled this week in.`)
+ }
+ const disconnect = () => {
+  update(s => ({
+   ...s, calendar: null,
+   schedules: Object.fromEntries(Object.entries(s.schedules).map(([day, v]) => [day, { ...v, you: v.you.filter(b => !b.linked) }])),
+  }))
+  toast.success('Unlinked. Your own blocks are untouched.')
+ }
 
  return <div className="entrance">
-  <div className="page-intro"><div className="eyebrow mb-2">Room for real life</div><h1>Your schedule.</h1><p>Different rhythms. A little common ground.</p></div>
-  <div className="page-content !pt-0"><div className="flow">
+  <div className="page-head">
+   <span className="eyebrow">Schedule</span>
+   <h1>When you are busy.</h1>
+   <p>Press and drag to lay down a block. Harbor stays quiet during these.</p>
+  </div>
 
-   <section className="surface flow">
-    <div className="share-row">
-     <div className="share-cell">
-      <span className="share-label">Share my load</span>
-      {state.sharingSetupDone
-       ? <button type="button" className="icon-toggle icon-toggle-sm" aria-pressed={state.sharing} aria-label="Share my load" onClick={() => update(s => ({ ...s, sharing: !s.sharing }))}><Leaf/></button>
-       : <button type="button" className="icon-toggle icon-toggle-sm" aria-pressed="false" aria-label="Set up sharing my load" onClick={() => setShareDialog(true)}><Leaf/></button>}
+  <div className="wrap flow stagger">
+   <p className="note-strip" style={{ ['--i' as string]: 0 }}><ShieldCheck aria-hidden="true"/>Only the times. What a block is called stays on this phone, even when you share.</p>
+
+   <div className="card cal" style={{ ['--i' as string]: 1 }}>
+    <div className="cal-week">
+     <button type="button" className="cal-step" aria-label="Previous week" onClick={() => setAnchor(shiftDay(week[0], -7))}><ChevronLeft aria-hidden="true"/></button>
+     <b>Week of {new Date(`${week[0]}T12:00:00`).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}</b>
+     <button type="button" className="cal-step" aria-label="Next week" onClick={() => setAnchor(shiftDay(week[0], 7))}><ChevronRight aria-hidden="true"/></button>
+    </div>
+
+    <div className="cal-head" aria-hidden="true">
+     <span/>
+     {week.map((day, i) => <span key={day} data-today={day === today}>{LETTERS[i]}<i>{Number(day.slice(-2))}</i></span>)}
+    </div>
+
+    <div className="cal-body">
+     <div className="cal-hours" aria-hidden="true">{HOURS.map(m => <span key={m} className="cal-hour">{hourLabel(m)}</span>)}</div>
+     <div ref={grid} className="cal-grid" role="application"
+      aria-label="Your week. Press and drag down a column to mark time as busy."
+      onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={() => setDraft(null)}>
+      {week.map((day, column) => <div key={day} className="cal-col" data-today={day === today}>
+       {HOURS.map(m => <div key={m} className="cal-slot"/>)}
+       {blocksFor(state, day, 'you').map((block, index) => <button key={`${block.start}-${index}`} type="button" className="cal-block"
+        data-linked={!!block.linked} style={{ top: topOf(block.start), height: heightOf(block) }}
+        onPointerDown={e => e.stopPropagation()} onClick={() => setEditing({ day, index, block })}>
+        <b>{block.label || 'Busy'}</b>
+        {heightOf(block) > 32 && <span>{formatTime(block.start)}</span>}
+        {heightOf(block) > 46 && <Sprig kind="leaf" aria-hidden="true"/>}
+       </button>)}
+       {draft && draft.column === column && <span className="cal-draft"
+        style={{ top: ((draft.from - OPEN) / 60) * HOUR_PX, height: ((draft.to - draft.from) / 60) * HOUR_PX }}/>}
+      </div>)}
      </div>
-     {state.sharingSetupDone && state.sharing && <div className="share-cell">
-      <span className="share-label">Mutual sharing</span>
-      <button type="button" className="icon-toggle icon-toggle-sm" aria-pressed={state.momConsent} aria-label={`Mutual sharing with ${partner.name}`} onClick={() => update(s => ({ ...s, momConsent: !s.momConsent }))}><Users/></button>
-     </div>}
     </div>
-    <p className="notice"><ShieldCheck/>Only free and busy times. Never event names, locations, or activity.</p>
-   </section>
 
-   <section className="soft-surface flow">
-    <div className="flex items-center gap-2"><Sun className="size-5" strokeWidth={1.4}/><span className="eyebrow !text-primary">A little window, together</span></div>
-    {!state.sharing ? <><h2 className="font-serif text-2xl">Your rhythm stays yours.</h2><p className="small-copy">Turn on Share my load above to find a shared free window.</p></>
-     : !state.momConsent ? <><h2 className="font-serif text-2xl">It takes two.</h2><p className="small-copy">Turn on Mutual sharing above once you&apos;re both ready.</p></>
-      : windows.length ? <>{windows.map(w => <div key={w.start}><h2 className="window-time">{formatTime(w.start)} – {formatTime(w.end)}</h2><p className="small-copy">{minutes(w.end) - minutes(w.start)} unhurried minutes · {day === localDay() ? 'today' : new Date(`${day}T12:00`).toLocaleDateString('en', { month: 'short', day: 'numeric' })}</p></div>)}<p className="small-copy">A possibility, not an obligation.</p><Button variant="outline" onClick={() => setPlan(true)}>Make a little plan <ChevronRight data-icon="inline-end"/></Button></>
-       : <><h2 className="font-serif text-2xl">A full day for both of you.</h2><p className="small-copy">No overlap on this day. That&apos;s okay—try another day or leave a little note.</p><Button variant="outline" onClick={() => navigate(`chat/${partner.id}`)}>Leave {partner.name} a note</Button></>}
-   </section>
-
-   <section className="flow">
-    <div className="section-heading"><h2>Your daily rhythms</h2><Clock3 className="size-5 muted-icon"/></div>
-    <Field><FieldLabel htmlFor="schedule-date">Choose a day</FieldLabel><Input id="schedule-date" type="date" value={day} required onChange={e => e.target.value && setDay(e.target.value)}/></Field>
-    <div className="surface flow">
-     {(['you', 'mom'] as const).map(person => <div key={person}>
-      <div className="flex items-center justify-between"><span className="text-sm font-medium">{person === 'you' ? 'You' : partner.name}</span><button className="text-link" onClick={() => openEditor(person)}>{person === 'mom' ? 'Edit demo schedule' : 'Edit availability'}<ChevronRight/></button></div>
-      {person === 'mom' && !(state.sharing && state.momConsent)
-       ? <p className="notice"><LockKeyhole/>Private until you both opt in.</p>
-       : <><div className="rhythm" role="img" aria-label={`${person === 'you' ? 'Your' : `${partner.name}'s`} free times: ${schedule[person].map(x => `${formatTime(x.start)} to ${formatTime(x.end)}`).join(', ') || 'not set'}`}>{schedule[person].map((v, i) => <span className="rhythm-free" key={i} style={{ left: `${minutes(v.start) / 14.4}%`, width: `${(minutes(v.end) - minutes(v.start)) / 14.4}%` }}/>)}</div><p className="small-copy mt-2">{schedule[person].length ? schedule[person].map(x => `${formatTime(x.start)}–${formatTime(x.end)}`).join(' · ') : 'No free blocks yet'}</p></>}
-     </div>)}
-     <div className="flex justify-between small-copy"><span>12 am</span><span>12 pm</span><span>12 am</span></div>
-     <div className="flex gap-4 small-copy"><span className="flex items-center gap-2"><span className="size-3 rounded bg-accent"/>Free</span><span className="flex items-center gap-2"><span className="size-3 rounded bg-secondary border"/>Busy / unset</span></div>
+    <div className="cal-legend">
+     <span><i className="swatch" style={{ background: 'var(--ink)' }} aria-hidden="true"/>Yours</span>
+     <span><i className="swatch" style={{ background: 'var(--gold)' }} aria-hidden="true"/>From your calendar</span>
     </div>
-   </section>
+   </div>
 
-   <button className="gold-surface flex items-center gap-3 text-left" onClick={() => setMilestone(true)}>
-    <CalendarDays className="size-6" strokeWidth={1.4}/>
-    <div className="flex-1"><p className="font-serif text-lg">{state.milestone.title} {days > 0 ? `in ${days % 7 === 0 ? `${days / 7} weeks` : `${days} days`}` : days === 0 ? 'today' : '— a season you moved through'}</p><p className="small-copy">A little context goes a long way.</p></div>
-    <ChevronRight className="size-4"/>
+   {state.calendar
+    ? <div className="row" style={{ ['--i' as string]: 2 }}>
+     <span className="row-icon" style={{ background: 'var(--tint-yellow)' }}><Link2 aria-hidden="true"/></span>
+     <span className="row-body"><b>{calendarProviders.find(c => c.id === state.calendar!.provider)?.name} is linked</b><span>New events fill themselves in</span></span>
+     <button type="button" className="disc" style={{ width: 38, height: 38, boxShadow: 'none', background: 'var(--secondary)' }}
+      aria-label="Unlink this calendar" onClick={disconnect}><Unlink aria-hidden="true"/></button>
+    </div>
+    : <button type="button" className="row" style={{ ['--i' as string]: 2 }} onClick={() => setLinkOpen(true)}>
+     <span className="row-icon" style={{ background: 'var(--tint-blue)' }}><CalendarPlus aria-hidden="true"/></span>
+     <span className="row-body"><b>Bring your calendar in</b><span>Outlook, Google or Apple, marks your week for you</span></span>
+     <ChevronRight className="caret" aria-hidden="true"/>
+    </button>}
+
+   <button type="button" className="row" style={{ ['--i' as string]: 3 }} onClick={() => navigate('share')}>
+    <span className="row-icon"><ShieldCheck aria-hidden="true"/></span>
+    <span className="row-body"><b>Share my load</b><span>{state.sharing ? (state.momConsent ? 'On, both ways' : 'On, waiting on them') : 'Free and busy times only, when you say so'}</span></span>
+    <ChevronRight className="caret" aria-hidden="true"/>
    </button>
-   <p className="demo-footnote">Editable demo schedules · no calendar connected</p>
-  </div></div>
 
-  <Dialog open={shareDialog} onOpenChange={setShareDialog}><DialogContent>
-   <DialogHeader><DialogTitle>A little more understanding.</DialogTitle><DialogDescription>Share your free/busy rhythm with {partner.name}, only when you both agree. Your event titles, locations, and activity never leave your private view.</DialogDescription></DialogHeader>
-   <p className="notice"><ShieldCheck/>Switch sharing off anytime. Your private schedule stays saved. This demo does not send data anywhere.</p>
-   <Button onClick={() => { update(s => ({ ...s, sharing: true })); setShareDialog(false); setMutualDialog(true) }}>I agree to share my availability</Button>
-   <Button variant="ghost" onClick={() => setShareDialog(false)}>Not now</Button>
+   <p className="fineprint" style={{ ['--i' as string]: 4 }}>Editable demo schedule · nothing syncs to a real calendar</p>
+  </div>
+
+  <Dialog open={!!naming} onOpenChange={value => { if (!value) { setNaming(null); setLabel('') } }}><DialogContent>
+   <DialogHeader>
+    <DialogTitle>What is this?</DialogTitle>
+    <DialogDescription>{naming && `${new Date(`${naming.day}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long' })}, ${formatTime(naming.start)} – ${formatTime(naming.end)}. The name is only ever for you.`}</DialogDescription>
+   </DialogHeader>
+   <input className="input" maxLength={60} placeholder="Lecture, shift, dinner…" value={label} autoComplete="off"
+    onChange={e => setLabel(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveNamed() } }}/>
+   <div className="chips">{['Lecture', 'Work', 'Study', 'Gym', 'Dinner', 'Travel'].map(x =>
+    <button key={x} type="button" className="chip-choice" aria-pressed={label === x} onClick={() => setLabel(x)}>{x}</button>)}</div>
+   <button type="button" className="btn btn-block" onClick={saveNamed}>Mark This Time</button>
+   <button type="button" className="btn btn-quiet btn-block" onClick={() => { setNaming(null); setLabel('') }}>Cancel</button>
   </DialogContent></Dialog>
 
-  <Dialog open={mutualDialog} onOpenChange={open => { setMutualDialog(open); if (!open) update(s => ({ ...s, sharingSetupDone: true })) }}><DialogContent>
-   <DialogHeader><DialogTitle>Ask {partner.name}, too?</DialogTitle><DialogDescription>Mutual sharing only works once they agree on their side. This demo lets you simulate that yes — you can flip it on or off anytime from the toggles.</DialogDescription></DialogHeader>
-   <p className="notice"><ShieldCheck/>Nothing here is sent to a real person.</p>
-   <Button onClick={() => { update(s => ({ ...s, momConsent: true, sharingSetupDone: true })); setMutualDialog(false) }}>Simulate their yes</Button>
-   <Button variant="ghost" onClick={() => { update(s => ({ ...s, sharingSetupDone: true })); setMutualDialog(false) }}>Maybe later</Button>
+  <Dialog open={!!editing} onOpenChange={value => !value && setEditing(null)}><DialogContent>
+   {editing && <>
+    <DialogHeader>
+     <DialogTitle>{editing.block.label || 'Busy'}</DialogTitle>
+     <DialogDescription>{new Date(`${editing.day}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })} · {formatTime(editing.block.start)} – {formatTime(editing.block.end)}{editing.block.linked ? ' · from your calendar' : ''}</DialogDescription>
+    </DialogHeader>
+    <button type="button" className="btn btn-soft btn-block" onClick={() => {
+     setBlocks(editing.day, blocksFor(state, editing.day, 'you').filter((_, i) => i !== editing.index))
+     setEditing(null); toast.success('Cleared. That time is yours again.')
+    }}><Trash2 aria-hidden="true"/>Clear This Block</button>
+    <button type="button" className="btn btn-quiet btn-block" onClick={() => setEditing(null)}>Leave it</button>
+   </>}
   </DialogContent></Dialog>
 
-  <Dialog open={!!editor} onOpenChange={open => !open && setEditor(null)}><DialogContent>
-   <DialogHeader><DialogTitle>{editor === 'mom' ? `${partner.name}'s demo availability` : 'Make room in your day'}</DialogTitle><DialogDescription>{editor === 'mom' ? 'You are editing sample data, not a real person’s calendar. These blocks remain private while sharing is off.' : 'Add free blocks. Everything else is treated as busy or not set.'}</DialogDescription></DialogHeader>
-   <form className="flow" onSubmit={e => { e.preventDefault(); if (!validIntervals(intervals)) { setError('Each end time must be after its start, on the same day.'); return } update(s => ({ ...s, schedules: { ...s.schedules, [day]: { ...(s.schedules[day] ?? { you: [], mom: [] }), [editor!]: intervals } } })); setEditor(null); toast.success('Your rhythm is saved.') }}>
-    <FieldGroup>{intervals.map((v, i) => <div className="flex items-end gap-2" key={i}>
-     <Field><FieldLabel htmlFor={`start-${i}`}>From</FieldLabel><Input id={`start-${i}`} type="time" required value={v.start} onChange={e => setIntervals(a => a.map((x, n) => n === i ? { ...x, start: e.target.value } : x))}/></Field>
-     <Field><FieldLabel htmlFor={`end-${i}`}>Until</FieldLabel><Input id={`end-${i}`} type="time" required value={v.end} onChange={e => setIntervals(a => a.map((x, n) => n === i ? { ...x, end: e.target.value } : x))}/></Field>
-     <Button variant="ghost" size="icon" aria-label={`Remove block ${i + 1}`} onClick={() => setIntervals(a => a.filter((_, n) => n !== i))}><Trash2/></Button>
-    </div>)}</FieldGroup>
-    {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-    <Button variant="outline" disabled={intervals.length >= 12} onClick={() => setIntervals(a => [...a, { start: '18:00', end: '19:00' }])}><Plus data-icon="inline-start"/>Add free block</Button>
-    <Button type="submit">Save availability</Button>
-   </form>
-  </DialogContent></Dialog>
-
-  <Dialog open={milestone} onOpenChange={setMilestone}><DialogContent>
-   <DialogHeader><DialogTitle>What&apos;s on the horizon?</DialogTitle><DialogDescription>Private context for your season. Nothing to keep up with.</DialogDescription></DialogHeader>
-   <form className="flow" onSubmit={e => { e.preventDefault(); const f = new FormData(e.currentTarget); update(s => ({ ...s, milestone: { title: String(f.get('title')).trim(), date: String(f.get('date')) } })); setMilestone(false) }}>
-    <Field><FieldLabel htmlFor="milestone-title">Milestone</FieldLabel><Input name="title" id="milestone-title" defaultValue={state.milestone.title} maxLength={60} required/></Field>
-    <Field><FieldLabel htmlFor="milestone-date">Date</FieldLabel><Input name="date" id="milestone-date" type="date" defaultValue={state.milestone.date} required/></Field>
-    <Button type="submit">Save this season</Button>
-   </form>
-  </DialogContent></Dialog>
-
-  <Dialog open={plan} onOpenChange={setPlan}><DialogContent>
-   <DialogHeader><DialogTitle>Leave a little room.</DialogTitle><DialogDescription>A reminder is a possibility, not a promise. It shows up when the time comes and never nags.</DialogDescription></DialogHeader>
-   <Field><FieldLabel htmlFor="plan-when">A time that suits you</FieldLabel><Input id="plan-when" type="datetime-local" value={when} onChange={e => { setWhen(e.target.value); setPlanError('') }} aria-invalid={!!planError}/></Field>
-   {planError && <p role="alert" className="text-sm text-destructive">{planError}</p>}
-   <Button onClick={() => {
-    if (!isFuture(when)) { setPlanError('Choose a time still ahead of you.'); return }
-    log({ id: makeId(), at: new Date().toISOString(), person: partner.id, kind: 'proposed_later', text: 'Made a little room to talk later.', source: 'manual', proposedTime: new Date(when).toISOString() })
-    setPlan(false); setWhen(''); toast.success('Saved. No pressure attached.')
-   }}><CalendarClock data-icon="inline-start"/>Hold that time</Button>
+  <Dialog open={linkOpen} onOpenChange={setLinkOpen}><DialogContent>
+   <DialogHeader>
+    <DialogTitle>Bring your calendar in</DialogTitle>
+    <DialogDescription>Harbor reads when you are busy and marks those blocks for you. In this demo a sample week is filled in, nothing connects to a real account.</DialogDescription>
+   </DialogHeader>
+   {calendarProviders.map(provider => <button key={provider.id} type="button" className="row" onClick={() => connect(provider.id)}>
+    <span className="row-icon" style={{ background: 'var(--tint-blue)' }}><CalendarDays aria-hidden="true"/></span>
+    <span className="row-body"><b>{provider.name}</b><span>Fill this week from {provider.name}</span></span>
+    <ChevronRight className="caret" aria-hidden="true"/>
+   </button>)}
+   <p className="note-strip"><ShieldCheck aria-hidden="true"/>Event titles stay on this phone. Only free and busy is ever shared, and only if you turn sharing on.</p>
   </DialogContent></Dialog>
  </div>
 }

@@ -2,9 +2,6 @@
 import { useState } from 'react'
 import { Dices } from 'lucide-react'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
-import { Field, FieldLabel } from '@/components/ui/field'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { gameForDay, localDay } from '@/lib/harbor/model'
 import { makeId, useHarbor } from '@/lib/harbor/store'
@@ -30,20 +27,25 @@ export function DailyQuestion({ open, onOpenChange }: { open: boolean; onOpenCha
 
  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent>
   <DialogHeader>
-   <DialogTitle className="flex items-start gap-2"><Dices className="size-5 mt-1 shrink-0"/>{prompt.q}</DialogTitle>
-   <DialogDescription>Today&apos;s little question. No streak to keep — answer today, skip tomorrow, either is fine.</DialogDescription>
+   <DialogTitle style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}><Dices className="size-5" style={{ marginTop: 4, flexShrink: 0, color: 'var(--leaf)' }}/>{prompt.q}</DialogTitle>
+   <DialogDescription>Today&apos;s little question. No streak to keep. Answer today, skip tomorrow, either is fine.</DialogDescription>
   </DialogHeader>
 
   {mine ? <>
-   <div className="flow">
-    {replies.map(r => <div key={r.person.id} className="question-answer"><Avatar person={r.person.id} size="sm"/><span><span className="text-sm font-medium block">{r.person.name}</span><span className="small-copy">{r.text}</span></span></div>)}
-    <div className="question-answer"><Avatar person="you" size="sm"/><span><span className="text-sm font-medium block">You</span><span className="small-copy">{mine}</span></span></div>
+   <div className="stack">
+    {replies.map(r => <div key={r.person.id} className="row" style={{ boxShadow: 'none', background: '#F6F1E5' }}>
+     <Avatar person={r.person.id} size="sm"/><span className="row-body"><b>{r.person.name}</b><span>{r.text}</span></span>
+    </div>)}
+    <div className="row" style={{ boxShadow: 'none', background: '#E4F0E2' }}>
+     <Avatar person="you" size="sm"/><span className="row-body"><b>You</b><span>{mine}</span></span>
+    </div>
    </div>
-   <Button onClick={() => onOpenChange(false)}>Back to your garden</Button>
+   <button type="button" className="btn btn-block" onClick={() => onOpenChange(false)}>Back to your garden</button>
   </> : <form className="flow" onSubmit={submit}>
-   <Field><FieldLabel htmlFor="question-answer">Your answer</FieldLabel><Textarea id="question-answer" maxLength={200} required placeholder="Whatever comes to mind…" value={answer} onChange={e => setAnswer(e.target.value)}/></Field>
-   <Button type="submit">Share my answer</Button>
-   <Button variant="ghost" type="button" onClick={() => onOpenChange(false)}>Not today</Button>
+   <div><label className="label" htmlFor="question-answer">Your answer</label>
+    <textarea className="input" id="question-answer" rows={3} maxLength={200} required placeholder="Whatever comes to mind…" value={answer} onChange={e => setAnswer(e.target.value)}/></div>
+   <button type="submit" className="btn btn-block">Share my answer</button>
+   <button type="button" className="btn btn-quiet btn-block" onClick={() => onOpenChange(false)}>Not today</button>
   </form>}
  </DialogContent></Dialog>
 }

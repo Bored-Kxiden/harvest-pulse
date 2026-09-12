@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<title>Harbor — field trial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Lora:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+ --background:#fbf1de; --foreground:#2f4a37; --primary:#33553d; --primary-foreground:#fbf1de;
+ --card:#fffcf3; --secondary:#dfead6; --muted-foreground:#78816d; --accent:#f0bd3e;
+ --border:#33553d1f; --input:#33553d30; --surface-green:#c9dfc0; --surface-orange:#f0a35f; --sky:#c9d8e9;
+ --surface-gold:color-mix(in srgb, var(--accent) 55%, var(--card));
+ --sans:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+ --serif:'Lora',Georgia,serif;
+ --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--background);color:var(--foreground);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.app-shell{max-width:520px;min-height:100dvh;margin-inline:auto;background:var(--background);box-shadow:0 0 90px #304c3b09;padding-bottom:calc(126px + env(safe-area-inset-bottom))}
+@media(min-width:640px){body{background:#f2e7cd}.app-shell{border-inline:1px solid var(--border)}}
+.app-header{display:flex;align-items:center;justify-content:space-between;height:70px;padding-inline:24px}
+.brand{display:flex;align-items:center;gap:9px;font-family:var(--serif);font-size:26px;letter-spacing:-.5px;font-weight:700}
+.brand svg{width:25px;height:25px;stroke-width:2;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round}
+.trial-tag{font-family:var(--mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted-foreground);border:1px solid var(--border);border-radius:99px;padding:5px 10px}
+.home-greeting{padding:2px 28px 14px}
+.eyebrow{font-size:12px;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted-foreground);font-weight:600}
+.home-greeting h1{font-family:var(--serif);font-size:30px;letter-spacing:-.5px;font-weight:700;line-height:1.15;margin:4px 0 0}
+.small-copy{color:var(--muted-foreground);font-size:14px;line-height:1.6;margin:4px 0 0}
+.page-content{padding:24px 28px;display:flex;flex-direction:column;gap:20px}
+
+/* ---------- the field ---------- */
+.field-holder{padding-inline:16px}
+.field-frame{position:relative;height:52vh;min-height:320px;max-height:460px;border-radius:30px;overflow:hidden;background:linear-gradient(178deg,#FBEBC8,#EEF4E4);transition:background 900ms ease;box-shadow:0 18px 34px -24px color-mix(in srgb,var(--primary) 70%,transparent)}
+.field-frame::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:3;background:rgba(40,60,80,0);transition:background 900ms ease}
+.field-frame[data-weather='clear']{background:linear-gradient(178deg,#DCEBF6,#EDF3E6)}
+.field-frame[data-weather='bright']{background:linear-gradient(178deg,#FBEBC8,#EEF4E4)}
+.field-frame[data-weather='cloudy']{background:linear-gradient(178deg,#DDE3E4,#E8EDE2)}
+.field-frame[data-weather='rain']{background:linear-gradient(178deg,#C8D4DA,#DAE3D6)}
+.field-frame[data-weather='storm']{background:linear-gradient(178deg,#AAB6C0,#C2CDBE)}
+.field-frame[data-weather='cloudy']::after{background:rgba(60,72,80,.07)}
+.field-frame[data-weather='rain']::after{background:rgba(45,62,80,.13)}
+.field-frame[data-weather='storm']::after{background:rgba(30,44,60,.24)}
+#field{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;z-index:1;cursor:grab}
+#field:active{cursor:grabbing}
+.field-sky{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.sun{position:absolute;top:-44px;left:50%;width:150px;height:150px;margin-left:-75px;border-radius:50%;background:radial-gradient(circle,rgba(255,214,120,.95),rgba(255,214,120,0) 68%);opacity:0;transition:opacity 900ms ease}
+[data-weather='clear'] .sun{opacity:.55}
+[data-weather='bright'] .sun{opacity:1}
+.cloud{position:absolute;height:22px;border-radius:99px;background:rgba(255,255,255,.9);opacity:0;transition:opacity 900ms ease}
+.cloud::before,.cloud::after{content:'';position:absolute;bottom:2px;background:inherit;border-radius:50%}
+.cloud::before{left:16%;width:28px;height:28px}.cloud::after{right:22%;width:20px;height:20px}
+.c1{top:16px;width:88px;animation:drift 36s linear infinite}
+.c2{top:44px;width:66px;animation:drift 48s linear infinite reverse;animation-delay:-9s}
+.c3{top:28px;width:112px;animation:drift 60s linear infinite;animation-delay:-24s}
+[data-weather='bright'] .c1{opacity:.5}
+[data-weather='cloudy'] .cloud{opacity:.92}
+[data-weather='rain'] .cloud{opacity:.9;background:rgba(232,236,238,.95)}
+[data-weather='storm'] .cloud{opacity:.92;background:rgba(206,212,216,.96)}
+@keyframes drift{from{transform:translateX(-130px)}to{transform:translateX(560px)}}
+.rain{position:absolute;inset:0;z-index:2;opacity:0;transition:opacity 700ms ease;pointer-events:none}
+.rain i{position:absolute;top:-16%;width:1.6px;height:16px;border-radius:2px;background:linear-gradient(rgba(120,150,175,0),rgba(104,136,164,.8));animation:fall linear infinite}
+[data-weather='rain'] .rain{opacity:.7}
+[data-weather='storm'] .rain{opacity:1}
+@keyframes fall{from{transform:translateY(0)}to{transform:translateY(460px)}}
+.field-controls{position:absolute;right:12px;top:12px;z-index:4;display:flex;flex-direction:column;gap:6px}
+.field-control{width:38px;height:38px;border-radius:50%;background:color-mix(in srgb,var(--card) 92%,transparent);color:var(--primary);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px #304c3b26}
+.field-control svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round}
+.field-readout{position:absolute;left:12px;bottom:12px;z-index:4;display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:99px;background:color-mix(in srgb,var(--card) 88%,transparent);font-family:var(--mono);font-size:11px;color:var(--muted-foreground)}
+.meter{display:block;width:46px;height:4px;border-radius:99px;background:var(--secondary);overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:var(--accent)}
+
+/* ---------- weather bar ---------- */
+.weather-card{background:var(--card);border-radius:24px;padding:20px 22px 14px;display:flex;flex-direction:column;gap:14px;box-shadow:0 8px 22px -18px color-mix(in srgb,var(--foreground) 45%,transparent)}
+.weather-card h2{font-family:var(--serif);font-size:24px;font-weight:700;margin:4px 0 0}
+.weather-track{position:relative;height:50px;padding-inline:22px;touch-action:none}
+.rail{position:absolute;left:22px;right:22px;top:50%;height:10px;margin-top:-5px;border-radius:99px;background:var(--secondary)}
+.fill{position:absolute;left:22px;top:50%;height:10px;margin-top:-5px;border-radius:99px;background:linear-gradient(90deg,#9DC6E8,var(--accent));transition:width .38s cubic-bezier(.22,.61,.36,1)}
+.stop{position:absolute;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:var(--card);box-shadow:0 0 0 2px var(--secondary)}
+.stop[data-on='1']{background:var(--primary)}
+.thumb{position:absolute;top:50%;width:42px;height:42px;margin:-21px 0 0 -21px;border-radius:50%;background:var(--card);color:var(--primary);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 18px -8px color-mix(in srgb,var(--foreground) 60%,transparent);transition:left .38s cubic-bezier(.22,.61,.36,1)}
+.thumb svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.scale{display:flex;justify-content:space-between;font-size:12px;color:var(--muted-foreground)}
+
+/* ---------- people + notes ---------- */
+.section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.section-heading h2{font-family:var(--serif);font-size:22px;font-weight:700;margin:0}
+.chat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.chat-tile{display:flex;flex-direction:column;text-align:left;border-radius:22px;background:var(--card);padding:16px;box-shadow:0 8px 20px -16px color-mix(in srgb,var(--foreground) 55%,transparent)}
+.avatar{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;font-family:var(--serif);font-weight:700;font-size:18px;box-shadow:0 0 0 3px var(--card)}
+.tile-top{display:flex;align-items:flex-start;justify-content:space-between}
+.chat-name{display:flex;justify-content:space-between;align-items:center;font-size:16px;font-weight:700;margin-top:8px}
+.chat-preview{color:var(--muted-foreground);font-size:13.5px;line-height:1.45;margin-top:5px}
+.chat-time{font-size:12.5px;color:var(--muted-foreground);margin-top:10px}
+.notes-strip{display:flex;gap:14px;overflow-x:auto;padding:10px 28px 6px;margin-inline:-28px}
+.note-item{flex:0 0 auto;width:80px;display:flex;flex-direction:column;align-items:center;gap:7px}
+.note-bubble{position:relative;width:100%;background:var(--card);border-radius:15px;padding:8px 10px;font-size:11.5px;line-height:1.32;text-align:center;box-shadow:0 8px 16px -14px color-mix(in srgb,var(--foreground) 70%,transparent)}
+.note-bubble::after{content:'';position:absolute;bottom:-4px;left:50%;margin-left:-5px;width:10px;height:10px;background:inherit;border-radius:2px;transform:rotate(45deg)}
+.note-name{font-size:12px;color:var(--muted-foreground)}
+.snap-lens{width:64px;height:64px;border-radius:20px;background:var(--primary);color:var(--primary-foreground);display:flex;align-items:center;justify-content:center}
+.snap-lens svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.demo-footnote{text-align:center;font-size:13px;color:var(--muted-foreground)}
+
+/* ---------- the glass case ---------- */
+.case{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(29,43,33,.58);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
+.case[data-open='1']{display:flex}
+.case-panel{width:100%;max-width:340px;background:var(--card);border-radius:28px;padding:16px 16px 12px;box-shadow:0 30px 70px -34px #000;animation:case-in .36s cubic-bezier(.22,.9,.3,1) both}
+@keyframes case-in{from{opacity:0;transform:translateY(16px) scale(.94)}to{opacity:1;transform:none}}
+.case-glass{position:relative;height:208px;border-radius:20px;overflow:hidden;background:linear-gradient(163deg,#E6F0DE 0%,#CFE1C8 58%,#B9D2B4 100%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.7),inset 0 -34px 40px -32px rgba(47,74,55,.55)}
+.case-glass::before{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(116deg,rgba(255,255,255,.62) 0 20%,rgba(255,255,255,.05) 38%,rgba(255,255,255,0) 55%)}
+.case-glass::after{content:'';position:absolute;left:0;right:0;bottom:0;height:34px;background:linear-gradient(rgba(47,74,55,0),rgba(47,74,55,.1))}
+.case-shadow{position:absolute;left:50%;bottom:26px;width:118px;height:15px;margin-left:-59px;border-radius:50%;background:radial-gradient(ellipse,rgba(47,74,55,.26),rgba(47,74,55,0) 70%)}
+.case-stage{position:absolute;left:50%;bottom:30px;transform:translateX(-50%);animation:sway 6s ease-in-out infinite;transform-origin:50% 100%}
+@keyframes sway{0%,100%{transform:translateX(-50%) rotate(-1.4deg)}50%{transform:translateX(-50%) rotate(1.4deg)}}
+.case-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:14px 2px 2px}
+.case-head h3{font-family:var(--serif);font-size:22px;font-weight:700;margin:0}
+.case-who{font-size:13px;color:var(--muted-foreground)}
+.case-note{font-size:13.5px;color:var(--muted-foreground);margin:2px 2px 0}
+.case-rows{display:flex;flex-direction:column;margin-top:10px}
+.case-row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:10px 2px;border-bottom:1px solid var(--border);font-size:14px}
+.case-row:last-child{border-bottom:0}
+.case-row b{font-weight:600;color:var(--muted-foreground);font-size:12.5px;white-space:nowrap}
+.case-row span{text-align:right}
+.case-close{width:100%;min-height:44px;margin-top:8px;border-radius:14px;background:var(--secondary);font-weight:600;font-size:14px}
+.bottom-nav{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);display:flex;gap:4px;background:var(--primary);border-radius:999px;padding:8px;box-shadow:0 14px 30px -12px color-mix(in srgb,var(--primary) 70%,transparent);z-index:20}
+.nav-item{display:flex;flex-direction:column;align-items:center;gap:2px;width:74px;padding-block:6px 4px;color:var(--primary-foreground);opacity:.65}
+.nav-item[aria-current='page']{opacity:1}
+.nav-icon{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%}
+.nav-item[aria-current='page'] .nav-icon{background:var(--accent);color:var(--foreground)}
+.nav-icon svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.nav-label{font-size:11px;font-weight:600}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+ <header class="app-header">
+  <span class="brand"><svg viewBox="0 0 24 24"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg>harbor<span style="color:var(--accent)">.</span></span>
+  <span class="trial-tag">field trial</span>
+ </header>
+
+ <div class="home-greeting">
+  <div class="eyebrow">A little closer, every day</div>
+  <h1>Hey, Maya.</h1>
+  <p class="small-copy" id="count">9 calls have grown here.</p>
+ </div>
+
+ <div class="field-holder">
+  <div class="field-frame" id="frame" data-weather="bright">
+   <div class="field-sky" aria-hidden="true">
+    <span class="sun"></span>
+    <span class="cloud c1"></span><span class="cloud c2"></span><span class="cloud c3"></span>
+   </div>
+   <canvas id="field"></canvas>
+   <div class="rain" id="rain" aria-hidden="true"></div>
+   <div class="field-controls">
+    <button class="field-control" id="zin" aria-label="Zoom in"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+    <button class="field-control" id="zout" aria-label="Zoom out"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+    <button class="field-control" id="zfit" aria-label="Pull back"><svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
+   </div>
+   <div class="field-readout"><span id="zoomLabel">1.0×</span><span class="meter"><i id="meter"></i></span><span id="stage">plan</span></div>
+  </div>
+ </div>
+
+ <div class="page-content">
+  <section class="weather-card">
+   <div>
+    <p class="eyebrow">How life feels right now</p>
+    <h2 id="wLabel">Bright</h2>
+    <p class="small-copy" id="wCaption">Good and busy. The kind you chose.</p>
+   </div>
+   <div class="weather-track" id="wTrack" role="slider" tabindex="0" aria-valuemin="0" aria-valuemax="4" aria-valuenow="1" aria-label="How life feels right now">
+    <span class="rail"></span><span class="fill" id="wFill"></span>
+    <span class="thumb" id="wThumb"><svg id="wIcon" viewBox="0 0 24 24"></svg></span>
+   </div>
+   <div class="scale"><span>Clear</span><span>Only you see this</span><span>Storm</span></div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:12px">
+   <div class="section-heading"><h2>Your people</h2></div>
+   <div class="chat-grid" id="people"></div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:12px">
+   <div class="section-heading"><h2>A little something</h2><span class="small-copy">notes &amp; instants</span></div>
+   <div class="notes-strip">
+    <div class="note-item"><span class="note-bubble">Leave a note…</span><span class="avatar" style="background:var(--sky);color:var(--primary)">M</span><span class="note-name">You</span></div>
+    <div class="note-item"><span class="note-bubble">Made a little extra of your favorite.</span><span class="avatar" style="background:var(--surface-gold)">M</span><span class="note-name">Mom</span></div>
+    <div class="note-item"><span class="note-bubble">Radio still works. Unbelievable.</span><span class="avatar" style="background:var(--surface-green);color:var(--primary)">D</span><span class="note-name">Dad</span></div>
+    <div class="note-item"><span class="note-bubble">saving a story for you</span><span class="avatar" style="background:var(--surface-orange)">A</span><span class="note-name">Aanya</span></div>
+    <div class="note-item"><span class="snap-lens"><svg viewBox="0 0 24 24"><path d="M14.5 4h-5L8 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-4l-1.5-2z"/><circle cx="12" cy="13" r="3.2"/></svg></span><span class="note-name">Snap</span></div>
+   </div>
+  </section>
+
+  <p class="demo-footnote">Trial build · the field replaces the garden · drag, pinch, tap a patch</p>
+ </div>
+
+ <div class="case" id="case" data-open="0" role="dialog" aria-modal="true" aria-label="A flower, up close">
+  <div class="case-panel">
+   <div class="case-glass">
+    <span class="case-shadow"></span>
+    <span class="case-stage" id="caseStage"></span>
+   </div>
+   <div class="case-head"><h3 id="caseName">Marigold</h3><span class="case-who" id="caseWho">with Mom</span></div>
+   <p class="case-note" id="caseNote"></p>
+   <div class="case-rows" id="caseRows"></div>
+   <button class="case-close" id="caseClose">Leave it growing</button>
+  </div>
+ </div>
+
+ <nav class="bottom-nav">
+  <a class="nav-item" aria-current="page"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 10v10h14V10"/></svg></span><span class="nav-label">Home</span></a>
+  <a class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/></svg></span><span class="nav-label">Schedule</span></a>
+  <a class="nav-item"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg></span><span class="nav-label">Account</span></a>
+ </nav>
+</div>
+
+<script>
+(() => {
+'use strict'
+
+/* ============================ terrain ============================ */
+const CELL = 15, COLS = 156, ROWS = 116
+const FIELD_W = COLS * CELL, FIELD_H = ROWS * CELL
+const SEED = 20260911
+
+const hash2 = (xi, yi, seed) => {
+ let h = seed ^ Math.imul(xi, 374761393) ^ Math.imul(yi, 668265263)
+ h = Math.imul(h ^ (h >>> 13), 1274126177)
+ return ((h ^ (h >>> 16)) >>> 0) / 4294967295
+}
+const noise = (x, y, seed) => {
+ const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi
+ const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf)
+ const a = hash2(xi, yi, seed), b = hash2(xi + 1, yi, seed)
+ const c = hash2(xi, yi + 1, seed), d = hash2(xi + 1, yi + 1, seed)
+ return (a * (1 - u) + b * u) * (1 - v) + (c * (1 - u) + d * u) * v
+}
+const fbm = (x, y, seed, oct = 4) => {
+ let sum = 0, amp = 1, freq = 1, norm = 0
+ for (let i = 0; i < oct; i++) { sum += noise(x * freq, y * freq, seed + i * 101) * amp; norm += amp; amp *= 0.5; freq *= 2 }
+ return sum / norm
+}
+const clamp01 = n => n < 0 ? 0 : n > 1 ? 1 : n
+const smooth = n => { const t = clamp01(n); return t * t * (3 - 2 * t) }
+const N = 1250
+
+const riverAt = wy => FIELD_W * 0.12 + fbm(wy / 900 * 1.7, 3.2, SEED + 505, 3) * FIELD_W * 0.26
+
+/* The field is an island, not a rectangle: a soft radial falloff roughed up by noise. */
+function landAt(wx, wy) {
+ const dx = (wx - FIELD_W / 2) / (FIELD_W * 0.52)
+ const dy = (wy - FIELD_H / 2) / (FIELD_H * 0.52)
+ const radial = 1 - Math.sqrt(dx * dx + dy * dy)
+ const rough = fbm(wx / N * 1.9 + 41, wy / N * 1.9 + 41, SEED + 2200, 4)
+ return radial * 0.72 + rough * 0.5 - 0.16
+}
+function heightAt(wx, wy) {
+ const base = fbm(wx / N * 2.1, wy / N * 2.1, SEED, 5)
+ const folds = fbm(wx / N * 1.3 + 9, wy / N * 1.3 + 9, SEED + 77, 4)
+ const ridge = 1 - Math.abs(folds * 2 - 1)
+ const rise = smooth(1 - wy / (FIELD_H * 0.58))
+ let h = base * 0.42 + ridge * ridge * 0.3 + rise * 0.5
+ h *= 0.46 + 0.54 * smooth(wx / FIELD_W * 1.9)
+ const bank = Math.abs(wx - riverAt(wy))
+ if (bank < 58) h = Math.min(h, 0.2 + bank / 58 * 0.16)
+ return clamp01(h)
+}
+const moistureAt = (wx, wy) => fbm(wx / N * 3.3 + 21, wy / N * 3.3 + 21, SEED + 311, 4)
+const grovesAt = (wx, wy) => fbm(wx / N * 9.5 + 4, wy / N * 9.5 + 4, SEED + 907, 3)
+const tilledAt = (wx, wy) => fbm(wx / N * 2.6 + 61, wy / N * 2.6 + 61, SEED + 1301, 3)
+
+/* ============================ the flower library ============================ */
+/* One kind per call, chosen by whoever made the call. A patch is therefore a mix,
+   and whichever kind a person keeps choosing is the one their patch reads as. */
+const FLOWERS = {
+ daisy:     { name: 'Daisy',     note: 'An ordinary, easy call.',        petal: '#FBFCF6', deep: '#E4EAD6', heart: '#F0BD3E', petals: 9,  rx: .40, ry: .30 },
+ marigold:  { name: 'Marigold',  note: 'Warm, a little loud, full of news.', petal: '#F3B049', deep: '#D98F2C', heart: '#8B5A1C', petals: 11, rx: .38, ry: .28 },
+ cosmos:    { name: 'Cosmos',    note: 'Light and drifting. No agenda.',  petal: '#F0C0D2', deep: '#D998B2', heart: '#F0BD3E', petals: 7,  rx: .44, ry: .32 },
+ poppy:     { name: 'Poppy',     note: 'Something honest got said.',      petal: '#E2705A', deep: '#C4523E', heart: '#3B2A22', petals: 5,  rx: .50, ry: .38 },
+ tulip:     { name: 'Tulip',     note: 'Short, and enough.',              petal: '#E0879F', deep: '#C4667F', heart: '#C4667F', petals: 4,  rx: .42, ry: .44 },
+ bluebell:  { name: 'Bluebell',  note: 'Quiet. Mostly listening.',        petal: '#8FA6D6', deep: '#6D85BC', heart: '#5A6FA5', petals: 5,  rx: .32, ry: .44 },
+ aster:     { name: 'Aster',     note: 'Tangled, then untangled.',        petal: '#B79CD8', deep: '#9A7CC0', heart: '#F0BD3E', petals: 13, rx: .26, ry: .40 },
+ sunflower: { name: 'Sunflower', note: 'The long, good kind.',            petal: '#F0C93E', deep: '#D6A81F', heart: '#6B4A22', petals: 14, rx: .28, ry: .42 },
+}
+const FEELINGS = {
+ light:  { label: 'Lighter', caption: 'Something lifted.' },
+ warm:   { label: 'Warm',    caption: 'Glad you picked up.' },
+ steady: { label: 'Steady',  caption: 'Ordinary, in a good way.' },
+ tender: { label: 'Tender',  caption: 'A lot, but worth it.' },
+}
+const TOPICS = ['the tomatoes, mostly', 'her knee again', 'nothing in particular', 'the flat', 'money, briefly', 'a recipe', 'the wedding', 'exams', 'the dog', 'what she said last week']
+
+/* ============================ people and their patches ============================ */
+const PEOPLE = [
+ { id: 'mom', name: 'Mom', initials: 'M', tone: 'gold', count: 19, note: 'Made your favorite today.', bag: ['marigold', 'marigold', 'marigold', 'daisy', 'daisy', 'poppy', 'cosmos', 'sunflower'] },
+ { id: 'dad', name: 'Dad', initials: 'D', tone: 'green', count: 13, note: 'The tomatoes are finally growing!', bag: ['sunflower', 'sunflower', 'sunflower', 'daisy', 'daisy', 'tulip', 'marigold'] },
+ { id: 'aanya', name: 'Aanya', initials: 'A', tone: 'orange', count: 10, note: 'Saving this story for our next call.', bag: ['aster', 'aster', 'aster', 'cosmos', 'cosmos', 'bluebell', 'poppy'] },
+ { id: 'nani', name: 'Nani', initials: 'N', tone: 'sky', count: 6, note: 'Come home when you can.', bag: ['bluebell', 'bluebell', 'bluebell', 'tulip', 'daisy'] },
+]
+const TONE_BG = { gold: 'var(--surface-gold)', green: 'var(--surface-green)', orange: 'var(--surface-orange)', sky: 'var(--sky)' }
+const fmtDuration = m => m < 60 ? m + ' min' : Math.floor(m / 60) + ' hr' + (m % 60 ? ' ' + (m % 60) + ' min' : '')
+/* A longer call opens a fuller bloom, bounded so a two-minute call is still a whole flower. */
+const bloomScale = m => Math.min(1.5, Math.max(0.7, 0.6 + Math.sqrt(m) / 7))
+
+function settle(x, y) {
+ let best = [x, y], bestScore = -1
+ for (let ring = 0; ring <= 7; ring++) {
+  for (let step = 0; step < (ring ? 12 : 1); step++) {
+   const a = (step / 12) * Math.PI * 2
+   const px = x + Math.cos(a) * ring * 80, py = y + Math.sin(a) * ring * 80
+   if (landAt(px, py) < 0.26) continue
+   const z = heightAt(px, py)
+   const score = z > 0.38 && z < 0.72 ? 1 - Math.abs(z - 0.52) - ring * 0.04 : -1
+   if (score > bestScore) { bestScore = score; best = [px, py] }
+  }
+  if (bestScore > 0.62) break
+ }
+ return best
+}
+/* Free-flowing outlines, never circles: a noisy radius walked around the centre. */
+function blobRing(cx, cy, radius, seed, points = 17) {
+ const ring = []
+ for (let k = 0; k < points; k++) {
+  const a = (k / points) * Math.PI * 2
+  const r = radius * (0.68 + fbm(Math.cos(a) * 1.6 + 3, Math.sin(a) * 1.6 + 3, seed, 3) * 0.7)
+  ring.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r])
+ }
+ return ring
+}
+const SPOTS = [[0.4, 0.66], [0.68, 0.74], [0.55, 0.42], [0.82, 0.55]]
+const PATCHES = PEOPLE.map((p, i) => {
+ const [x, y] = settle(SPOTS[i][0] * FIELD_W, SPOTS[i][1] * FIELD_H)
+ const radius = 108 + hash2(i, 3, 4000 + i * 37) * 34
+ return { ...p, x, y, radius, ring: blobRing(x, y, radius, 4000 + i * 37) }
+})
+
+/* ---------- every call the user logged, and the flower they gave it ---------- */
+const DAY_MS = 86400000
+const CALLS = []
+PATCHES.forEach((patch, pi) => {
+ const seed = 9100 + pi * 211
+ for (let i = 0; i < patch.count; i++) {
+  const r1 = hash2(i, 1, seed), r2 = hash2(i, 2, seed), r3 = hash2(i, 3, seed), r4 = hash2(i, 4, seed)
+  const kind = patch.bag[Math.floor(r1 * patch.bag.length)]
+  const minutes = Math.max(2, Math.round(2 + r2 * r2 * 52))
+  const feeling = minutes > 28 ? (r3 > 0.45 ? 'tender' : 'warm') : minutes < 7 ? (r3 > 0.5 ? 'light' : 'steady') : (r3 > 0.6 ? 'warm' : r3 > 0.3 ? 'steady' : 'light')
+  /* Golden-angle placement: a flower keeps its spot no matter how many are added after it. */
+  const rad = Math.min(patch.radius * 0.8, patch.radius * 0.78 * Math.sqrt((i + 0.6) / Math.max(patch.count, 8)))
+  const angle = i * 2.399963 + r4 * 0.5
+  const x = patch.x + Math.cos(angle) * rad + (r1 - 0.5) * 12
+  const y = patch.y + Math.sin(angle) * rad + (r2 - 0.5) * 12
+  CALLS.push({
+   person: patch.id, patch: pi, kind, x, y, z: heightAt(x, y),
+   at: new Date(Date.now() - (i * 6.4 + r3 * 4) * DAY_MS),
+   minutes, feeling,
+   topic: r4 > 0.34 ? TOPICS[Math.floor(r1 * TOPICS.length)] : null,
+   size: bloomScale(minutes), spin: r2 * 6.283,
+  })
+ }
+ const tally = {}
+ for (const call of CALLS) if (call.patch === pi) tally[call.kind] = (tally[call.kind] || 0) + 1
+ patch.dominant = Object.keys(tally).sort((a, b) => tally[b] - tally[a])[0]
+})
+CALLS.sort((a, b) => a.y - b.y)
+function inRing(ring, px, py) {
+ let inside = false
+ for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+  const [xi, yi] = ring[i], [xj, yj] = ring[j]
+  if ((yi > py) !== (yj > py) && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) inside = !inside
+ }
+ return inside
+}
+function patchAt(px, py) {
+ for (let i = 0; i < PATCHES.length; i++) {
+  const p = PATCHES[i]
+  if (Math.abs(px - p.x) > p.radius * 1.5 || Math.abs(py - p.y) > p.radius * 1.5) continue
+  if (inRing(p.ring, px, py)) return i
+ }
+ return -1
+}
+
+/* ============================ the cells ============================ */
+/* Circle colours, bucketed so the whole field draws in a dozen fills rather than thousands. */
+const VEG = ['#B7CC63', '#9EBC50', '#86A742', '#6C9035', '#53752A']
+const WATER = ['#9ED3EC', '#72BBE0']
+const BARE = '#B4B5AB'
+const GRASS = ['#C6D9A2', '#B2CB8B']
+const CIRCLE_PAINT = [...VEG, ...WATER, BARE, ...GRASS]
+const GRASS_FROM = CIRCLE_PAINT.length - GRASS.length
+
+const cells = []
+for (let row = 0; row < ROWS; row++) {
+ for (let col = 0; col < COLS; col++) {
+  const jx = (hash2(col, row, SEED + 5) - 0.5) * CELL * 0.5
+  const jy = (hash2(col, row, SEED + 6) - 0.5) * CELL * 0.5
+  const x = col * CELL + jx, y = row * CELL + jy
+  if (landAt(x, y) < 0.2) continue
+  const z = heightAt(x, y)
+  const m = moistureAt(x, y), grove = grovesAt(x, y), till = tilledAt(x, y)
+  const slope = Math.abs(z - heightAt(x + CELL, y)) + Math.abs(z - heightAt(x, y + CELL))
+  const chance = hash2(col, row, SEED + 7)
+  const patch = patchAt(x, y)
+
+  let kind = 'dot', size = 0.1, paint = CIRCLE_PAINT.length - 1
+
+  if (patch >= 0 && z > 0.3) {
+   /* A patch is kept ground — low grass, so the flowers planted in it are what you read. */
+   kind = 'dot'
+   size = 0.22 + chance * 0.2
+   paint = GRASS_FROM + (chance > 0.55 ? 1 : 0)
+  } else if (z < 0.3) { kind = 'dot'; size = 0.5 + (0.3 - z) * 2.4; paint = 5 + (chance > 0.5 ? 1 : 0) }
+  else if (z < 0.35) { kind = 'dot'; size = 0.3; paint = 5 }
+  else if (z > 0.74 && slope > 0.026) { kind = 'square'; size = 0.34 + slope * 3 }
+  else if (grove > 0.5) { kind = 'dot'; size = 0.6 + (grove - 0.5) * 3.4 + m * 0.6; paint = Math.min(4, Math.floor(z * 3.6 + chance * 1.4)) }
+  else if (m > 0.44) { kind = 'dot'; size = 0.26 + (m - 0.44) * 2.4; paint = Math.min(4, Math.floor(z * 3.2 + chance)) }
+  else if (till > 0.55 && till < 0.67 && z < 0.7) { kind = 'cross'; size = 0.4 }
+  else if (chance > 0.987 && z > 0.36) { kind = 'square'; size = 0.3 }
+  else { kind = 'dot'; size = 0.13 + m * 0.2; paint = CIRCLE_PAINT.length - 1 }
+
+  cells.push({ x, y, z, kind, size: Math.min(size, 2.4), paint, patch, tone: chance })
+ }
+}
+
+/* ============================ camera ============================ */
+const TILT_FROM = 2.1, TILT_TO = 4.2, MAX_REL = 30
+const EYE = 300, SET_BACK = 2.4, HORIZON = 0.14, ELEVATION = 170
+const overviewZoom = (w, h) => (!w || !h) ? 0.2 : Math.max(w / FIELD_W, h / FIELD_H)
+const clampZoom = (z, base) => Math.min(base * MAX_REL, Math.max(base, z))
+const tiltFor = (zoom, base) => smooth((zoom / base - TILT_FROM) / (TILT_TO - TILT_FROM))
+
+let view = { w: 0, h: 0, dpr: 1, base: 0.2 }
+let cam = { x: FIELD_W / 2, y: FIELD_H / 2, zoom: 0.2 }
+let goal = { ...cam }
+let lens = null
+
+function buildLens() {
+ const rel = Math.max(cam.zoom / view.base, 0.6)
+ const eye = Math.max(34, EYE * TILT_TO / rel)
+ const back = eye * SET_BACK
+ lens = {
+  tilt: tiltFor(cam.zoom, view.base), focal: view.h * 0.92, eye, back,
+  /* Measured under what you are looking at, so framing does not lurch with the terrain. */
+  camZ: heightAt(cam.x, cam.y) * ELEVATION,
+ }
+}
+function project(wx, wy, wz, out) {
+ const flatX = view.w / 2 + (wx - cam.x) * cam.zoom
+ const flatY = view.h * 0.5 + (wy - cam.y) * cam.zoom
+ if (lens.tilt <= 0.002) { out.x = flatX; out.y = flatY; out.s = cam.zoom; return out }
+ const d = Math.max(lens.eye * 0.3, cam.y + lens.back - wy)
+ const tx = view.w / 2 + lens.focal * (wx - cam.x) / d
+ const ty = view.h * HORIZON + lens.focal * (lens.eye + lens.camZ - wz * ELEVATION) / d
+ const ts = lens.focal / d
+ out.x = flatX + (tx - flatX) * lens.tilt
+ out.y = flatY + (ty - flatY) * lens.tilt
+ out.s = cam.zoom + (ts - cam.zoom) * lens.tilt
+ return out
+}
+
+/* ============================ drawing ============================ */
+const canvas = document.getElementById('field')
+const ctx = canvas.getContext('2d')
+const frame = document.getElementById('frame')
+const p = { x: 0, y: 0, s: 1 }
+const buckets = CIRCLE_PAINT.map(() => [])
+const crosses = [], squares = []
+
+function render() {
+ const { w, h, dpr } = view
+ if (!w || !h) return requestAnimationFrame(render)
+
+ cam.x += (goal.x - cam.x) * 0.13
+ cam.y += (goal.y - cam.y) * 0.13
+ cam.zoom += (goal.zoom - cam.zoom) * 0.13
+ buildLens()
+
+ ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+ ctx.clearRect(0, 0, w, h)
+ for (const b of buckets) b.length = 0
+ crosses.length = squares.length = 0
+
+ for (let i = 0; i < cells.length; i++) {
+  const c = cells[i]
+  project(c.x, c.y, c.z, p)
+  if (p.x < -26 || p.x > w + 26 || p.y < -26 || p.y > h + 26) continue
+  let r = c.size * 3.3 * p.s
+  if (r < 0.1) continue
+  if (c.kind === 'cross') { if (r > 0.5) crosses.push(p.x, p.y, r); continue }
+  if (c.kind === 'square') { squares.push(p.x, p.y, r); continue }
+  if (r < 0.75) r = 0.75
+  buckets[c.paint].push(p.x, p.y, r)
+ }
+
+ for (let b = 0; b < buckets.length; b++) {
+  const list = buckets[b]
+  if (!list.length) continue
+  ctx.fillStyle = CIRCLE_PAINT[b]
+  ctx.globalAlpha = b === 7 ? 0.45 : b >= GRASS_FROM ? 0.75 : 0.9
+  ctx.beginPath()
+  for (let i = 0; i < list.length; i += 3) {
+   ctx.moveTo(list[i] + list[i + 2], list[i + 1])
+   ctx.arc(list[i], list[i + 1], list[i + 2], 0, 6.283185)
+  }
+  ctx.fill()
+ }
+ ctx.globalAlpha = 1
+
+ if (squares.length) {
+  ctx.fillStyle = '#3B3D39'; ctx.globalAlpha = 0.85
+  for (let i = 0; i < squares.length; i += 3) { const s = squares[i + 2] * 1.6; ctx.fillRect(squares[i] - s / 2, squares[i + 1] - s / 2, s, s) }
+  ctx.globalAlpha = 1
+ }
+ if (crosses.length) {
+  ctx.strokeStyle = '#7C5B3D'; ctx.globalAlpha = 0.8; ctx.lineCap = 'round'
+  ctx.lineWidth = Math.max(0.6, crosses[2] * 0.4)
+  ctx.beginPath()
+  for (let i = 0; i < crosses.length; i += 3) {
+   const a = crosses[i + 2] * 1.1
+   ctx.moveTo(crosses[i] - a, crosses[i + 1] - a); ctx.lineTo(crosses[i] + a, crosses[i + 1] + a)
+   ctx.moveTo(crosses[i] + a, crosses[i + 1] - a); ctx.lineTo(crosses[i] - a, crosses[i + 1] + a)
+  }
+  ctx.stroke(); ctx.globalAlpha = 1
+ }
+
+ drawPatchOutlines()
+ drawCalls()
+ drawTags()
+
+ const rel = cam.zoom / view.base
+ label.textContent = rel.toFixed(1) + '×'
+ meter.style.width = (lens.tilt * 100) + '%'
+ stage.textContent = lens.tilt < 0.02 ? 'plan' : lens.tilt > 0.98 ? 'landscape' : 'tipping'
+ requestAnimationFrame(render)
+}
+
+function drawPatchOutlines() {
+ ctx.save()
+ ctx.setLineDash([5, 6]); ctx.lineWidth = 1.2; ctx.strokeStyle = 'rgba(51,85,61,0.34)'
+ for (const patch of PATCHES) {
+  const pts = patch.ring.map(([x, y]) => { const o = { x: 0, y: 0, s: 1 }; project(x, y, heightAt(x, y), o); return o })
+  if (pts.every(q => q.x < -90 || q.x > view.w + 90 || q.y < -90 || q.y > view.h + 90)) continue
+  ctx.beginPath()
+  for (let i = 0; i < pts.length; i++) {
+   const a = pts[i], b = pts[(i + 1) % pts.length]
+   if (!i) ctx.moveTo(a.x, a.y)
+   ctx.quadraticCurveTo(a.x, a.y, (a.x + b.x) / 2, (a.y + b.y) / 2)
+  }
+  ctx.closePath(); ctx.stroke()
+ }
+ ctx.restore()
+}
+
+/* Every logged call, drawn back to front. Far off it is a coloured dot, so a patch reads as
+   whichever kind it holds most; close up it is the flower that call was actually given. */
+const hits = []
+function drawCalls() {
+ hits.length = 0
+ for (const call of CALLS) {
+  project(call.x, call.y, call.z, p)
+  if (p.x < -40 || p.x > view.w + 40 || p.y < -40 || p.y > view.h + 40) continue
+  const r = call.size * 6.2 * p.s
+  if (r < 0.35) continue
+  const flower = FLOWERS[call.kind]
+  if (r > 4.4) {
+   drawFlower(flower, p.x, p.y, r, call.spin)
+   hits.push({ x: p.x, y: p.y, r, call })
+  } else {
+   ctx.fillStyle = flower.petal === '#FBFCF6' ? flower.deep : flower.petal
+   ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(r, 1.7), 0, 6.283185); ctx.fill()
+   if (r > 2.2) hits.push({ x: p.x, y: p.y, r, call })
+  }
+ }
+}
+function drawFlower(flower, x, y, r, spin) {
+ ctx.globalAlpha = 1
+ for (let i = 0; i < flower.petals; i++) {
+  const a = (i / flower.petals) * 6.283185 + spin
+  ctx.fillStyle = i % 2 ? flower.petal : flower.deep
+  ctx.beginPath()
+  ctx.ellipse(x + Math.cos(a) * r * 0.52, y + Math.sin(a) * r * 0.52, r * flower.rx, r * flower.ry, a, 0, 6.283185)
+  ctx.fill()
+ }
+ ctx.fillStyle = flower.heart
+ ctx.beginPath(); ctx.arc(x, y, r * 0.28, 0, 6.283185); ctx.fill()
+}
+
+function drawTags() {
+ ctx.font = '600 11px ' + getComputedStyle(document.body).getPropertyValue('--mono')
+ const tags = []
+ for (const patch of PATCHES) {
+  const o = { x: 0, y: 0, s: 1 }
+  project(patch.x, patch.y, heightAt(patch.x, patch.y), o)
+  if (o.x < -50 || o.x > view.w + 50 || o.y < -20 || o.y > view.h + 40) continue
+  /* The zoom controls own the top-right corner; a tag under them is unreadable anyway. */
+  if (o.x > view.w - 80 && o.y < 210) continue
+  tags.push({ text: patch.name.toUpperCase() + ' · ' + patch.count, x: o.x, y: o.y, stem: o.y, kind: patch.dominant })
+ }
+ /* Patches sit close together when you pull back, so nudge colliding labels apart. */
+ tags.sort((a, b) => a.y - b.y)
+ for (let i = 1; i < tags.length; i++) {
+  for (let j = 0; j < i; j++) {
+   if (Math.abs(tags[i].x - tags[j].x) < 104 && Math.abs(tags[i].y - tags[j].y) < 28) tags[i].y = tags[j].y + 28
+  }
+ }
+ for (const tag of tags) {
+  /* The tag carries the kind this patch grows most, so the dominant flower reads at any distance. */
+  const wide = ctx.measureText(tag.text).width + 38
+  const top = tag.y - 34
+  ctx.fillStyle = '#7C5B3D'
+  ctx.beginPath(); ctx.roundRect(tag.x - wide / 2, top, wide, 22, 6); ctx.fill()
+  if (Math.abs(tag.y - tag.stem) < 2) { ctx.beginPath(); ctx.moveTo(tag.x - 5, top + 22); ctx.lineTo(tag.x + 5, top + 22); ctx.lineTo(tag.x, top + 29); ctx.closePath(); ctx.fill() }
+  drawFlower(FLOWERS[tag.kind], tag.x - wide / 2 + 13, top + 11, 7.5, 0.4)
+  ctx.fillStyle = '#FBF1DE'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  ctx.fillText(tag.text, tag.x + 9, top + 12)
+  ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic'
+ }
+}
+
+/* ============================ interaction ============================ */
+const label = document.getElementById('zoomLabel')
+const meter = document.getElementById('meter')
+const stage = document.getElementById('stage')
+let ready = false
+
+new ResizeObserver(entries => {
+ const rect = entries[0].contentRect
+ const dpr = Math.min(window.devicePixelRatio || 1, 2)
+ view = { w: rect.width, h: rect.height, dpr, base: overviewZoom(rect.width, rect.height) }
+ canvas.width = Math.round(rect.width * dpr); canvas.height = Math.round(rect.height * dpr)
+ if (!ready && rect.width) { ready = true; cam = { x: FIELD_W / 2, y: FIELD_H / 2, zoom: view.base }; goal = { ...cam } }
+}).observe(frame)
+
+const pointers = new Map()
+let drag = null, pinch = null
+const localPoint = e => { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top } }
+
+canvas.addEventListener('pointerdown', e => {
+ const pt = localPoint(e); pointers.set(e.pointerId, pt); canvas.setPointerCapture(e.pointerId)
+ if (pointers.size === 2) {
+  const [a, b] = [...pointers.values()]
+  pinch = { dist: Math.hypot(a.x - b.x, a.y - b.y) || 1, zoom: goal.zoom }; drag = null
+ } else drag = { ...pt, moved: 0 }
+})
+canvas.addEventListener('pointermove', e => {
+ if (!pointers.has(e.pointerId)) return
+ const pt = localPoint(e); pointers.set(e.pointerId, pt)
+ if (pinch && pointers.size >= 2) {
+  const [a, b] = [...pointers.values()]
+  goal.zoom = clampZoom(pinch.zoom * ((Math.hypot(a.x - b.x, a.y - b.y) || 1) / pinch.dist), view.base)
+  return
+ }
+ if (!drag) return
+ const dx = pt.x - drag.x, dy = pt.y - drag.y
+ drag.moved += Math.hypot(dx, dy); drag.x = pt.x; drag.y = pt.y
+ const tilt = tiltFor(goal.zoom, view.base)
+ goal.x -= dx / goal.zoom
+ goal.y -= (dy / goal.zoom) * (1 + tilt * 2.4)
+})
+function endPointer(e) {
+ const pt = pointers.get(e.pointerId), started = drag
+ pointers.delete(e.pointerId)
+ if (pointers.size < 2) pinch = null
+ if (started && pt && started.moved < 6) {
+  /* A flower first — it is the smaller, more specific target — then the patch it sits in. */
+  let flower = null, flowerDist = Infinity
+  for (const hit of hits) {
+   const d = Math.hypot(hit.x - pt.x, hit.y - pt.y)
+   if (d < Math.max(14, hit.r * 1.5) && d < flowerDist) { flowerDist = d; flower = hit.call }
+  }
+  if (flower) openCase(flower)
+  else {
+   let best = null, bestDist = 76
+   for (const patch of PATCHES) {
+    const o = { x: 0, y: 0, s: 1 }
+    project(patch.x, patch.y, heightAt(patch.x, patch.y), o)
+    const d = Math.hypot(o.x - pt.x, o.y - pt.y)
+    if (d < bestDist) { bestDist = d; best = patch }
+   }
+   if (best) goal = { x: best.x, y: best.y, zoom: view.base * 11 }
+  }
+ }
+ if (!pointers.size) drag = null
+}
+
+/* ============================ the glass case ============================ */
+const caseEl = document.getElementById('case')
+function flowerSVG(kind, size) {
+ const f = FLOWERS[kind]
+ let petals = ''
+ for (let i = 0; i < f.petals; i++) {
+  const a = (i / f.petals) * 360
+  petals += '<ellipse cx="0" cy="' + (-28 * f.ry / 0.32).toFixed(1) + '" rx="' + (26 * f.rx).toFixed(1) + '" ry="' + (30 * f.ry).toFixed(1) + '" fill="' + (i % 2 ? f.petal : f.deep) + '" transform="rotate(' + a.toFixed(1) + ')"/>'
+ }
+ return '<svg width="' + size + '" height="' + (size * 1.5) + '" viewBox="-46 -122 92 138">' +
+  '<path d="M0 0 C -6 -26, 5 -46, 0 -66" fill="none" stroke="#4E7A50" stroke-width="5" stroke-linecap="round"/>' +
+  '<path d="M0 -30 C -20 -40, -27 -25, -7 -19 Z" fill="#5C8A55"/>' +
+  '<path d="M0 -46 C 19 -56, 25 -41, 6 -36 Z" fill="#6B9A61"/>' +
+  '<g transform="translate(0,-70)">' + petals + '<circle r="' + (f.petals > 10 ? 10 : 9) + '" fill="' + f.heart + '"/></g></svg>'
+}
+function openCase(call) {
+ const f = FLOWERS[call.kind], person = PATCHES[call.patch], feeling = FEELINGS[call.feeling]
+ document.getElementById('caseStage').innerHTML = flowerSVG(call.kind, 132)
+ document.getElementById('caseName').textContent = f.name
+ document.getElementById('caseWho').textContent = 'with ' + person.name
+ document.getElementById('caseNote').textContent = f.note
+ const rows = [
+  ['Date', call.at.toLocaleDateString('en', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })],
+  ['Duration', fmtDuration(call.minutes)],
+ ]
+ if (call.topic) rows.push(['What it was about', call.topic])
+ rows.push(['How you felt', feeling.label + ' — ' + feeling.caption.toLowerCase().replace(/\.$/, '')])
+ document.getElementById('caseRows').innerHTML = rows.map(r => '<div class="case-row"><b>' + r[0] + '</b><span>' + r[1] + '</span></div>').join('')
+ caseEl.dataset.open = '1'
+}
+const closeCase = () => { caseEl.dataset.open = '0' }
+document.getElementById('caseClose').onclick = closeCase
+caseEl.addEventListener('pointerdown', e => { if (e.target === caseEl) closeCase() })
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCase() })
+canvas.addEventListener('pointerup', endPointer)
+canvas.addEventListener('pointercancel', endPointer)
+canvas.addEventListener('wheel', e => {
+ e.preventDefault()
+ const tilt = tiltFor(goal.zoom, view.base)
+ const next = clampZoom(goal.zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12), view.base)
+ if (tilt < 0.5) {
+  const r = canvas.getBoundingClientRect()
+  const px = e.clientX - r.left, py = e.clientY - r.top
+  const wx = goal.x + (px - view.w / 2) / goal.zoom, wy = goal.y + (py - view.h / 2) / goal.zoom
+  goal.x = wx - (px - view.w / 2) / next; goal.y = wy - (py - view.h / 2) / next
+ }
+ goal.zoom = next
+}, { passive: false })
+
+document.getElementById('zin').onclick = () => { goal.zoom = clampZoom(goal.zoom * 1.45, view.base) }
+document.getElementById('zout').onclick = () => { goal.zoom = clampZoom(goal.zoom / 1.45, view.base) }
+document.getElementById('zfit').onclick = () => { goal = { x: FIELD_W / 2, y: FIELD_H / 2, zoom: view.base } }
+
+/* ============================ weather ============================ */
+const WEATHERS = [
+ { id: 'clear', label: 'Clear', caption: 'Room to breathe. Nothing pressing.', icon: '<circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>' },
+ { id: 'bright', label: 'Bright', caption: 'Good and busy. The kind you chose.', icon: '<path d="M10 4.5a4 4 0 0 1 6.9 3.1"/><circle cx="8" cy="8" r="3"/><path d="M17 17.5a3.5 3.5 0 0 0 0-7 5 5 0 0 0-9.6 1.4A3.4 3.4 0 0 0 8 17.5z"/>' },
+ { id: 'cloudy', label: 'Cloudy', caption: 'A little grey around the edges.', icon: '<path d="M17.5 18a3.5 3.5 0 0 0 0-7 5 5 0 0 0-9.6 1.4A3.4 3.4 0 0 0 8.5 18z"/>' },
+ { id: 'rain', label: 'Rain', caption: 'Heavy going. Steady, but heavy.', icon: '<path d="M17.5 14a3.5 3.5 0 0 0 0-7 5 5 0 0 0-9.6 1.4A3.4 3.4 0 0 0 8.5 14z"/><path d="M8 17l-1 3M12 17l-1 3M16 17l-1 3"/>' },
+ { id: 'storm', label: 'Storm', caption: 'Too much at once. This passes.', icon: '<path d="M17.5 13a3.5 3.5 0 0 0 0-7 5 5 0 0 0-9.6 1.4A3.4 3.4 0 0 0 8.5 13z"/><path d="M13 14l-3 4h3l-2 4"/>' },
+]
+let weatherIndex = 1
+const track = document.getElementById('wTrack')
+const fill = document.getElementById('wFill'), thumb = document.getElementById('wThumb'), wIcon = document.getElementById('wIcon')
+WEATHERS.forEach((_, i) => {
+ const dot = document.createElement('span')
+ dot.className = 'stop'
+ dot.style.left = 'calc(22px + (100% - 44px) * ' + (i / 4) + ')'
+ track.appendChild(dot)
+})
+function setWeather(next) {
+ weatherIndex = Math.max(0, Math.min(4, next))
+ const w = WEATHERS[weatherIndex]
+ frame.dataset.weather = w.id
+ document.getElementById('wLabel').textContent = w.label
+ document.getElementById('wCaption').textContent = w.caption
+ wIcon.innerHTML = w.icon
+ const f = weatherIndex / 4
+ fill.style.width = 'calc((100% - 44px) * ' + f + ')'
+ thumb.style.left = 'calc(22px + (100% - 44px) * ' + f + ')'
+ track.setAttribute('aria-valuenow', weatherIndex)
+ ;[...track.querySelectorAll('.stop')].forEach((dot, i) => dot.dataset.on = i <= weatherIndex ? '1' : '0')
+}
+let sliding = false
+const fromX = clientX => {
+ const r = track.getBoundingClientRect()
+ if (r.width <= 44) return
+ setWeather(Math.round(((clientX - r.left - 22) / (r.width - 44)) * 4))
+}
+track.addEventListener('pointerdown', e => { sliding = true; track.setPointerCapture(e.pointerId); fromX(e.clientX) })
+track.addEventListener('pointermove', e => { if (sliding) fromX(e.clientX) })
+track.addEventListener('pointerup', () => { sliding = false })
+track.addEventListener('keydown', e => {
+ if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { e.preventDefault(); setWeather(weatherIndex - 1) }
+ if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { e.preventDefault(); setWeather(weatherIndex + 1) }
+})
+setWeather(1)
+
+const rain = document.getElementById('rain')
+for (let i = 0; i < 26; i++) {
+ const drop = document.createElement('i')
+ drop.style.left = ((i * 3.9 + (i % 5) * 1.7) % 100) + '%'
+ drop.style.animationDelay = ((i % 9) * 0.13) + 's'
+ drop.style.animationDuration = (0.62 + (i % 4) * 0.08) + 's'
+ rain.appendChild(drop)
+}
+
+/* ============================ people tiles ============================ */
+const peopleHost = document.getElementById('people')
+PATCHES.forEach(person => {
+ const tile = document.createElement('button')
+ tile.className = 'chat-tile'
+ tile.innerHTML =
+  '<span class="tile-top"><span class="avatar" style="background:' + TONE_BG[person.tone] + ';color:' + (person.tone === 'green' || person.tone === 'sky' ? 'var(--primary)' : 'var(--foreground)') + '">' + person.initials + '</span>' +
+  flowerSVG(person.dominant, 26) + '</span>' +
+  '<span class="chat-name">' + person.name + '<span style="color:var(--muted-foreground)">›</span></span>' +
+  '<span class="chat-preview">' + person.note + '</span>' +
+  '<span class="chat-time">' + person.count + ' flowers · mostly ' + FLOWERS[person.dominant].name.toLowerCase() + '</span>'
+ tile.onclick = () => {
+  goal = { x: person.x, y: person.y, zoom: view.base * 11 }
+  frame.scrollIntoView({ behavior: 'smooth', block: 'center' })
+ }
+ peopleHost.appendChild(tile)
+})
+document.getElementById('count').textContent = CALLS.length + ' calls have grown here.'
+
+requestAnimationFrame(render)
+})()
+</script>
+</body>
+</html>

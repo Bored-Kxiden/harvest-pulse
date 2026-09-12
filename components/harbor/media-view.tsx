@@ -12,8 +12,8 @@ export function useMediaUrl(id?: string) {
 
 export function LocalMedia({ id, kind, className }: { id: string; kind?: string; className?: string }) {
  const { url, error } = useMediaUrl(id)
- if (error) return <p className="small-copy">This attachment could not be opened.</p>
- if (!url) return <p className="small-copy">Opening your local attachment…</p>
+ if (error) return <p className="small">This attachment could not be opened.</p>
+ if (!url) return <p className="small">Opening your local attachment…</p>
  return kind === 'audio'
   ? <audio controls src={url} className="w-full"/>
   : <img src={url} alt="A little moment captured in this demo" className={className ?? 'w-full max-h-72 rounded-xl object-cover'}/>

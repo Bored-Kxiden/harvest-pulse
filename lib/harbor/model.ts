@@ -11,7 +11,13 @@ export type Moment = {
 }
 
 export type ChatMessage = { id: string; text: string; mine: boolean; at: string; liked?: boolean }
-export type Interval = { start: string; end: string }
+/** A block of time somebody is busy. The label is what they are doing; only they ever see it. */
+export type Interval = { start: string; end: string; label?: string; linked?: boolean }
+export type CalendarLink = { provider: CalendarProvider; connectedAt: string }
+export type CalendarProvider = 'outlook' | 'google' | 'apple'
+export const calendarProviders: { id: CalendarProvider; name: string }[] = [
+ { id: 'outlook', name: 'Outlook' }, { id: 'google', name: 'Google Calendar' }, { id: 'apple', name: 'Apple Calendar' },
+]
 export type Note = { id: string; at: string; person: string; text: string }
 
 /** An instant: one picture, taken now rather than chosen. Kept only if someone keeps it. */
@@ -20,22 +26,28 @@ export type Snap = { id: string; at: string; person: string; mediaId?: string; c
 export type SnapPact = { personId: string; status: 'invited' | 'active'; since: string }
 
 export type Weather = 'clear' | 'bright' | 'cloudy' | 'rain' | 'storm'
+export type Theme = 'system' | 'light' | 'dark'
+export const themes: { id: Theme; label: string }[] = [
+ { id: 'system', label: 'Auto' },
+ { id: 'light', label: 'Day' },
+ { id: 'dark', label: 'Dusk' },
+]
 export type FlowerKind = 'daisy' | 'tulip' | 'poppy' | 'cosmos' | 'marigold' | 'bluebell' | 'aster' | 'sunflower'
 
 export type HarborState = {
- version: 3; name: string
+ version: 4; name: string
  people: Person[]
  sharing: boolean; momConsent: boolean; sharingSetupDone: boolean
- schedules: Record<string, { you: Interval[]; mom: Interval[] }>
+ schedules: Record<string, { you: Interval[]; mom: Interval[] }>; calendar: CalendarLink | null
  weather: Weather; milestone: { title: string; date: string }
  messages: Record<string, ChatMessage[]>; read: string[]; drafts: Record<string, string>
  moments: Moment[]; cues: { id: string; at: string }[]
  notes: Note[]; games: Record<string, string>
  snaps: Snap[]; pacts: SnapPact[]; snapWindows: Record<string, string>
- settings: { cuesEnabled: boolean; walkingMinutes: number; sessionMinutes: number; dailyCap: number; cooldownMinutes: number; sound: 'chime' | 'soft' | 'silent'; reducedMotion: boolean }
+ settings: { cuesEnabled: boolean; walkingMinutes: number; sessionMinutes: number; dailyCap: number; cooldownMinutes: number; sound: 'chime' | 'soft' | 'silent'; reducedMotion: boolean; theme: Theme }
 }
 
-/* ---------- how life feels, read as weather — a scale, not a score ---------- */
+/* ---------- how life feels, read as weather: a scale, not a score ---------- */
 export const weathers: { id: Weather; label: string; caption: string }[] = [
  { id: 'clear', label: 'Clear', caption: 'Room to breathe. Nothing pressing.' },
  { id: 'bright', label: 'Bright', caption: 'Good and busy. The kind you chose.' },
@@ -45,17 +57,17 @@ export const weathers: { id: Weather; label: string; caption: string }[] = [
 ]
 export function weatherIndex(value: Weather) { const i = weathers.findIndex(w => w.id === value); return i < 0 ? 0 : i }
 
-/* ---------- the flower library — what a call becomes ---------- */
+/* ---------- the flower library: what a call becomes ---------- */
 export type FlowerSpec = { id: FlowerKind; name: string; note: string; petal: string; petalDeep: string; heart: string; petals: number; shape: 'round' | 'point' | 'cup' }
 export const flowerLibrary: FlowerSpec[] = [
- { id: 'daisy', name: 'Daisy', note: 'An ordinary, easy call.', petal: '#FBFCF6', petalDeep: '#E7EBDA', heart: '#F0BD3E', petals: 9, shape: 'round' },
- { id: 'marigold', name: 'Marigold', note: 'Warm, a little loud, full of news.', petal: '#F5B14A', petalDeep: '#DE8F2E', heart: '#8B5A1C', petals: 11, shape: 'round' },
- { id: 'cosmos', name: 'Cosmos', note: 'Light and drifting. No agenda.', petal: '#F1C3D4', petalDeep: '#DB9BB4', heart: '#F0BD3E', petals: 7, shape: 'round' },
- { id: 'poppy', name: 'Poppy', note: 'Something honest got said.', petal: '#E2705A', petalDeep: '#C4523E', heart: '#3B2A22', petals: 5, shape: 'cup' },
- { id: 'tulip', name: 'Tulip', note: 'Short, and enough.', petal: '#E0879F', petalDeep: '#C4667F', heart: '#C4667F', petals: 3, shape: 'cup' },
- { id: 'bluebell', name: 'Bluebell', note: 'Quiet. Mostly listening.', petal: '#8FA6D6', petalDeep: '#6D85BC', heart: '#5A6FA5', petals: 5, shape: 'point' },
- { id: 'aster', name: 'Aster', note: 'Tangled, then untangled.', petal: '#B79CD8', petalDeep: '#9A7CC0', heart: '#F0BD3E', petals: 13, shape: 'point' },
- { id: 'sunflower', name: 'Sunflower', note: 'The long, good kind.', petal: '#F0C93E', petalDeep: '#D6A81F', heart: '#6B4A22', petals: 14, shape: 'point' },
+ { id: 'daisy', name: 'Daisy', note: 'An ordinary, easy call.', petal: '#FFFFFF', petalDeep: '#F0F3E6', heart: '#F7C948', petals: 9, shape: 'round' },
+ { id: 'marigold', name: 'Marigold', note: 'Warm, a little loud, full of news.', petal: '#F9C46A', petalDeep: '#EDA63F', heart: '#9A6526', petals: 11, shape: 'round' },
+ { id: 'cosmos', name: 'Cosmos', note: 'Light and drifting. No agenda.', petal: '#F7C3D8', petalDeep: '#E9A0BF', heart: '#F7C948', petals: 7, shape: 'round' },
+ { id: 'poppy', name: 'Poppy', note: 'Something honest got said.', petal: '#F08C79', petalDeep: '#DC6C58', heart: '#5E3F33', petals: 5, shape: 'cup' },
+ { id: 'tulip', name: 'Tulip', note: 'Short, and enough.', petal: '#F3A0B6', petalDeep: '#DE7F99', heart: '#DE7F99', petals: 4, shape: 'cup' },
+ { id: 'bluebell', name: 'Bluebell', note: 'Quiet. Mostly listening.', petal: '#A9C4EC', petalDeep: '#88A6DA', heart: '#6E86BE', petals: 5, shape: 'point' },
+ { id: 'aster', name: 'Aster', note: 'Tangled, then untangled.', petal: '#C9AEE9', petalDeep: '#AC8CD6', heart: '#F7C948', petals: 13, shape: 'point' },
+ { id: 'sunflower', name: 'Sunflower', note: 'The long, good kind.', petal: '#F7D35E', petalDeep: '#E2B733', heart: '#8A6230', petals: 14, shape: 'point' },
 ]
 export function flowerSpec(kind: FlowerKind | undefined): FlowerSpec { return flowerLibrary.find(f => f.id === kind) ?? flowerLibrary[0] }
 
@@ -66,14 +78,60 @@ export const feelings: { id: Feeling; label: string; caption: string; flower: Fl
  { id: 'tender', label: 'Tender', caption: 'A lot, but worth it.', flower: 'poppy' },
 ]
 
-/* ---------- topic shapes — the sender sets the shape before a call happens ---------- */
+/* ---------- topic shapes: the sender sets the shape before a call happens ---------- */
 export const topics = ['Catch up', 'Ask for help', 'Share news', 'Just because']
 
 export function localDay(date: Date = new Date()) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` }
 export function minutes(value: string) { const [h, m] = value.split(':').map(Number); return h * 60 + m }
 export function validIntervals(values: Interval[]) {
- if (!Array.isArray(values) || values.length > 12) return false
- return values.every(v => v && /^([01]\d|2[0-3]):[0-5]\d$/.test(v.start) && /^([01]\d|2[0-3]):[0-5]\d$/.test(v.end) && minutes(v.start) < minutes(v.end))
+ if (!Array.isArray(values) || values.length > 40) return false
+ return values.every(v => v && /^([01]\d|2[0-3]):[0-5]\d$/.test(v.start) && /^([01]\d|2[0-3]):[0-5]\d$/.test(v.end) && minutes(v.start) < minutes(v.end)
+  && (v.label === undefined || (typeof v.label === 'string' && v.label.length <= 60)))
+}
+
+/* ---------- busy in, free out ----------
+   Blocks are what somebody is doing. What matters to the other person is the gaps
+   between them, so free time is worked out rather than entered. */
+export const DAY_OPEN = '07:00'
+export const DAY_CLOSE = '22:00'
+export function freeWindows(busy: Interval[], open = DAY_OPEN, close = DAY_CLOSE): Interval[] {
+ const sorted = busy.slice().sort((a, b) => minutes(a.start) - minutes(b.start))
+ const out: Interval[] = []
+ let cursor = minutes(open)
+ const end = minutes(close)
+ for (const block of sorted) {
+  const from = Math.max(minutes(block.start), minutes(open)), to = Math.min(minutes(block.end), end)
+  if (to <= cursor) continue
+  if (from > cursor) out.push({ start: clockOf(cursor), end: clockOf(Math.min(from, end)) })
+  cursor = Math.max(cursor, to)
+  if (cursor >= end) break
+ }
+ if (cursor < end) out.push({ start: clockOf(cursor), end: clockOf(end) })
+ return out.filter(v => minutes(v.end) - minutes(v.start) >= 20)
+}
+export function clockOf(total: number) { return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}` }
+export function blocksFor(state: HarborState, day: string, person: 'you' | 'mom') { return state.schedules[day]?.[person] ?? [] }
+
+/** A week of seven day keys, Monday first, around whatever day you are looking at. */
+export function weekOf(day: string) {
+ const base = new Date(`${day}T12:00:00`)
+ const shift = (base.getDay() + 6) % 7
+ base.setDate(base.getDate() - shift)
+ return Array.from({ length: 7 }, (_, i) => { const d = new Date(base); d.setDate(d.getDate() + i); return localDay(d) })
+}
+
+/** What a connected calendar would drop in: a week of plausible, already-labelled blocks. */
+export function linkedWeek(day: string): Record<string, Interval[]> {
+ const template: Interval[][] = [
+  [{ start: '09:00', end: '11:00', label: 'Design studio' }, { start: '14:00', end: '15:30', label: 'Seminar' }],
+  [{ start: '10:00', end: '12:30', label: 'Lab' }, { start: '18:00', end: '19:00', label: 'Swim' }],
+  [{ start: '09:00', end: '10:30', label: 'Lecture' }, { start: '13:00', end: '17:00', label: 'Shift at the cafe' }],
+  [{ start: '11:00', end: '13:00', label: 'Studio crit' }],
+  [{ start: '09:30', end: '11:00', label: 'Lecture' }, { start: '16:00', end: '18:30', label: 'Group project' }],
+  [{ start: '12:00', end: '14:00', label: 'Groceries and laundry' }],
+  [{ start: '19:00', end: '20:30', label: 'Dinner with friends' }],
+ ]
+ return Object.fromEntries(weekOf(day).map((key, i) => [key, template[i].map(v => ({ ...v, linked: true }))]))
 }
 export function overlaps(a: Interval[], b: Interval[]): Interval[] {
  const raw = a.flatMap(x => b.flatMap(y => {
@@ -83,7 +141,13 @@ export function overlaps(a: Interval[], b: Interval[]): Interval[] {
  return raw.reduce<Interval[]>((out, value) => { const last = out.at(-1); if (last && value.start <= last.end) last.end = last.end > value.end ? last.end : value.end; else out.push({ ...value }); return out }, [])
 }
 export function formatTime(value: string) { const m = minutes(value); return `${Math.floor(m / 60) % 12 || 12}:${String(m % 60).padStart(2, '0')} ${m >= 720 ? 'pm' : 'am'}` }
-export function sharedWindows(state: HarborState, day: string) { const s = state.schedules[day]; return state.sharing && state.momConsent && s ? overlaps(s.you, s.mom) : [] }
+/** The quiet ground between two busy days: only ever computed when both people opted in. */
+export function sharedWindows(state: HarborState, day: string) {
+ if (!state.sharing || !state.momConsent) return []
+ const s = state.schedules[day]
+ if (!s) return []
+ return overlaps(freeWindows(s.you), freeWindows(s.mom)).filter(v => minutes(v.end) - minutes(v.start) >= 20)
+}
 export function isFuture(value: string, now = new Date()) { const t = new Date(value).getTime(); return Number.isFinite(t) && t > now.getTime() }
 export function personOf(state: HarborState, id: string) { return state.people.find(p => p.id === id) }
 export function initialsOf(name: string) { return name.trim().split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('') || '·' }
@@ -117,7 +181,7 @@ export function formatDuration(m: number | undefined) {
 
 /* ---------- snap windows: only ever between two people who both said yes ---------- */
 export function activePacts(state: HarborState) { return state.pacts.filter(p => p.status === 'active' && state.people.some(x => x.id === p.personId)) }
-/** A genuinely random moment, rolled once a day — not a slot anyone can plan around. */
+/** A genuinely random moment, rolled once a day: not a slot anyone can plan around. */
 export function rollSnapWindow(now = new Date()) {
  const earliest = now.getTime() + 2 * 60000
  const close = new Date(now); close.setHours(22, 30, 0, 0)
@@ -202,22 +266,43 @@ export function seedState(now = new Date()): HarborState {
   { id: 'seed-snap-dad', at: new Date(now.getTime() - 30 * 3600000).toISOString(), person: 'dad', caption: 'first tomato of the year', saved: true, simulated: true },
   { id: 'seed-snap-aanya', at: new Date(now.getTime() - 52 * 3600000).toISOString(), person: 'aanya', caption: 'library, 1am, send help', simulated: true },
  ]
+ /* A believable week of real life, so the calendar has something in it from the first run. */
+ const week = weekOf(today)
+ const yours: Interval[][] = [
+  [{ start: '09:00', end: '11:00', label: 'Design studio' }, { start: '15:00', end: '17:00', label: 'Library' }],
+  [{ start: '10:00', end: '12:30', label: 'Lab' }, { start: '18:30', end: '19:30', label: 'Run' }],
+  [{ start: '09:00', end: '10:30', label: 'Lecture' }, { start: '13:00', end: '17:00', label: 'Shift at the cafe' }],
+  [{ start: '11:00', end: '13:00', label: 'Studio crit' }],
+  [{ start: '09:30', end: '11:00', label: 'Lecture' }, { start: '16:00', end: '18:00', label: 'Group project' }],
+  [{ start: '12:00', end: '14:00', label: 'Laundry and groceries' }],
+  [{ start: '19:00', end: '20:30', label: 'Dinner with friends' }],
+ ]
+ const theirs: Interval[][] = [
+  [{ start: '08:00', end: '13:00', label: 'Work' }, { start: '18:00', end: '19:30', label: 'Dinner' }],
+  [{ start: '08:00', end: '13:00', label: 'Work' }],
+  [{ start: '08:00', end: '13:00', label: 'Work' }, { start: '17:00', end: '18:30', label: 'Temple' }],
+  [{ start: '08:00', end: '13:00', label: 'Work' }, { start: '18:00', end: '19:00', label: 'Dinner' }],
+  [{ start: '08:00', end: '13:00', label: 'Work' }],
+  [{ start: '10:00', end: '12:00', label: 'Market' }],
+  [{ start: '12:00', end: '15:00', label: 'Family lunch' }],
+ ]
  return {
-  version: 3, name: 'Maya', people: seedPeople.map(p => ({ ...p })),
-  sharing: false, momConsent: false, sharingSetupDone: false,
-  schedules: { [today]: { you: [{ start: '20:40', end: '22:00' }], mom: [{ start: '20:00', end: '21:30' }] } },
+  version: 4, name: 'Maya', people: seedPeople.map(p => ({ ...p })),
+  sharing: false, momConsent: false, sharingSetupDone: false, calendar: null,
+  schedules: Object.fromEntries(week.map((key, i) => [key, { you: yours[i], mom: theirs[i] }])),
   weather: 'bright', milestone: { title: 'Midterms', date: localDay(milestone) },
   messages: Object.fromEntries(seedPeople.map(p => [p.id, [{ id: `hello-${p.id}`, text: p.note ?? 'Thinking of you.', mine: false, at: new Date(now.getTime() - 3600000).toISOString() }]])),
   read: [], drafts: {}, moments, cues: [], notes, games: {}, snaps, pacts: [], snapWindows: {},
-  settings: { cuesEnabled: true, walkingMinutes: 10, sessionMinutes: 20, dailyCap: 2, cooldownMinutes: 120, sound: 'chime', reducedMotion: false },
+  settings: { cuesEnabled: true, walkingMinutes: 10, sessionMinutes: 20, dailyCap: 2, cooldownMinutes: 120, sound: 'chime', reducedMotion: false, theme: 'system' },
  }
 }
 
 export function parseState(raw: string): HarborState | null {
  try {
   const s = JSON.parse(raw) as HarborState
-  if (s.version !== 3 || typeof s.name !== 'string' || typeof s.sharing !== 'boolean' || typeof s.momConsent !== 'boolean' || typeof s.sharingSetupDone !== 'boolean') return null
+  if (s.version !== 4 || typeof s.name !== 'string' || typeof s.sharing !== 'boolean' || typeof s.momConsent !== 'boolean' || typeof s.sharingSetupDone !== 'boolean') return null
   if (!s.settings || !s.schedules || !s.milestone || !s.messages || !s.drafts) return null
+  if (s.calendar !== null && !(s.calendar && calendarProviders.some(c => c.id === s.calendar!.provider))) return null
   if (!Array.isArray(s.people) || !s.people.length || !s.people.every(p => p && typeof p.id === 'string' && typeof p.name === 'string' && typeof p.initials === 'string' && ['green', 'gold', 'orange', 'sky'].includes(p.tone))) return null
   if (!weathers.some(w => w.id === s.weather) || typeof s.milestone.title !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s.milestone.date)) return null
   if (!Object.values(s.schedules).every(v => v && validIntervals(v.you) && validIntervals(v.mom))) return null
@@ -232,6 +317,8 @@ export function parseState(raw: string): HarborState | null {
   if (!Array.isArray(s.read) || !s.read.every(d => typeof d === 'string')) return null
   const v = s.settings
   if (typeof v.cuesEnabled !== 'boolean' || typeof v.reducedMotion !== 'boolean' || !['chime', 'soft', 'silent'].includes(v.sound)) return null
+  /* Saved before the theme existed: carry it forward rather than throwing the demo away. */
+  if (!['system', 'light', 'dark'].includes(v.theme)) v.theme = 'system'
   if (![v.walkingMinutes, v.sessionMinutes, v.dailyCap, v.cooldownMinutes].every(n => Number.isFinite(n) && n >= 1) || v.dailyCap > 10) return null
   return s
  } catch { return null }

@@ -1,79 +1,93 @@
 'use client'
 import { useState } from 'react'
-import { MessageCircle, PenLine, Plus } from 'lucide-react'
+import { BookHeart, Camera, ChevronRight, Images, MessageCircle, NotebookPen, Plus } from 'lucide-react'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Field, FieldLabel } from '@/components/ui/field'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { makeId, useHarbor } from '@/lib/harbor/store'
-import type { Note } from '@/lib/harbor/model'
+import { useHarbor } from '@/lib/harbor/store'
+import type { Snap } from '@/lib/harbor/model'
 import { Avatar } from './avatar'
-import { SnapTile, type SnapIntent } from './snap'
+import { LocalPhoto } from './media-view'
+import { Sprig } from './sprigs'
 
-const DAY = 86400000
-
-/** Notes: a line of text, small enough that nobody owes a reply. Pictures live in Snap. */
-export function NotesStrip({ navigate, onOpenSnap }: { navigate: (page: string) => void; onOpenSnap: (intent: SnapIntent) => void }) {
+/** Everything anyone left lately, and the pictures somebody chose to keep.
+    Two views of the same shoebox: the lines, and the photographs. */
+export function NotesScreen({ navigate, onOpenCamera, onOpenStory }: {
+ navigate: (page: string) => void; onOpenCamera: () => void; onOpenStory: () => void
+}) {
  const { state, update } = useHarbor()
- const [composing, setComposing] = useState(false)
- const [open, setOpen] = useState<Note | null>(null)
- const [text, setText] = useState('')
+ const [view, setView] = useState<'notes' | 'scrapbook'>('notes')
  if (!state) return null
 
- const fresh = state.notes.filter(n => Date.now() - new Date(n.at).getTime() < 2 * DAY).slice().reverse()
- const mine = fresh.find(n => n.person === 'you')
- const theirs = fresh.filter(n => n.person !== 'you')
+ const notes = state.notes.slice().sort((a, b) => b.at.localeCompare(a.at))
+ const kept = state.snaps.filter(s => s.saved).sort((a, b) => b.at.localeCompare(a.at))
+ const loose = state.snaps.filter(s => !s.saved).sort((a, b) => b.at.localeCompare(a.at))
 
- const add = () => {
-  const value = text.trim(); if (!value) return
-  update(s => ({ ...s, notes: [...s.notes, { id: makeId(), at: new Date().toISOString(), person: 'you', text: value }] }))
-  setComposing(false); setText('')
-  toast.success('Left for your people. No reply needed.')
+ const keep = (snap: Snap) => {
+  update(s => ({ ...s, snaps: s.snaps.map(x => x.id === snap.id ? { ...x, saved: !x.saved } : x) }))
+  toast.success(snap.saved ? 'Let it fade.' : 'Kept in your scrapbook.')
  }
 
- return <section className="flow">
-  <div className="section-heading"><h2>A little something</h2><span className="small-copy">notes &amp; instants</span></div>
-  <div className="notes-strip">
-   <button type="button" className="note-item" onClick={() => setComposing(true)}>
-    <span className="note-bubble note-bubble-own">{mine?.text ?? 'Leave a note…'}</span>
-    <span className="note-face"><Avatar person="you" size="lg"/><span className="note-add-badge"><Plus/></span></span>
-    <span className="note-name">You</span>
-   </button>
-   {theirs.map(note => <button key={note.id} type="button" className="note-item" onClick={() => setOpen(note)}>
-    <span className="note-bubble">{note.text}</span>
-    <span className="note-face"><Avatar person={note.person} size="lg"/></span>
-    <span className="note-name">{state.people.find(p => p.id === note.person)?.name ?? 'Family'}</span>
-   </button>)}
-   <SnapTile onOpen={onOpenSnap}/>
+ return <div className="entrance">
+  <div className="page-head">
+   <span className="eyebrow">{view === 'notes' ? 'A little something' : 'Scrapbook'}</span>
+   <h1>{view === 'notes' ? 'Lines from home.' : 'Moments, saved.'}</h1>
+   <p>{view === 'notes' ? 'Small things, said out loud. Nobody owes a reply.' : 'Little memories, big feelings.'}</p>
   </div>
 
-  <Dialog open={composing} onOpenChange={value => { setComposing(value); if (!value) setText('') }}>
-   <DialogContent>
-    <DialogHeader>
-     <DialogTitle>A little something</DialogTitle>
-     <DialogDescription>One line. It fades on its own after a couple of days, and nobody owes you an answer.</DialogDescription>
-    </DialogHeader>
-    <Field>
-     <FieldLabel htmlFor="note-text">Your note</FieldLabel>
-     <Input id="note-text" maxLength={90} placeholder="ate cereal for dinner again" value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add() } }}/>
-    </Field>
-    <Button disabled={!text.trim()} onClick={add}><PenLine data-icon="inline-start"/>Leave this note</Button>
-   </DialogContent>
-  </Dialog>
+  <div className="wrap flow stagger">
+   <div className="segment" role="tablist" aria-label="What to look at" style={{ ['--i' as string]: 0 }}>
+    <span className="segment-slide" style={{ ['--i' as string]: view === 'notes' ? 0 : 1, width: 'calc((100% - 10px) / 2)' }} aria-hidden="true"/>
+    {(['notes', 'scrapbook'] as const).map(id => <button key={id} type="button" role="tab" className="segment-tab"
+     aria-selected={view === id} onClick={() => setView(id)}>
+     {id === 'notes' ? <><NotebookPen aria-hidden="true"/>Notes</> : <><Images aria-hidden="true"/>Scrapbook</>}
+    </button>)}
+   </div>
 
-  <Dialog open={!!open} onOpenChange={value => !value && setOpen(null)}>
-   <DialogContent>
-    {open && <>
-     <DialogHeader>
-      <DialogTitle>{state.people.find(p => p.id === open.person)?.name ?? 'Family'}</DialogTitle>
-      <DialogDescription>{new Date(open.at).toLocaleString('en', { weekday: 'long', hour: 'numeric', minute: '2-digit' })}</DialogDescription>
-     </DialogHeader>
-     <p className="font-serif text-2xl">{open.text}</p>
-     <Button onClick={() => { const person = open.person; setOpen(null); navigate(`chat/${person}`) }}><MessageCircle data-icon="inline-start"/>Say something back</Button>
-     <Button variant="ghost" onClick={() => setOpen(null)}>Just noticing, thanks</Button>
-    </>}
-   </DialogContent>
-  </Dialog>
- </section>
+   {view === 'notes' ? <>
+    {notes.length ? notes.map((note, i) => {
+     const who = note.person === 'you' ? null : state.people.find(p => p.id === note.person)
+     return <article key={note.id} className="card card-pad" style={{ ['--i' as string]: i + 1 }}>
+      <Sprig kind={i % 2 ? 'cosmos' : 'leaf'} className="person-sprig" style={{ width: 54, bottom: 2 }}/>
+      <div className="row" style={{ boxShadow: 'none', background: 'transparent', padding: 0 }}>
+       <Avatar person={note.person} size="sm"/>
+       <span className="row-body">
+        <b>{who?.name ?? 'You'}</b>
+        <span>{new Date(note.at).toLocaleString(undefined, { weekday: 'long', hour: 'numeric', minute: '2-digit' })}</span>
+       </span>
+      </div>
+      <p style={{ fontFamily: 'var(--font-round), sans-serif', fontSize: 23, lineHeight: 1.25, color: 'var(--ink-deep)', margin: '10px 2px 0', position: 'relative', zIndex: 1 }}>{note.text}</p>
+      {who && <button type="button" className="text-link" onClick={() => navigate(`chat/${who.id}`)}>
+       <MessageCircle aria-hidden="true"/>Say something back
+      </button>}
+     </article>
+    }) : <p className="empty">Nothing left lately. The quiet is allowed.</p>}
+    <button type="button" className="row" style={{ ['--i' as string]: notes.length + 1 }} onClick={onOpenStory}>
+     <span className="row-icon" style={{ background: 'var(--tint-blue)' }}><BookHeart aria-hidden="true"/></span>
+     <span className="row-body"><b>Today&rsquo;s instants</b><span>{state.snaps.length} picture{state.snaps.length === 1 ? '' : 's'} from your people</span></span>
+     <ChevronRight className="caret" aria-hidden="true"/>
+    </button>
+   </> : <>
+    {kept.length || loose.length ? <div className="scrap" style={{ ['--i' as string]: 1 }}>
+     {[...kept, ...loose].map(snap => {
+      const who = state.people.find(p => p.id === snap.person)
+      return <button key={snap.id} type="button" className="polaroid" onClick={() => keep(snap)}
+       aria-label={`${snap.caption ?? 'An instant'} from ${who?.name ?? 'you'}. ${snap.saved ? 'Kept. Tap to let it fade.' : 'Tap to keep it.'}`}>
+       <span className="polaroid-tape" aria-hidden="true"/>
+       <span className={`polaroid-shot tint-${who?.tone ?? 'green'}`}>
+        {snap.mediaId ? <LocalPhoto id={snap.mediaId}/> : <Sprig kind="cosmos" style={{ width: 54 }}/>}
+       </span>
+       <span className="polaroid-date">{new Date(snap.at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+       <span className="polaroid-note">{snap.caption ?? 'no reason'}</span>
+      </button>
+     })}
+     <p className="scrap-note">Collect moments,<br/>not things.</p>
+    </div> : <p className="empty">Nothing kept yet. The camera is one tap away.</p>}
+   </>}
+
+   <p className="fineprint" style={{ ['--i' as string]: 9 }}>Instants fade on their own. Tap one to keep it.</p>
+  </div>
+
+  <button type="button" className="fab" aria-label="Take an instant" onClick={onOpenCamera}>
+   {view === 'scrapbook' ? <Plus aria-hidden="true"/> : <Camera aria-hidden="true"/>}
+  </button>
+ </div>
 }
