@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 const REST = 0.52   /* the sheet sits here, leaving the meadow the top half */
 const UP = 0.11     /* pulled up, it leaves a ribbon of sky */
+const DOWN = -1.05  /* pulled down past rest, it all but leaves the stage: the whole field */
 const SLOP = 6      /* below this, a drag was really a tap */
 
 /** The card the app lives in. Drag the handle to move it; from the very top of the
@@ -65,7 +66,7 @@ export function Sheet({ lift, onLift, onDragging, children, label, at }: {
   if (!d.moved && Math.abs(dy) < SLOP) return
   d.moved = true
   if (!dragging) report(true)
-  const next = Math.min(1, Math.max(0, d.from - dy / (height.current * (REST - UP))))
+  const next = Math.min(1, Math.max(DOWN, d.from - dy / (height.current * (REST - UP))))
   if (next !== liftRef.current) onLift(next)
   const now = performance.now()
   d.v = (e.clientY - d.last) / Math.max(now - d.at, 1)
@@ -76,19 +77,25 @@ export function Sheet({ lift, onLift, onDragging, children, label, at }: {
   drag.current = null
   report(false)
   if (!d || !d.moved) return
-  /* Thrown hard enough it goes where it was thrown; otherwise it settles to the nearer edge. */
-  if (Math.abs(d.v) > 0.5) onLift(d.v < 0 ? 1 : 0)
-  else onLift(liftRef.current > 0.5 ? 1 : 0)
+  /* Thrown hard enough it goes all the way to the end it was thrown toward; a gentler
+     drag settles at whichever of the three resting places, collapsed to show the whole
+     field, at rest, or raised, it ends up nearest to. */
+  if (Math.abs(d.v) > 0.5) { onLift(d.v < 0 ? 1 : DOWN); return }
+  const cur = liftRef.current
+  onLift([DOWN, 0, 1].reduce((best, stop) => Math.abs(stop - cur) < Math.abs(best - cur) ? stop : best))
  }
+ /* A tap on the handle steps through the same three places: down at rest, it raises;
+    anywhere else, it comes back to rest rather than jumping straight past it. */
+ const tapNext = () => Math.abs(liftRef.current) < 0.05 ? 1 : 0
 
  /* The travel itself lives in CSS, off --lift, so it runs on the compositor. */
  return <section className="sheet" aria-label={label} data-lifted={lift > 0.5}>
   <button type="button" className="sheet-grab" aria-label={lift > 0.5 ? 'Lower the panel' : 'Raise the panel'} aria-expanded={lift > 0.5}
    onPointerDown={e => { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); start(e, false) }}
    onPointerMove={move}
-   onPointerUp={e => { const wasDrag = drag.current?.moved; end(); if (!wasDrag) onLift(liftRef.current > 0.5 ? 0 : 1) }}
+   onPointerUp={e => { const wasDrag = drag.current?.moved; end(); if (!wasDrag) onLift(tapNext()) }}
    onPointerCancel={end}
-   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onLift(liftRef.current > 0.5 ? 0 : 1) } }}>
+   onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onLift(tapNext()) } }}>
    <span aria-hidden="true"/>
   </button>
   <div ref={scroller} className="sheet-scroll"

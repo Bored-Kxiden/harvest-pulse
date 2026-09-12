@@ -1,6 +1,6 @@
 'use client'
-import { useState } from 'react'
-import { Camera, ChevronRight, ImageUp, LockKeyhole, Moon, Play, ShieldCheck, Sprout, Sun, SunMoon, Trash2, UserRoundPlus, Waves } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Camera, ChevronRight, ImageUp, LockKeyhole, Maximize, Minimize, Moon, Play, ShieldCheck, Sprout, Sun, SunMoon, Trash2, UserRoundPlus, Waves } from 'lucide-react'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { chime, makeId, useHarbor } from '@/lib/harbor/store'
@@ -11,9 +11,17 @@ import { Sprig } from './sprigs'
 
 const tones: Tone[] = ['green', 'gold', 'orange', 'sky']
 
+/** Whether the whole document element is any browser's idea of fullscreen right now.
+    Safari on the desktop still answers only to its own -webkit- prefixed reading. */
+function fullscreenElement(): Element | null {
+ return document.fullscreenElement ?? (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement ?? null
+}
+
 export function AccountScreen({ navigate }: { navigate: (page: string) => void }) {
  const { state, update, reset } = useHarbor()
  const [privacy, setPrivacy] = useState(false)
+ const [fullscreen, setFullscreen] = useState(false)
+ const [fullscreenSupported, setFullscreenSupported] = useState(false)
  const [resetOpen, setResetOpen] = useState(false)
  const [adding, setAdding] = useState(false)
  const [newName, setNewName] = useState('')
@@ -22,6 +30,28 @@ export function AccountScreen({ navigate }: { navigate: (page: string) => void }
  if (!state) return null
  const settings = state.settings
  const pactOf = (id: string) => state.pacts.find(p => p.personId === id)
+ /* The demo otherwise runs like any other web page, browser bars and all. This is
+    the one control that hands mobile Safari or Chrome's own chrome out of the way,
+    so the app can fill the screen the way an installed one would. Not every mobile
+    browser honours it (notably Safari on iPhone), so it only appears where it works. */
+ useEffect(() => {
+  const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> | void }
+  setFullscreenSupported(!!(document.fullscreenEnabled || (document as unknown as { webkitFullscreenEnabled?: boolean }).webkitFullscreenEnabled || el.webkitRequestFullscreen))
+  const sync = () => setFullscreen(!!fullscreenElement())
+  sync()
+  document.addEventListener('fullscreenchange', sync)
+  document.addEventListener('webkitfullscreenchange', sync)
+  return () => { document.removeEventListener('fullscreenchange', sync); document.removeEventListener('webkitfullscreenchange', sync) }
+ }, [])
+ const toggleFullscreen = async () => {
+  const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> | void }
+  const exit = document as Document & { webkitExitFullscreen?: () => Promise<void> | void }
+  try {
+   if (fullscreenElement()) await (document.exitFullscreen ? document.exitFullscreen() : exit.webkitExitFullscreen?.())
+   else await (el.requestFullscreen ? el.requestFullscreen() : el.webkitRequestFullscreen?.())
+  } catch { toast.error('Full screen was not allowed just now. Try again with a direct tap.') }
+ }
+
  const setPact = (id: string, status: 'invited' | 'active' | null) => update(s => ({
   ...s,
   pacts: status ? [...s.pacts.filter(p => p.personId !== id), { personId: id, status, since: new Date().toISOString() }] : s.pacts.filter(p => p.personId !== id),
@@ -183,6 +213,11 @@ export function AccountScreen({ navigate }: { navigate: (page: string) => void }
      <button type="button" className="toggle" aria-pressed={settings.reducedMotion} aria-label="Reduce motion"
       onClick={() => update(s => ({ ...s, settings: { ...s.settings, reducedMotion: !s.settings.reducedMotion } }))}/>
     </div>
+    {fullscreenSupported && <div className="switch-row">
+     <div><b>{fullscreen ? <Minimize aria-hidden="true" style={{ width: 15, height: 15, verticalAlign: -2, marginRight: 5 }}/> : <Maximize aria-hidden="true" style={{ width: 15, height: 15, verticalAlign: -2, marginRight: 5 }}/>}Full screen</b>
+      <p className="small">Hide your browser&rsquo;s own bars, the way an installed app would.</p></div>
+     <button type="button" className="toggle" aria-pressed={fullscreen} aria-label="Full screen" onClick={toggleFullscreen}/>
+    </div>}
    </section>
 
    <button type="button" className="row" style={{ ['--i' as string]: 5 }} onClick={() => navigate('share')}>

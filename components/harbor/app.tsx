@@ -206,7 +206,12 @@ export function HarborApp() {
  const total = state ? state.moments.filter(m => m.kind === 'called' && m.flower).length : 0
  const chipLabel = chipWeather ? weathers[weatherIndex(weather)].label : total ? 'Your garden is blooming' : 'Plant your first flower'
 
+ /* Collapsed past rest the card leaves the grab handle sitting right where the
+    fixed nav bar floats, unreachable underneath it. Once it is collapsed that far,
+    the nav has nothing to navigate to anyway, so it steps aside until the card
+    comes back up. */
  return <div className="stage" data-reduced-motion={state?.settings.reducedMotion} data-dragging={dragging} data-camera={!!camera}
+  data-collapsed={lift < -0.5}
   style={{ ['--lift' as string]: lift }}>
   <Meadow ref={meadowRef} weather={weather} sheetLift={lift} freshBloomId={fresh} bare={!!camera} night={night} onOpenBloom={setMoment}
    onOpenPerson={id => navigate(`chat/${id}`)}/>

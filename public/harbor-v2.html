@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-css 81730
+css 82698
  families the app actually uses. The handwriting is gone. */
 :root {
  --font-body: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -366,7 +366,10 @@ p { line-height: 1.55; margin: 0; }
    garden is blooming" does something a pinch cannot: takes you straight to a person. */
 .meadow-chip {
  position: absolute; z-index: 11; left: 18px; bottom: calc(48dvh + 16px); display: flex; align-items: center;
- transform: translate3d(0, calc(-41dvh * var(--lift, 0)), 0);
+ /* Only the raised direction moves these: pulling the card down past rest to show the
+    whole field should leave the chip and the zoom buttons exactly where they were,
+    still reachable over the open meadow, rather than sliding them off the bottom. */
+ transform: translate3d(0, calc(-41dvh * max(var(--lift, 0), 0)), 0);
  border-radius: 99px; background: var(--float); box-shadow: var(--shadow-card);
  transition: transform .42s cubic-bezier(.22, .9, .28, 1), opacity .3s;
 }
@@ -401,7 +404,7 @@ p { line-height: 1.55; margin: 0; }
 .meadow-zoom {
  position: absolute; z-index: 11; right: 14px; top: 23dvh; display: flex; flex-direction: column;
  border-radius: 20px; overflow: hidden; background: var(--float); box-shadow: var(--shadow-card);
- transform: translate3d(0, calc(-41dvh * var(--lift, 0)), 0);
+ transform: translate3d(0, calc(-41dvh * max(var(--lift, 0), 0)), 0);
  transition: transform .42s cubic-bezier(.22, .9, .28, 1), opacity .3s;
 }
 .meadow-zoom button { display: grid; place-items: center; width: 44px; height: 44px; color: var(--ink-deep) }
@@ -656,7 +659,10 @@ textarea.input { min-height: 92px; resize: none; line-height: 1.5 }
 .cal-body::-webkit-scrollbar-thumb { background: var(--grab); border-radius: 99px }
 .cal-hours { display: flex; flex-direction: column }
 .cal-hour { height: 40px; line-height: 1; font-size: 10px; color: var(--ink-faint); text-align: right; padding: 1px 5px 0 0 }
-.cal-grid { position: relative; display: grid; grid-template-columns: repeat(7, 1fr); background: var(--float-soft); border-radius: 12px; overflow: hidden; touch-action: pan-y }
+/* pan-y let the browser's own vertical scroll win the gesture before our pointer
+   handlers ever saw it, since marking a block is itself a vertical drag: touching
+   down and dragging just scrolled the page. none hands the whole gesture to us. */
+.cal-grid { position: relative; display: grid; grid-template-columns: repeat(7, 1fr); background: var(--float-soft); border-radius: 12px; overflow: hidden; touch-action: none }
 .cal-col { position: relative; border-left: 1px solid var(--hairline) }
 .cal-col:first-child { border-left: 0 }
 .cal-col[data-today='true'] { background: rgb(242 199 92 / .08) }
@@ -945,6 +951,12 @@ img.camera-feed { transform: none }
 .stage[data-camera='true'] .meadow-chip { opacity: 0; pointer-events: none; transition: opacity .34s ease }
 .stage[data-camera='true'] .meadow-canvas { pointer-events: none }
 .camera { background: linear-gradient(180deg, rgb(16 38 25 / .42) 0%, rgb(16 38 25 / .56) 55%, rgb(12 30 20 / .78) 100%) }
+
+/* The card pulled all the way down to show the whole field: the nav has nowhere to
+   send you while there is nothing to navigate but the meadow, and left in place it
+   would sit right over the sheet's own grab handle, out of a thumb's reach. It fades
+   the same way the camera's own furniture does, and returns the moment the card does. */
+.stage[data-collapsed='true'] .nav { opacity: 0; pointer-events: none; transition: opacity .3s ease }
 
 /* ---------- swapping one panel, not the page ----------
    The new view slides in from the side its tab sits on, so the row of tabs reads as
@@ -2386,6 +2398,21 @@ const fmtDuration = m => m < 60 ? m + ' min' : Math.floor(m / 60) + ' hr' + (m %
 /* ---------- the theme ----------
    One choice, three answers: follow the phone, or override it either way. The meadow
    needs the resolved answer too, so it knows to put the sun down. */
+/* The demo otherwise runs like any other web page, browser bars and all. This is
+   the one control that hands the phone's own chrome out of the way. Not every mobile
+   browser honours it (notably Safari on iPhone), so the row only renders where the
+   API is actually there to ask. */
+function fullscreenElement() { return document.fullscreenElement || document.webkitFullscreenElement || null }
+const FULLSCREEN_SUPPORTED = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled || document.documentElement.webkitRequestFullscreen)
+async function toggleFullscreen() {
+ try {
+  if (fullscreenElement()) await (document.exitFullscreen ? document.exitFullscreen() : document.webkitExitFullscreen())
+  else await (document.documentElement.requestFullscreen ? document.documentElement.requestFullscreen() : document.documentElement.webkitRequestFullscreen())
+ } catch { toast('Full screen was not allowed just now. Try again with a direct tap.') }
+}
+document.addEventListener('fullscreenchange', () => { const b = $('fullscreenToggle'); if (b) b.setAttribute('aria-pressed', String(!!fullscreenElement())) })
+document.addEventListener('webkitfullscreenchange', () => { const b = $('fullscreenToggle'); if (b) b.setAttribute('aria-pressed', String(!!fullscreenElement())) })
+
 const themeQuery = window.matchMedia('(prefers-color-scheme: dark)')
 function applyTheme() {
  const root = document.documentElement
@@ -2713,18 +2740,26 @@ function unproject(lens, sx, sy) {
 }
 
 /* ============================ the sheet ============================ */
-const REST = 0.52, UP = 0.11, SLOP = 6
+/* DOWN pulls the card almost entirely off the stage, so the whole field shows.
+   The nav has nothing to send you to while there is nothing but the meadow, and
+   left in place it would sit right over the grab handle, so it steps aside the
+   same way it does for the camera, until the card comes back up. */
+const REST = 0.52, UP = 0.11, DOWN = -1.05, SLOP = 6
 const sheet = $('sheet'), scroller = $('sheetScroll'), grab = $('sheetGrab')
 let drag = null
 const stage = document.querySelector('.stage')
 function setLift(v) {
- S.lift = Math.min(1, Math.max(0, v))
+ S.lift = Math.min(1, Math.max(DOWN, v))
  stage.style.setProperty('--lift', String(S.lift))
  $('chip').dataset.away = String(S.lift > 0.72)
+ stage.dataset.collapsed = String(S.lift < -0.5)
  grab.setAttribute('aria-expanded', String(S.lift > 0.5))
  grab.setAttribute('aria-label', S.lift > 0.5 ? 'Lower the panel' : 'Raise the panel')
  sheet.dataset.lifted = String(S.lift > 0.5)
 }
+/* A tap on the handle steps through the same three places: down at rest, it
+   raises; anywhere else, it comes back to rest rather than jumping past it. */
+function tapNext() { return Math.abs(S.lift) < 0.05 ? 1 : 0 }
 function startDrag(e, collapseOnly) {
  if (collapseOnly && scroller.scrollTop > 0) return
  drag = { y: e.clientY, from: S.lift, at: performance.now(), last: e.clientY, v: 0, moved: false, collapseOnly }
@@ -2744,12 +2779,16 @@ function endDrag() {
  const d = drag; drag = null
  stage.dataset.dragging = 'false'
  if (!d || !d.moved) return
- if (Math.abs(d.v) > 0.5) setLift(d.v < 0 ? 1 : 0)
- else setLift(S.lift > 0.5 ? 1 : 0)
+ /* Thrown hard enough it goes all the way to the end it was thrown toward; a
+    gentler drag settles at whichever of the three resting places it lands
+    nearest: collapsed to show the whole field, at rest, or raised. */
+ if (Math.abs(d.v) > 0.5) { setLift(d.v < 0 ? 1 : DOWN); return }
+ const cur = S.lift
+ setLift([DOWN, 0, 1].reduce((best, stop) => Math.abs(stop - cur) < Math.abs(best - cur) ? stop : best))
 }
 grab.addEventListener('pointerdown', e => { grab.setPointerCapture(e.pointerId); startDrag(e, false) })
 grab.addEventListener('pointermove', moveDrag)
-grab.addEventListener('pointerup', () => { const wasDrag = drag && drag.moved; endDrag(); if (!wasDrag) setLift(S.lift > 0.5 ? 0 : 1) })
+grab.addEventListener('pointerup', () => { const wasDrag = drag && drag.moved; endDrag(); if (!wasDrag) setLift(tapNext()) })
 grab.addEventListener('pointercancel', endDrag)
 scroller.addEventListener('pointerdown', e => startDrag(e, true))
 scroller.addEventListener('pointermove', moveDrag)
@@ -3179,7 +3218,11 @@ SCREENS.account = () => '<div class="page-head"><span class="eyebrow">Your accou
     '<button role="radio" class="segment-tab" data-theme="' + t[0] + '" aria-checked="' + (S.theme === t[0]) + '">' + t[2] + t[1] + '</button>').join('') +
   '</div>' +
   '<div class="switch-row"><div><b>A little less movement</b><p class="small">Reduce interface animations.</p></div>' +
-   '<button class="toggle" id="motionToggle" aria-pressed="' + S.reduced + '" aria-label="Reduce motion"></button></div></section>' +
+   '<button class="toggle" id="motionToggle" aria-pressed="' + S.reduced + '" aria-label="Reduce motion"></button></div>' +
+  (FULLSCREEN_SUPPORTED ? '<div class="switch-row"><div><b><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;margin-right:5px"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>Full screen</b>' +
+   '<p class="small">Hide your browser&rsquo;s own bars, the way an installed app would.</p></div>' +
+   '<button class="toggle" id="fullscreenToggle" aria-pressed="' + String(!!fullscreenElement()) + '" aria-label="Full screen"></button></div>' : '') +
+  '</section>' +
  '<section class="card card-pad flow" style="--i:3"><div class="switch-row"><h2 style="font-size:19px">Snap windows</h2>' +
   '<button class="toggle" aria-pressed="true" aria-label="Snap windows" data-toggle></button></div>' +
   '<p class="small">Once a day, at a moment nobody picks, you both get the same nudge to take one picture of whatever you&rsquo;re doing. It only exists between two people who each said yes, and either of you can end it.</p></section>' +
@@ -3192,8 +3235,6 @@ SCREENS.account = () => '<div class="page-head"><span class="eyebrow">Your accou
   '<div><label class="label" for="ring">Your ringtone</label><select class="input" id="ring"><option>Little chime</option><option>Soft note</option><option>Silence</option></select></div>' +
   '<p class="small">The cue rings this two or three times, then stops on its own.</p>' +
   '<button class="btn btn-soft btn-block" data-act="cue">Try a Demo Moment</button></section>' +
- '<section class="card card-pad" style="--i:4"><div class="switch-row"><div><b>A little less movement</b>' +
-  '<p class="small">Reduce interface animations.</p></div><button class="toggle" aria-pressed="false" aria-label="Reduce motion" data-toggle></button></div></section>' +
  '<p class="fineprint" style="--i:5">Harbor · a little closer, every day.<br>Local demo. No real calls, messages, or calendar access.</p></div>'
 
 /** Move the tab without rebuilding the card around it. */
@@ -3316,6 +3357,8 @@ function wire() {
   motion.setAttribute('aria-pressed', String(S.reduced))
   stage.dataset.reducedMotion = String(S.reduced)
  }
+ const fs = $('fullscreenToggle')
+ if (fs) fs.onclick = toggleFullscreen
  const name = $('yourName')
  if (name) name.oninput = () => { S.name = name.value.trim() || 'Maya' }
 }
