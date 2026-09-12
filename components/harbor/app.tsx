@@ -1,12 +1,13 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import { Bell, CalendarDays, Cloud, CloudLightning, CloudRain, CloudSun, House, Leaf, Minus, NotebookPen, Plus, Sprout, Sun, UserRound } from 'lucide-react'
+import { Bell, Bookmark, CalendarDays, Cloud, CloudLightning, CloudRain, CloudSun, House, Leaf, Minus, Moon, Plus, Sun, UserRound } from 'lucide-react'
 import { Toaster } from '@/components/ui/sonner'
 import { makeId, useHarbor } from '@/lib/harbor/store'
-import { activePacts, localDay, rollSnapWindow, snapWindowDue, weatherIndex, weathers, type Moment, type Weather } from '@/lib/harbor/model'
+import { activePacts, localDay, rollSnapWindow, snapWindowDue, unseenAlerts, weatherIndex, weathers, type Moment, type Weather } from '@/lib/harbor/model'
 import { Home } from './home'
 import { Schedule } from './schedule'
 import { AccountScreen } from './account'
+import { AlertsScreen } from './alerts'
 import { NotesScreen } from './notes'
 import { ShareLoad } from './share-load'
 import { Conversation } from './conversation'
@@ -22,7 +23,9 @@ import { SectionsOverlay } from './sections'
 
 const weatherIcon: Record<Weather, typeof Sun> = { clear: Sun, bright: CloudSun, cloudy: Cloud, rain: CloudRain, storm: CloudLightning }
 const leftTabs = [{ id: 'home', label: 'Home', icon: House }, { id: 'schedule', label: 'Schedule', icon: CalendarDays }]
-const rightTabs = [{ id: 'notes', label: 'Notes', icon: NotebookPen }, { id: 'account', label: 'Account', icon: UserRound }]
+const rightTabs = [{ id: 'saved', label: 'Saved', icon: Bookmark }, { id: 'account', label: 'Account', icon: UserRound }]
+/** Everything the nav bar does not reach. Each of these opens with a way back out. */
+const PAGES = ['home', 'schedule', 'share', 'saved', 'account', 'chat', 'cue', 'alerts']
 
 
 /** The verge: the strip of meadow every screen stands in. Four clumps, four clocks,
@@ -119,8 +122,16 @@ export function HarborApp() {
   return () => clearInterval(timer)
  }, [state, day])
 
+ /* Home is the one screen the meadow is the point of, so the card rests low there and
+    the field keeps the top of the screen. Everywhere else the card is the screen, and
+    arriving with three readable lines above the nav bar was the reason people could
+    not find anything. Those open raised; pulling the card down still shows the field. */
  useEffect(() => {
-  const sync = () => { setRoute(location.hash.slice(1) || 'home'); setLift(0) }
+  const sync = () => {
+   const next = location.hash.slice(1) || 'home'
+   setRoute(next)
+   setLift(next.split('/')[0] === 'home' ? 0 : 1)
+  }
   sync(); window.addEventListener('hashchange', sync); return () => window.removeEventListener('hashchange', sync)
  }, [])
 
@@ -134,6 +145,15 @@ export function HarborApp() {
  }, [state])
 
  useEffect(() => () => clearTimeout(chipTimer.current), [])
+
+ /* Safari before 17 ignores both maximum-scale and touch-action for its own pinch,
+    and answers with these three instead. Without them a two-finger drag on the field
+    scales the entire page and the meadow slides out from under your fingers. */
+ useEffect(() => {
+  const stop = (e: Event) => e.preventDefault()
+  for (const name of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(name, stop)
+  return () => { for (const name of ['gesturestart', 'gesturechange', 'gestureend']) document.removeEventListener(name, stop) }
+ }, [])
 
  /* One choice, three answers: follow the system, or override it either way. The
     meadow needs the resolved answer too, so it can put the sun down. */
@@ -153,6 +173,11 @@ export function HarborApp() {
  const page = route.split('/')[0]
  const weather = state?.weather ?? 'clear'
  const Icon = weatherIcon[weather]
+ const waiting = state ? unseenAlerts(state) : 0
+
+ /* One tap for the thing people actually reach for. Auto is still in Account for
+    anyone who wants the phone to decide; this just flips between the two looks. */
+ const flipTheme = () => update(s => ({ ...s, settings: { ...s.settings, theme: night ? 'light' : 'dark' } }))
 
  /* Tapping the chip turns the weather over: the sky crossfades behind, the glyph rotates in front. */
  const turnWeather = () => {
@@ -202,10 +227,14 @@ export function HarborApp() {
     </span>
    </a>
    <div className="top-acts">
-    <button type="button" className="disc" aria-label="Notifications" onClick={() => navigate('notes')}>
-     <Bell aria-hidden="true"/>{!!state?.notes.length && <i/>}
+    <button type="button" className="disc" onClick={() => navigate('alerts')}
+     aria-label={waiting ? `Notifications, ${waiting} new` : 'Notifications'}>
+     <Bell aria-hidden="true"/>{!!waiting && <i/>}
     </button>
-    <a href="#account" className="disc" data-tint="leaf" aria-label="Your account"><Sprout aria-hidden="true"/></a>
+    <button type="button" className="disc" data-tint="leaf" onClick={flipTheme}
+     aria-label={night ? 'Switch to the day look' : 'Switch to the dusk look'}>
+     <span className="weather-turn" aria-hidden="true">{night ? <Sun key="sun"/> : <Moon key="moon"/>}</span>
+    </button>
    </div>
   </header>
 
@@ -225,7 +254,7 @@ export function HarborApp() {
   {sections && <SectionsOverlay onClose={() => setSections(false)}
    onGo={id => meadowRef.current?.flyTo(id)} onOverview={() => meadowRef.current?.recenter()}/>}
 
-  <Sheet lift={lift} onLift={setLift} onDragging={setDragging} label="Harbor">
+  <Sheet lift={lift} onLift={setLift} onDragging={setDragging} label="Harbor" at={route}>
    {!state
     ? <div className="wrap flow" role="status" aria-live="polite" aria-busy="true">
      <span className="sr-only">Making a little room for you…</span>
@@ -236,17 +265,18 @@ export function HarborApp() {
      </div>
     </div>
     : <>
-     {page === 'home' && <Home navigate={navigate} onCall={person => setCall({ person })} onOpenMoment={setMoment}
+     {page === 'home' && <Home navigate={navigate} onCall={person => setCall({ person })}
       onOpenCamera={() => setCamera({})} onOpenStory={() => setStory(0)} onWeatherShown={showWeather} onExpand={() => setLift(1)}/>}
      {page === 'schedule' && <Schedule navigate={navigate}/>}
      {page === 'share' && <ShareLoad navigate={navigate}/>}
-     {page === 'notes' && <NotesScreen navigate={navigate} onOpenCamera={() => setCamera({})} onOpenStory={() => setStory(0)}/>}
+     {page === 'saved' && <NotesScreen navigate={navigate} onOpenCamera={() => setCamera({})} onOpenStory={() => setStory(0)}/>}
+     {page === 'alerts' && <AlertsScreen navigate={navigate}/>}
      {page === 'account' && <AccountScreen navigate={navigate}/>}
      {page === 'chat' && <Conversation key={route} person={route.split('/')[1] || state.people[0]?.id} navigate={navigate} onCall={person => setCall({ person })}/>}
      {page === 'cue' && <CueScreen navigate={navigate} onFire={fireCue}/>}
-     {!['home', 'schedule', 'share', 'notes', 'account', 'chat', 'cue'].includes(page) && <div className="wrap">
+     {!PAGES.includes(page) && <div className="wrap flow">
       <p className="small">This path is still growing.</p>
-      <button type="button" className="text-link" onClick={() => navigate('home')}>Back home</button>
+      <button type="button" className="btn btn-soft" onClick={() => navigate('home')}>Back home</button>
      </div>}
     </>}
   </Sheet>
@@ -255,7 +285,10 @@ export function HarborApp() {
    {leftTabs.map(({ id, label, icon: Icon }) => <a key={id} href={`#${id}`} className="nav-item" aria-current={page === id ? 'page' : undefined}>
     <Icon aria-hidden="true"/><b>{label}</b><i aria-hidden="true"/>
    </a>)}
-   <a href="#share" className="nav-share" aria-pressed={!!state?.sharing} aria-current={page === 'share' ? 'page' : undefined} aria-label="Share my load">
+   {/* A place to go, not a switch. It lights up when sharing is on, but tapping it
+       opens the screen rather than turning anything on or off. */}
+   <a href="#share" className="nav-share" data-on={!!state?.sharing} aria-current={page === 'share' ? 'page' : undefined}
+    aria-label={`Share my load${state?.sharing ? ', sharing is on' : ''}`}>
     <span className="nav-share-disc"><Leaf aria-hidden="true"/></span>
     <b>Share load</b>
    </a>
@@ -274,6 +307,6 @@ export function HarborApp() {
    onTake={() => { setWindowDue(false); setCamera({ promptDay: day }) }}
    onSkip={() => { setWindowDue(false); try { sessionStorage.setItem('harbor-window', day) } catch { /* nothing to remember if storage is blocked */ } }}/>}
   <DailyQuestion open={question} onOpenChange={closeQuestion}/>
-  <Toaster theme="light" position="top-center"/>
+  <Toaster theme={night ? 'dark' : 'light'} position="top-center"/>
  </div>
 }

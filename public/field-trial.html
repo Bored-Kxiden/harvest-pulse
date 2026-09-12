@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
-<title>Harbor — field trial</title>
+<title>Harbor, field trial</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Lora:wght@600;700&display=swap" rel="stylesheet">
@@ -408,7 +408,7 @@ for (let row = 0; row < ROWS; row++) {
   let kind = 'dot', size = 0.1, paint = CIRCLE_PAINT.length - 1
 
   if (patch >= 0 && z > 0.3) {
-   /* A patch is kept ground — low grass, so the flowers planted in it are what you read. */
+   /* A patch is kept ground, low grass, so the flowers planted in it are what you read. */
    kind = 'dot'
    size = 0.22 + chance * 0.2
    paint = GRASS_FROM + (chance > 0.55 ? 1 : 0)
@@ -665,7 +665,7 @@ function endPointer(e) {
  pointers.delete(e.pointerId)
  if (pointers.size < 2) pinch = null
  if (started && pt && started.moved < 6) {
-  /* A flower first — it is the smaller, more specific target — then the patch it sits in. */
+  /* A flower first, it is the smaller, more specific target, then the patch it sits in. */
   let flower = null, flowerDist = Infinity
   for (const hit of hits) {
    const d = Math.hypot(hit.x - pt.x, hit.y - pt.y)
@@ -712,7 +712,7 @@ function openCase(call) {
   ['Duration', fmtDuration(call.minutes)],
  ]
  if (call.topic) rows.push(['What it was about', call.topic])
- rows.push(['How you felt', feeling.label + ' — ' + feeling.caption.toLowerCase().replace(/\.$/, '')])
+ rows.push(['How you felt', feeling.label + ', ' + feeling.caption.toLowerCase().replace(/\.$/, '')])
  document.getElementById('caseRows').innerHTML = rows.map(r => '<div class="case-row"><b>' + r[0] + '</b><span>' + r[1] + '</span></div>').join('')
  caseEl.dataset.open = '1'
 }

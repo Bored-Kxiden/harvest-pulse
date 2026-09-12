@@ -1,10 +1,11 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import { CalendarClock, Check, Footprints, Heart, Phone, ShieldCheck, Sprout, Waves } from 'lucide-react'
+import { CalendarClock, Check, ChevronRight, Footprints, Heart, Phone, ShieldCheck, Sprout, Waves } from 'lucide-react'
 import { toast } from 'sonner'
 import { buzz, makeId, ring, useHarbor } from '@/lib/harbor/store'
 import { cueEligibility, isFuture, topics, usualCallMinutes, type Moment } from '@/lib/harbor/model'
 import { Avatar } from './avatar'
+import { BackBar } from './back'
 
 export type Cue = { id: string; person: string }
 
@@ -119,6 +120,7 @@ export function CueScreen({ navigate, onFire }: { navigate: (page: string) => vo
  }
 
  return <div className="entrance">
+  <BackBar onBack={() => navigate('home')}/>
   <div className="page-head">
    <p className="eyebrow">A pause, not a push</p>
    <h1>Find your slack tide.</h1>
@@ -142,7 +144,7 @@ export function CueScreen({ navigate, onFire }: { navigate: (page: string) => vo
     <button type="button" className="btn btn-block" onClick={check}>Ring the cue</button>
     {reason && <p className="small" role="status">{reason}</p>}
     {!state.settings.cuesEnabled && <button type="button" className="btn btn-soft btn-block" onClick={() => update(s => ({ ...s, settings: { ...s.settings, cuesEnabled: true } }))}>Turn cues on</button>}
-    <button type="button" className="link" onClick={() => navigate('settings')}>Adjust my pace, sound and limits</button>
+    <button type="button" className="text-link" onClick={() => navigate('account')}>Adjust my pace, sound and limits <ChevronRight aria-hidden="true"/></button>
    </section>
    <p className="note-strip"><ShieldCheck/>Your walking activity is never shared. Cues respect your daily limit, your cooldown, and any connection you have already made today.</p>
   </div>

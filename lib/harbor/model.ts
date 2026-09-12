@@ -18,7 +18,16 @@ export type CalendarProvider = 'outlook' | 'google' | 'apple'
 export const calendarProviders: { id: CalendarProvider; name: string }[] = [
  { id: 'outlook', name: 'Outlook' }, { id: 'google', name: 'Google Calendar' }, { id: 'apple', name: 'Apple Calendar' },
 ]
-export type Note = { id: string; at: string; person: string; text: string }
+/** Two kinds of note, and the difference is who else can read it.
+    A personal note travels between exactly two people and shows on that person's card
+    in Your people. A shared note goes out to everyone you have added, and lives on the
+    rail under A little something. Nothing turns one into the other. */
+export type NoteScope = 'personal' | 'shared'
+export type Note = { id: string; at: string; person: string; text: string; scope: NoteScope }
+
+/** Something one of your people told you they are doing. Not your calendar, theirs:
+    it arrives in your notifications and you can star it to keep it. */
+export type Plan = { id: string; person: string; day: string; start: string; end: string; label: string }
 
 /** An instant: one picture, taken now rather than chosen. Kept only if someone keeps it. */
 export type Snap = { id: string; at: string; person: string; mediaId?: string; caption?: string; prompted?: boolean; promptDay?: string; saved?: boolean; simulated?: boolean }
@@ -35,7 +44,7 @@ export const themes: { id: Theme; label: string }[] = [
 export type FlowerKind = 'daisy' | 'tulip' | 'poppy' | 'cosmos' | 'marigold' | 'bluebell' | 'aster' | 'sunflower'
 
 export type HarborState = {
- version: 4; name: string
+ version: 5; name: string
  people: Person[]
  sharing: boolean; momConsent: boolean; sharingSetupDone: boolean
  schedules: Record<string, { you: Interval[]; mom: Interval[] }>; calendar: CalendarLink | null
@@ -43,6 +52,8 @@ export type HarborState = {
  messages: Record<string, ChatMessage[]>; read: string[]; drafts: Record<string, string>
  moments: Moment[]; cues: { id: string; at: string }[]
  notes: Note[]; games: Record<string, string>
+ /** Their plans, and the handful of things you chose to keep an eye on. */
+ plans: Plan[]; starred: string[]; seenAlerts: string
  snaps: Snap[]; pacts: SnapPact[]; snapWindows: Record<string, string>
  settings: { cuesEnabled: boolean; walkingMinutes: number; sessionMinutes: number; dailyCap: number; cooldownMinutes: number; sound: 'chime' | 'soft' | 'silent'; reducedMotion: boolean; theme: Theme }
 }
@@ -151,6 +162,83 @@ export function sharedWindows(state: HarborState, day: string) {
 export function isFuture(value: string, now = new Date()) { const t = new Date(value).getTime(); return Number.isFinite(t) && t > now.getTime() }
 export function personOf(state: HarborState, id: string) { return state.people.find(p => p.id === id) }
 export function initialsOf(name: string) { return name.trim().split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('') || '·' }
+
+/* ---------- notes, by who can read them ----------
+   Personal notes are between two people and nobody else. Shared notes go to everyone
+   you have added. Keeping the two apart is the whole point, so they are never mixed
+   in one list and never queried without saying which kind you mean. */
+export function sharedNotes(state: HarborState) {
+ return state.notes.filter(n => n.scope === 'shared').slice().sort((a, b) => b.at.localeCompare(a.at))
+}
+export function personalNotes(state: HarborState, personId?: string) {
+ return state.notes
+  .filter(n => n.scope === 'personal' && (!personId || n.person === personId))
+  .slice().sort((a, b) => b.at.localeCompare(a.at))
+}
+/** The most recent thing this person left for you alone. What their card shows. */
+export function latestPersonalNote(state: HarborState, personId: string) { return personalNotes(state, personId)[0] }
+
+/* ---------- what your people are up to, and what you kept ----------
+   Two feeds behind the bell. The first is theirs: plans they shared, notes they left,
+   pictures they caught. The second is yours: the things you starred, from their week
+   or from your own, so the ones that matter are not buried in a calendar. */
+export type Alert = { id: string; at: string; person: string; kind: 'seed' | 'plan' | 'instant' | 'note'; title: string; body: string }
+
+export function plansFor(state: HarborState, personId?: string) {
+ return state.plans
+  .filter(p => (!personId || p.person === personId) && state.people.some(x => x.id === p.person))
+  .slice().sort((a, b) => (a.day + a.start).localeCompare(b.day + b.start))
+}
+/** A plan's own moment in time, so it can be sorted against notes and pictures. */
+export function planAt(plan: Plan) { return `${plan.day}T${plan.start}:00` }
+
+export function sharedAlerts(state: HarborState): Alert[] {
+ const name = (id: string) => state.people.find(p => p.id === id)?.name ?? 'They'
+ const out: Alert[] = []
+ for (const note of personalNotes(state)) out.push({
+  id: `seed-${note.id}`, at: note.at, person: note.person, kind: 'seed',
+  title: `${name(note.person)} planted a seed`,
+  body: `They left a note just for you, and you received a flower. "${note.text}"`,
+ })
+ for (const plan of plansFor(state)) out.push({
+  id: `plan-${plan.id}`, at: planAt(plan), person: plan.person, kind: 'plan',
+  title: `${name(plan.person)} shared their day`,
+  body: `${plan.label}, ${formatTime(plan.start)} to ${formatTime(plan.end)}`,
+ })
+ for (const snap of state.snaps.filter(s => s.person !== 'you')) out.push({
+  id: `instant-${snap.id}`, at: snap.at, person: snap.person, kind: 'instant',
+  title: `${name(snap.person)} caught an instant`,
+  body: snap.caption ?? 'A picture of whatever they were doing.',
+ })
+ for (const note of sharedNotes(state).filter(n => n.person !== 'you')) out.push({
+  id: `note-${note.id}`, at: note.at, person: note.person, kind: 'note',
+  title: `${name(note.person)} left a little something`,
+  body: note.text,
+ })
+ return out.sort((a, b) => b.at.localeCompare(a.at))
+}
+export function unseenAlerts(state: HarborState) {
+ return sharedAlerts(state).filter(a => a.at > (state.seenAlerts || '')).length
+}
+
+/** One stable name for a starred thing, whether it came from their week or yours. */
+export const planStar = (plan: Plan) => `plan:${plan.id}`
+export const blockStar = (day: string, block: Interval) => `mine:${day}:${block.start}:${block.end}`
+export function isStarred(state: HarborState, key: string) { return state.starred.includes(key) }
+/** Every starred thing, resolved back into something showable, soonest first. */
+export function starredItems(state: HarborState) {
+ const out: { key: string; person: string; day: string; start: string; end: string; label: string }[] = []
+ for (const plan of plansFor(state)) {
+  if (state.starred.includes(planStar(plan))) out.push({ key: planStar(plan), person: plan.person, day: plan.day, start: plan.start, end: plan.end, label: plan.label })
+ }
+ for (const [day, both] of Object.entries(state.schedules)) {
+  for (const block of both.you) {
+   const key = blockStar(day, block)
+   if (state.starred.includes(key)) out.push({ key, person: 'you', day, start: block.start, end: block.end, label: block.label || 'Busy' })
+  }
+ }
+ return out.sort((a, b) => (a.day + a.start).localeCompare(b.day + b.start))
+}
 
 /* ---------- calls, and what they grow into ---------- */
 export function callsFor(state: HarborState, personId: string) { return state.moments.filter(m => m.kind === 'called' && m.person === personId && m.flower) }
@@ -292,10 +380,21 @@ export function seedState(now = new Date()): HarborState {
   const at = new Date(now); at.setDate(at.getDate() - (i * 3 + 2)); at.setHours(17 + (i % 4), 20, 0, 0)
   return { id: `seed-call-${i}`, at: at.toISOString(), person, kind: 'called' as const, text, source: 'manual' as const, minutes: mins, feeling, flower, topic }
  })
+ /* Personal notes are addressed to you alone; shared ones go to everybody you added. */
  const notes: Note[] = [
-  { id: 'seed-note-mom', at: new Date(now.getTime() - 3600000).toISOString(), person: 'mom', text: 'Made a little extra of your favorite, out of habit.' },
-  { id: 'seed-note-dad', at: new Date(now.getTime() - 5 * 3600000).toISOString(), person: 'dad', text: 'Radio still works. Unbelievable.' },
-  { id: 'seed-note-aanya', at: new Date(now.getTime() - 26 * 3600000).toISOString(), person: 'aanya', text: 'saving a story for you' },
+  { id: 'seed-note-mom', at: new Date(now.getTime() - 3600000).toISOString(), person: 'mom', scope: 'personal', text: 'Made a little extra of your favorite, out of habit.' },
+  { id: 'seed-note-dad', at: new Date(now.getTime() - 5 * 3600000).toISOString(), person: 'dad', scope: 'personal', text: 'Proud of you this week. That is all, no reply needed.' },
+  { id: 'seed-note-aanya', at: new Date(now.getTime() - 26 * 3600000).toISOString(), person: 'aanya', scope: 'personal', text: 'saving a story for you' },
+  { id: 'seed-open-mom', at: new Date(now.getTime() - 2 * 3600000).toISOString(), person: 'mom', scope: 'shared', text: 'The jasmine finally opened this morning.' },
+  { id: 'seed-open-dad', at: new Date(now.getTime() - 9 * 3600000).toISOString(), person: 'dad', scope: 'shared', text: 'Radio still works. Unbelievable.' },
+ ]
+ /* A few things your people said they would be doing, so the bell has something in it. */
+ const planWeek = weekOf(today)
+ const plans: Plan[] = [
+  { id: 'seed-plan-mom-1', person: 'mom', day: today, start: '18:00', end: '19:30', label: 'Cooking, then a walk' },
+  { id: 'seed-plan-dad-1', person: 'dad', day: today, start: '07:30', end: '09:00', label: 'The garden, as always' },
+  { id: 'seed-plan-mom-2', person: 'mom', day: planWeek[5], start: '10:00', end: '12:00', label: 'Market with your aunt' },
+  { id: 'seed-plan-aanya-1', person: 'aanya', day: planWeek[4], start: '20:00', end: '22:00', label: 'Free all evening' },
  ]
  const snaps: Snap[] = [
   { id: 'seed-snap-mom', at: new Date(now.getTime() - 2 * 3600000).toISOString(), person: 'mom', caption: 'the jasmine, finally', simulated: true },
@@ -323,12 +422,13 @@ export function seedState(now = new Date()): HarborState {
   [{ start: '12:00', end: '15:00', label: 'Family lunch' }],
  ]
  return {
-  version: 4, name: 'Maya', people: seedPeople.map(p => ({ ...p })),
+  version: 5, name: 'Maya', people: seedPeople.map(p => ({ ...p })),
   sharing: false, momConsent: false, sharingSetupDone: false, calendar: null,
   schedules: Object.fromEntries(week.map((key, i) => [key, { you: yours[i], mom: theirs[i] }])),
   weather: 'bright', milestone: { title: 'Midterms', date: localDay(milestone) },
   messages: Object.fromEntries(seedPeople.map(p => [p.id, [{ id: `hello-${p.id}`, text: p.note ?? 'Thinking of you.', mine: false, at: new Date(now.getTime() - 3600000).toISOString() }]])),
   read: [], drafts: {}, moments, cues: [], notes, games: {}, snaps, pacts: [], snapWindows: {},
+  plans, starred: [`plan:seed-plan-mom-1`], seenAlerts: '',
   settings: { cuesEnabled: true, walkingMinutes: 10, sessionMinutes: 20, dailyCap: 2, cooldownMinutes: 120, sound: 'chime', reducedMotion: false, theme: 'light' },
  }
 }
@@ -336,7 +436,7 @@ export function seedState(now = new Date()): HarborState {
 export function parseState(raw: string): HarborState | null {
  try {
   const s = JSON.parse(raw) as HarborState
-  if (s.version !== 4 || typeof s.name !== 'string' || typeof s.sharing !== 'boolean' || typeof s.momConsent !== 'boolean' || typeof s.sharingSetupDone !== 'boolean') return null
+  if (s.version !== 5 || typeof s.name !== 'string' || typeof s.sharing !== 'boolean' || typeof s.momConsent !== 'boolean' || typeof s.sharingSetupDone !== 'boolean') return null
   if (!s.settings || !s.schedules || !s.milestone || !s.messages || !s.drafts) return null
   if (s.calendar !== null && !(s.calendar && calendarProviders.some(c => c.id === s.calendar!.provider))) return null
   if (!Array.isArray(s.people) || !s.people.length || !s.people.every(p => p && typeof p.id === 'string' && typeof p.name === 'string' && typeof p.initials === 'string' && ['green', 'gold', 'orange', 'sky'].includes(p.tone))) return null
@@ -344,7 +444,9 @@ export function parseState(raw: string): HarborState | null {
   if (!Object.values(s.schedules).every(v => v && validIntervals(v.you) && validIntervals(v.mom))) return null
   if (!Object.values(s.messages).every(ms => Array.isArray(ms) && ms.every(m => typeof m.text === 'string' && typeof m.mine === 'boolean' && typeof m.id === 'string'))) return null
   if (!Array.isArray(s.moments) || !s.moments.every(m => m && typeof m.id === 'string' && typeof m.text === 'string' && typeof m.person === 'string' && Number.isFinite(Date.parse(m.at)) && ['called', 'reacted', 'proposed_later', 'message', 'dismissed', 'played'].includes(m.kind) && (m.flower === undefined || flowerLibrary.some(f => f.id === m.flower)))) return null
-  if (!Array.isArray(s.notes) || !s.notes.every(n => n && typeof n.id === 'string' && typeof n.person === 'string' && typeof n.text === 'string' && Number.isFinite(Date.parse(n.at)))) return null
+  if (!Array.isArray(s.notes) || !s.notes.every(n => n && typeof n.id === 'string' && typeof n.person === 'string' && typeof n.text === 'string' && Number.isFinite(Date.parse(n.at)) && ['personal', 'shared'].includes(n.scope))) return null
+  if (!Array.isArray(s.plans) || !s.plans.every(p => p && typeof p.id === 'string' && typeof p.person === 'string' && typeof p.label === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(p.day) && /^([01]\d|2[0-3]):[0-5]\d$/.test(p.start) && /^([01]\d|2[0-3]):[0-5]\d$/.test(p.end))) return null
+  if (!Array.isArray(s.starred) || !s.starred.every(k => typeof k === 'string') || typeof s.seenAlerts !== 'string') return null
   if (!Array.isArray(s.snaps) || !s.snaps.every(x => x && typeof x.id === 'string' && typeof x.person === 'string' && Number.isFinite(Date.parse(x.at)))) return null
   if (!Array.isArray(s.pacts) || !s.pacts.every(p => p && typeof p.personId === 'string' && ['invited', 'active'].includes(p.status))) return null
   if (!s.snapWindows || typeof s.snapWindows !== 'object' || Array.isArray(s.snapWindows) || !Object.values(s.snapWindows).every(v => typeof v === 'string')) return null

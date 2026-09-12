@@ -1,10 +1,10 @@
 'use client'
 import { useState } from 'react'
-import { Bell, CalendarDays, ChevronRight, Clock3, Images, Phone, Sprout, Sun, Users, Waves } from 'lucide-react'
+import { CalendarDays, ChevronRight, Clock3, Images, Lock, Phone, Sprout, Users, Waves } from 'lucide-react'
 import { useHarbor } from '@/lib/harbor/store'
 import {
- blocksFor, callingStage, callsFor, dominantFlower, feelings, formatDuration, formatTime, freeWindows, localDay,
- minutes, sharedWindows, weatherIndex, weathers, type Moment,
+ blocksFor, callingStage, callsFor, dominantFlower, formatTime, freeWindows, latestPersonalNote, localDay,
+ minutes, weatherIndex, weathers,
 } from '@/lib/harbor/model'
 import { Avatar } from './avatar'
 import { FlowerGlyph } from './flowers'
@@ -17,14 +17,12 @@ const SPRIGS = ['tulip', 'leaf', 'cosmos', 'bell'] as const
 const TABS = [
  { id: 'people', label: 'People', icon: Users },
  { id: 'schedule', label: 'Schedule', icon: CalendarDays },
- { id: 'activities', label: 'Activities', icon: Bell },
 ] as const
 type Tab = typeof TABS[number]['id']
 
-export function Home({ navigate, onCall, onOpenMoment, onOpenCamera, onOpenStory, onWeatherShown, onExpand }: {
+export function Home({ navigate, onCall, onOpenCamera, onOpenStory, onWeatherShown, onExpand }: {
  navigate: (page: string) => void
  onCall: (personId: string) => void
- onOpenMoment: (moment: Moment) => void
  onOpenCamera: () => void
  onOpenStory: () => void
  onWeatherShown: () => void
@@ -42,8 +40,6 @@ export function Home({ navigate, onCall, onOpenMoment, onOpenCamera, onOpenStory
   setTab(next)
  }
  if (!state) return null
- const partner = state.people[0]
- const windows = sharedWindows(state, localDay())
 
  return <div className="entrance">
   <div className="wrap flow stagger">
@@ -60,6 +56,7 @@ export function Home({ navigate, onCall, onOpenMoment, onOpenCamera, onOpenStory
      </h2>
      <button type="button" className="pill-link" onClick={onExpand}>View all <ChevronRight aria-hidden="true"/></button>
     </div>
+    <p className="small section-note">Notes on these cards are just between you and them. Nobody else sees one.</p>
 
     <div className="segment" role="tablist" aria-label="Your people"
      onKeyDown={e => {
@@ -71,7 +68,7 @@ export function Home({ navigate, onCall, onOpenMoment, onOpenCamera, onOpenStory
       choose(next.id)
       requestAnimationFrame(() => document.getElementById(`tab-${next.id}`)?.focus())
      }}>
-     <span className="segment-slide" style={{ ['--i' as string]: index }} aria-hidden="true"/>
+     <span className="segment-slide" style={{ ['--i' as string]: index, width: `calc((100% - 10px) / ${TABS.length})` }} aria-hidden="true"/>
      {TABS.map(({ id, label, icon: Icon }) => <button key={id} type="button" role="tab" id={`tab-${id}`}
       className="segment-tab" aria-selected={tab === id} aria-controls="people-panel"
       tabIndex={tab === id ? 0 : -1} onClick={() => choose(id)}>
@@ -90,6 +87,9 @@ export function Home({ navigate, onCall, onOpenMoment, onOpenCamera, onOpenStory
       const calls = callsFor(state, person.id).length
       const last = (state.messages[person.id] ?? []).at(-1)
       const unread = !!last && !last.mine && !state.read.includes(person.id)
+      /* Their card carries what they said to you alone. Anything they said to
+         everyone lives on the rail under A little something, never here. */
+      const personal = latestPersonalNote(state, person.id)
       return <div key={person.id} className={`person tint-${TINTS[i % TINTS.length]}`}>
        <Sprig kind={SPRIGS[i % SPRIGS.length]} className="person-sprig"/>
        <button type="button" className="person-top" onClick={() => navigate(`chat/${person.id}`)}
@@ -101,7 +101,11 @@ export function Home({ navigate, onCall, onOpenMoment, onOpenCamera, onOpenStory
         <ChevronRight style={{ width: 15, height: 15, color: 'var(--ink-faint)' }} aria-hidden="true"/>
        </button>
        <h3>{person.name}</h3>
-       <p className="person-note">{last?.mine ? 'You: ' : ''}{last?.text ?? person.note ?? 'Say hello whenever.'}</p>
+       {personal
+        ? <><span className="person-tag"><Lock aria-hidden="true"/>just for you</span>
+         <p className="person-note">{personal.text}</p></>
+        : <><span className="person-tag person-tag-quiet">no note yet</span>
+         <p className="person-note">{last?.mine ? 'You: ' : ''}{last?.text ?? 'Say hello whenever.'}</p></>}
        <span className="person-foot">
         {flower ? <FlowerGlyph kind={flower} size={13}/> : <Sprout aria-hidden="true"/>}
         {calls ? `${calls} ${calls === 1 ? 'flower' : 'flowers'} in their path` : 'No flowers yet'}
@@ -114,17 +118,17 @@ export function Home({ navigate, onCall, onOpenMoment, onOpenCamera, onOpenStory
     </div>}
 
     {tab === 'schedule' && <TodayAtAGlance navigate={navigate}/>}
-    {tab === 'activities' && <Activities onOpenMoment={onOpenMoment}/>}
     </div>
    </section>
 
    <section aria-labelledby="something-heading" style={{ ['--i' as string]: 2 }}>
     <div className="row-head">
      <h2 id="something-heading">A little something</h2>
-     <button type="button" className="text-link" onClick={() => navigate('notes')}>
-      notes &amp; instants <ChevronRight aria-hidden="true"/>
+     <button type="button" className="text-link" onClick={() => navigate('saved')}>
+      everything saved <ChevronRight aria-hidden="true"/>
      </button>
     </div>
+    <p className="small section-note"><Users aria-hidden="true"/>One line, read by everyone you have added. The opposite of the notes above.</p>
     <NotesRail navigate={navigate} onOpenCamera={onOpenCamera}/>
     <button type="button" className="row" style={{ marginTop: 12 }} onClick={onOpenStory}>
      <span className="row-icon" style={{ background: 'var(--tint-blue)' }}><Images aria-hidden="true"/></span>
@@ -133,59 +137,14 @@ export function Home({ navigate, onCall, onOpenMoment, onOpenCamera, onOpenStory
     </button>
    </section>
 
-   <section className="tint-card" style={{ background: 'var(--tint-mint)', position: 'relative', overflow: 'hidden', ['--i' as string]: 3 }} aria-labelledby="window-heading">
-    <Sprig kind="tulip" className="person-sprig" style={{ width: 72, bottom: 0 }}/>
-    <span className="eyebrow" id="window-heading" style={{ display: 'flex', alignItems: 'center', gap: 7, color: 'var(--ink)' }}>
-     <Sun style={{ width: 15, height: 15 }} aria-hidden="true"/>A little window, together
-    </span>
-    {!state.sharing
-     ? <><h3 style={{ fontSize: 21, margin: '8px 0 4px', color: 'var(--ink-deep)' }}>Your rhythm stays yours.</h3>
-      <p className="small" style={{ maxWidth: '78%' }}>Turn on Share my load to look for a window you are both free in.</p></>
-     : !state.momConsent
-      ? <><h3 style={{ fontSize: 21, margin: '8px 0 4px', color: 'var(--ink-deep)' }}>It takes two.</h3>
-       <p className="small" style={{ maxWidth: '78%' }}>Turn on Mutual sharing once {partner?.name ?? 'they'} {partner ? 'is' : 'are'} ready.</p></>
-      : windows.length
-       ? <><h3 style={{ fontSize: 24, margin: '8px 0 4px', color: 'var(--ink-deep)' }}>{formatTime(windows[0].start)} – {formatTime(windows[0].end)}</h3>
-        <p className="small">{minutes(windows[0].end) - minutes(windows[0].start)} unhurried minutes, today. A possibility, not an obligation.</p></>
-       : <><h3 style={{ fontSize: 21, margin: '8px 0 4px', color: 'var(--ink-deep)' }}>A full day for both of you.</h3>
-        <p className="small" style={{ maxWidth: '78%' }}>No overlap today. Try another day, or leave a little note.</p></>}
-    <button type="button" className="text-link" style={{ marginTop: 4 }} onClick={() => navigate('share')}>
-     Open Share my load <ChevronRight aria-hidden="true"/>
-    </button>
-   </section>
-
-   <button type="button" className="row" style={{ ['--i' as string]: 5 }} onClick={() => navigate('cue')}>
+   <button type="button" className="row" style={{ ['--i' as string]: 3 }} onClick={() => navigate('cue')}>
     <span className="row-icon" style={{ background: 'var(--tint-blue)' }}><Waves aria-hidden="true"/></span>
     <span className="row-body"><b>Find a quiet moment</b><span>A cue at the end of a walk, never a demand</span></span>
     <ChevronRight className="caret" aria-hidden="true"/>
    </button>
 
-   <p className="fineprint" style={{ ['--i' as string]: 6 }}>An interactive demo · saved only on this device</p>
+   <p className="fineprint" style={{ ['--i' as string]: 4 }}>An interactive demo · saved only on this device</p>
   </div>
- </div>
-}
-
-/** What has actually happened lately: every call, newest first. */
-function Activities({ onOpenMoment }: { onOpenMoment: (moment: Moment) => void }) {
- const { state } = useHarbor()
- if (!state) return null
- const recent = state.moments
-  .filter(m => m.kind === 'called' && m.flower)
-  .slice().sort((a, b) => b.at.localeCompare(a.at)).slice(0, 5)
- if (!recent.length) return <p className="empty">No calls yet. The first one plants the first flower.</p>
- return <div className="flow stagger" style={{ gap: 9 }}>
-  {recent.map((moment, i) => {
-   const who = state.people.find(p => p.id === moment.person)
-   const feeling = feelings.find(f => f.id === moment.feeling)
-   return <button key={moment.id} type="button" className="row" style={{ ['--i' as string]: i }} onClick={() => onOpenMoment(moment)}>
-    <span className={`row-icon tint-${who?.tone ?? 'green'}`}><FlowerGlyph kind={moment.flower ?? 'daisy'} size={19} blooming/></span>
-    <span className="row-body">
-     <b>{moment.topic || `A call with ${who?.name ?? 'family'}`}</b>
-     <span>{formatDuration(moment.minutes)} · {feeling?.label.toLowerCase() ?? 'steady'} · {new Date(moment.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
-    </span>
-    <ChevronRight className="caret" aria-hidden="true"/>
-   </button>
-  })}
  </div>
 }
 
