@@ -1,11 +1,11 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Camera, ChevronRight, ImageUp, LockKeyhole, Maximize, Minimize, Moon, Play, ShieldCheck, Sprout, Sun, SunMoon, Trash2, UserRoundPlus, Waves } from 'lucide-react'
+import { Camera, ChevronRight, GraduationCap, House, ImageUp, LockKeyhole, Maximize, Minimize, Moon, Play, ShieldCheck, Sprout, Sun, SunMoon, Trash2, UserRoundPlus, Waves } from 'lucide-react'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { chime, makeId, useHarbor } from '@/lib/harbor/store'
 import { clearMedia, saveMedia } from '@/lib/harbor/media'
-import { activePacts, callsFor, initialsOf, localDay, rollSnapWindow, themes, type Person, type Tone } from '@/lib/harbor/model'
+import { activePacts, callsFor, initialsOf, localDay, rollSnapWindow, themes, type Mode, type Person, type Tone } from '@/lib/harbor/model'
 import { Avatar } from './avatar'
 import { Sprig } from './sprigs'
 
@@ -26,12 +26,13 @@ function isStandalone(): boolean {
 }
 
 export function AccountScreen({ navigate }: { navigate: (page: string) => void }) {
- const { state, update, reset } = useHarbor()
+ const { state, update, reset, start } = useHarbor()
  const [privacy, setPrivacy] = useState(false)
  const [fullscreen, setFullscreen] = useState(false)
  const [fullscreenSupported, setFullscreenSupported] = useState(false)
  const [standalone, setStandalone] = useState(false)
  const [resetOpen, setResetOpen] = useState(false)
+ const [switchTo, setSwitchTo] = useState<Mode | null>(null)
  const [adding, setAdding] = useState(false)
  const [newName, setNewName] = useState('')
  const [removing, setRemoving] = useState<Person | null>(null)
@@ -74,7 +75,7 @@ export function AccountScreen({ navigate }: { navigate: (page: string) => void }
   const id = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'friend'}-${makeId().slice(0, 4)}`
   update(s => ({ ...s, people: [...s.people, { id, name, initials: initialsOf(name), tone: tones[s.people.length % tones.length] }], messages: { ...s.messages, [id]: [] } }))
   setNewName(''); setAdding(false)
-  toast.success(`${name} has a patch of the meadow now.`)
+  toast.success(`${name} is in your list now.`)
  }
  const removePerson = (person: Person) => {
   update(s => ({
@@ -85,7 +86,7 @@ export function AccountScreen({ navigate }: { navigate: (page: string) => void }
    messages: Object.fromEntries(Object.entries(s.messages).filter(([id]) => id !== person.id)),
   }))
   setRemoving(null)
-  toast.success(`${person.name}'s patch has been cleared.`)
+  toast.success(`${person.name} has been removed.`)
  }
  const setPhoto = async (person: Person, file: File) => {
   if (!file.type.startsWith('image/')) { toast.error('That is not an image. Choose a picture instead.'); return }
@@ -112,9 +113,8 @@ export function AccountScreen({ navigate }: { navigate: (page: string) => void }
 
  return <div className="entrance">
   <div className="page-head">
-   <span className="eyebrow">Your account.</span>
-   <h1>Your account.</h1>
-   <p>A little space that fits your life.</p>
+   <h1>You</h1>
+   <p>Your name, your people, and how Harbor behaves.</p>
   </div>
 
   <div className="wrap flow stagger">
@@ -253,13 +253,33 @@ export function AccountScreen({ navigate }: { navigate: (page: string) => void }
     </div>
    </section>
 
-   <button type="button" className="row" style={{ ['--i' as string]: 5 }} onClick={() => navigate('share')}>
+   {/* Switching sides re-lays the sample household, because a parent's Harbor and a
+       student's Harbor are not the same app with a different skin. */}
+   <section className="card card-pad flow" style={{ ['--i' as string]: 5 }} aria-labelledby="mode-heading">
+    <div>
+     <h2 id="mode-heading" style={{ fontSize: 17 }}>Who is using Harbor</h2>
+     <p className="small">Parent mode keeps four buttons and puts calling first. Student mode adds your timetable and the meadow.</p>
+    </div>
+    <div className="segment" role="radiogroup" aria-labelledby="mode-heading" style={{ marginBottom: 0 }}>
+     <span className="segment-slide" style={{ ['--i' as string]: state.mode === 'parent' ? 0 : 1 }} aria-hidden="true"/>
+     <button type="button" role="radio" className="segment-tab" aria-checked={state.mode === 'parent'}
+      onClick={() => state.mode !== 'parent' && setSwitchTo('parent')}>
+      <House aria-hidden="true"/>Parent
+     </button>
+     <button type="button" role="radio" className="segment-tab" aria-checked={state.mode === 'student'}
+      onClick={() => state.mode !== 'student' && setSwitchTo('student')}>
+      <GraduationCap aria-hidden="true"/>Away from home
+     </button>
+    </div>
+   </section>
+
+   <button type="button" className="row" style={{ ['--i' as string]: 6 }} onClick={() => navigate('share')}>
     <span className="row-icon"><ShieldCheck aria-hidden="true"/></span>
     <span className="row-body"><b>Share my load &amp; privacy</b><span>Who sees your free and busy time</span></span>
     <ChevronRight className="caret" aria-hidden="true"/>
    </button>
-   <button type="button" className="btn btn-soft btn-block" style={{ ['--i' as string]: 6 }} onClick={() => setResetOpen(true)}>Start the Demo Fresh</button>
-   <p className="fineprint" style={{ ['--i' as string]: 7 }}>Harbor · a little closer, every day.<br/>Local demo. No real calls, messages, or calendar access.</p>
+   <button type="button" className="btn btn-soft btn-block" style={{ ['--i' as string]: 7 }} onClick={() => setResetOpen(true)}>Start the Demo Fresh</button>
+   <p className="fineprint" style={{ ['--i' as string]: 8 }}>Harbor · a little closer, every day.<br/>Local demo. No real calls, messages, or calendar access.</p>
   </div>
 
   <Dialog open={adding} onOpenChange={value => { setAdding(value); if (!value) setNewName('') }}><DialogContent>
@@ -288,6 +308,13 @@ export function AccountScreen({ navigate }: { navigate: (page: string) => void }
    <p className="note-strip"><ShieldCheck aria-hidden="true"/>This web version does not request motion permissions, monitor other apps, or reach you while the page is closed.</p>
    <button type="button" className="btn btn-block" onClick={() => { update(s => ({ ...s, settings: { ...s.settings, cuesEnabled: true } })); setPrivacy(false) }}>Turn Cues On</button>
    <button type="button" className="btn btn-quiet btn-block" onClick={() => setPrivacy(false)}>Not now</button>
+  </DialogContent></Dialog>
+
+  <Dialog open={!!switchTo} onOpenChange={value => !value && setSwitchTo(null)}><DialogContent>
+   <DialogHeader><DialogTitle>Switch to {switchTo === 'parent' ? 'parent mode' : 'student mode'}?</DialogTitle>
+    <DialogDescription>The sample household is laid out again from the other side of the phone, so the names and the week make sense. Anything you added in this demo is replaced.</DialogDescription></DialogHeader>
+   <button type="button" className="btn btn-block" onClick={() => { if (switchTo) { start(switchTo, state.name); setSwitchTo(null); navigate('home') } }}>Switch and start fresh</button>
+   <button type="button" className="btn btn-quiet btn-block" onClick={() => setSwitchTo(null)}>Stay here</button>
   </DialogContent></Dialog>
 
   <Dialog open={resetOpen} onOpenChange={setResetOpen}><DialogContent>

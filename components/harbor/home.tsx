@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { CalendarDays, ChevronRight, Clock3, Images, Lock, Phone, Sprout, Users, Waves } from 'lucide-react'
+import { CalendarDays, ChevronRight, Clock3, Images, Lock, MessageCircleQuestion, Phone, Sprout, Users, Waves } from 'lucide-react'
 import { useHarbor } from '@/lib/harbor/store'
 import {
  blocksFor, callingStage, callsFor, dominantFlower, formatTime, freeWindows, latestPersonalNote, localDay,
@@ -20,13 +20,14 @@ const TABS = [
 ] as const
 type Tab = typeof TABS[number]['id']
 
-export function Home({ navigate, onCall, onOpenCamera, onOpenStory, onWeatherShown, onExpand }: {
+export function Home({ navigate, onCall, onOpenCamera, onOpenStory, onWeatherShown, onExpand, onQuestion }: {
  navigate: (page: string) => void
  onCall: (personId: string) => void
  onOpenCamera: () => void
  onOpenStory: () => void
  onWeatherShown: () => void
  onExpand: () => void
+ onQuestion: () => void
 }) {
  const { state } = useHarbor()
  const [tab, setTab] = useState<Tab>('people')
@@ -43,20 +44,12 @@ export function Home({ navigate, onCall, onOpenCamera, onOpenStory, onWeatherSho
 
  return <div className="entrance">
   <div className="wrap flow stagger">
-   <Feelings onWeatherShown={onWeatherShown}/>
-
-   <section aria-labelledby="people-heading" style={{ ['--i' as string]: 1 }}>
+   <section aria-labelledby="people-heading" style={{ ['--i' as string]: 0 }}>
     <div className="row-head">
-     <h2 id="people-heading">
-      Your people
-      <svg className="squiggle" viewBox="0 0 54 12" fill="none" aria-hidden="true">
-       <path d="M1 7c6-7 12 5 18-1s11 4 17-2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-       <path d="M45.5 10c-3-2.4-5-4-5-6a2.4 2.4 0 0 1 5-.9 2.4 2.4 0 0 1 5 .9c0 2-2 3.6-5 6z" fill="currentColor" stroke="none"/>
-      </svg>
-     </h2>
+     <h2 id="people-heading">Your people</h2>
      <button type="button" className="pill-link" onClick={onExpand}>View all <ChevronRight aria-hidden="true"/></button>
     </div>
-    <p className="small section-note">Notes on these cards are just between you and them. Nobody else sees one.</p>
+    <p className="small section-note">Private between you and them.</p>
 
     <div className="segment" role="tablist" aria-label="Your people"
      onKeyDown={e => {
@@ -121,27 +114,41 @@ export function Home({ navigate, onCall, onOpenCamera, onOpenStory, onWeatherSho
     </div>
    </section>
 
-   <section aria-labelledby="something-heading" style={{ ['--i' as string]: 2 }}>
+   <section aria-labelledby="something-heading" style={{ ['--i' as string]: 1 }}>
     <div className="row-head">
-     <h2 id="something-heading">A little something</h2>
+     <h2 id="something-heading">Notes everyone sees</h2>
      <button type="button" className="text-link" onClick={() => navigate('saved')}>
-      everything saved <ChevronRight aria-hidden="true"/>
+      Everything saved <ChevronRight aria-hidden="true"/>
      </button>
     </div>
-    <p className="small section-note"><Users aria-hidden="true"/>One line, read by everyone you have added. The opposite of the notes above.</p>
+    <p className="small section-note"><Users aria-hidden="true"/>One line, read by everyone you added.</p>
     <NotesRail navigate={navigate} onOpenCamera={onOpenCamera}/>
     <button type="button" className="row" style={{ marginTop: 12 }} onClick={onOpenStory}>
      <span className="row-icon" style={{ background: 'var(--tint-blue)' }}><Images aria-hidden="true"/></span>
-     <span className="row-body"><b>Today&rsquo;s instants</b><span>{state.snaps.length} from your people, before they fade</span></span>
+     <span className="row-body"><b>Photos from today</b><span>{state.snaps.length} from your people, before they fade</span></span>
      <ChevronRight className="caret" aria-hidden="true"/>
     </button>
    </section>
 
-   <button type="button" className="row" style={{ ['--i' as string]: 3 }} onClick={() => navigate('cue')}>
-    <span className="row-icon" style={{ background: 'var(--tint-blue)' }}><Waves aria-hidden="true"/></span>
-    <span className="row-body"><b>Find a quiet moment</b><span>A cue at the end of a walk, never a demand</span></span>
-    <ChevronRight className="caret" aria-hidden="true"/>
-   </button>
+   <div className="flow" style={{ gap: 9, ['--i' as string]: 2 }}>
+    <button type="button" className="row" onClick={onQuestion}>
+     <span className="row-icon" style={{ background: 'var(--tint-lilac)' }}><MessageCircleQuestion aria-hidden="true"/></span>
+     <span className="row-body">
+      <b>Today&rsquo;s question</b>
+      <span>{state.games[localDay()] ? 'You answered. See what they said.' : 'One line each, from everybody at home'}</span>
+     </span>
+     <ChevronRight className="caret" aria-hidden="true"/>
+    </button>
+    <button type="button" className="row" onClick={() => navigate('cue')}>
+     <span className="row-icon" style={{ background: 'var(--tint-blue)' }}><Waves aria-hidden="true"/></span>
+     <span className="row-body"><b>Good time to call</b><span>A nudge when you stop walking, never a demand</span></span>
+     <ChevronRight className="caret" aria-hidden="true"/>
+    </button>
+   </div>
+
+   {/* How life feels, kept where it belongs: a thing you can say, not the headline
+       of the whole app. */}
+   <div style={{ ['--i' as string]: 3 }}><Feelings onWeatherShown={onWeatherShown}/></div>
 
    <p className="fineprint" style={{ ['--i' as string]: 4 }}>An interactive demo · saved only on this device</p>
   </div>
@@ -169,7 +176,7 @@ function Feelings({ onWeatherShown }: { onWeatherShown: () => void }) {
  }
 
  const stage = callingStage(state)
- return <section className="card feelings" aria-labelledby="feelings-heading" style={{ ['--i' as string]: 0 }}>
+ return <section className="card feelings" aria-labelledby="feelings-heading">
   <GrowthFlower stage={stage} className="feelings-sprig"/>
   <span className="eyebrow" id="feelings-heading">Your feelings right now</span>
   <h2>{current.label}</h2>

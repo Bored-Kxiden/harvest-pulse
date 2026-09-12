@@ -46,9 +46,8 @@ export function AlertsScreen({ navigate }: { navigate: (page: string) => void })
  return <div className="entrance">
   <BackBar onBack={() => navigate('home')}/>
   <div className="page-head">
-   <span className="eyebrow">Notifications</span>
-   <h1>What came in.</h1>
-   <p>Nothing here is waiting on a reply. It is just what your people are up to, and what you asked to keep.</p>
+   <h1>Notifications</h1>
+   <p>What your people shared, and the things you kept. Nothing here needs a reply.</p>
   </div>
 
   <div className="wrap flow stagger">
