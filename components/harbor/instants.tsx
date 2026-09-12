@@ -11,28 +11,6 @@ import { LocalPhoto } from './media-view'
 
 const STORY_MS = 5200
 
-/** The rail down the right edge of the meadow: whatever your people caught today, newest first,
-    with the camera at the end of it. It never scrolls away, the way Instagram's does not. */
-export function InstantsRail({ onOpenStory, onOpenCamera }: { onOpenStory: (index: number) => void; onOpenCamera: () => void }) {
- const { state } = useHarbor()
- if (!state) return null
- const recent = state.snaps.slice().sort((a, b) => b.at.localeCompare(a.at)).slice(0, 4)
- return <div className="rail">
-  {recent.map((snap, i) => {
-   const who = state.people.find(p => p.id === snap.person)
-   return <button key={snap.id} type="button" className="rail-dot" data-unseen={!snap.saved}
-    aria-label={`Instant from ${who?.name ?? 'your people'}${snap.caption ? `: ${snap.caption}` : ''}`}
-    onClick={() => onOpenStory(i)}>
-    <span className="rail-ring"/>
-    <span className={`rail-face tint-${who?.tone ?? 'green'}`}>
-     {snap.mediaId ? <LocalPhoto id={snap.mediaId} className="rail-photo"/> : <span className="rail-initial">{who?.initials ?? '·'}</span>}
-    </span>
-   </button>
-  })}
-  <button type="button" className="rail-camera" aria-label="Take an instant" onClick={onOpenCamera}><Camera/></button>
- </div>
-}
-
 /** The viewer: timed bars across the top, tap right to go on, tap left to go back,
     press and hold to stop the clock. Swipe or press escape to leave. */
 export function StoryViewer({ start, onClose }: { start: number; onClose: () => void }) {

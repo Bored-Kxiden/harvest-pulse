@@ -33,10 +33,10 @@ export function DailyQuestion({ open, onOpenChange }: { open: boolean; onOpenCha
 
   {mine ? <>
    <div className="stack">
-    {replies.map(r => <div key={r.person.id} className="row" style={{ boxShadow: 'none', background: '#F6F1E5' }}>
+    {replies.map(r => <div key={r.person.id} className="row" style={{ boxShadow: 'none', background: 'var(--wash)' }}>
      <Avatar person={r.person.id} size="sm"/><span className="row-body"><b>{r.person.name}</b><span>{r.text}</span></span>
     </div>)}
-    <div className="row" style={{ boxShadow: 'none', background: '#E4F0E2' }}>
+    <div className="row" style={{ boxShadow: 'none', background: 'var(--soft)' }}>
      <Avatar person="you" size="sm"/><span className="row-body"><b>You</b><span>{mine}</span></span>
     </div>
    </div>

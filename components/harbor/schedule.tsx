@@ -1,11 +1,11 @@
 'use client'
 import { useMemo, useRef, useState } from 'react'
-import { CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Link2, ShieldCheck, Trash2, Unlink } from 'lucide-react'
+import { CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, Link2, ShieldCheck, Star, Trash2, Unlink } from 'lucide-react'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useHarbor } from '@/lib/harbor/store'
 import {
- blocksFor, calendarProviders, clockOf, DAY_CLOSE, DAY_OPEN, formatTime, linkedWeek, localDay,
+ blockStar, blocksFor, calendarProviders, clockOf, DAY_CLOSE, DAY_OPEN, formatTime, linkedWeek, localDay,
  minutes, weekOf, type CalendarProvider, type Interval,
 } from '@/lib/harbor/model'
 import { Sprig } from './sprigs'
@@ -126,10 +126,12 @@ export function Schedule({ navigate }: { navigate: (page: string) => void }) {
        {HOURS.map(m => <div key={m} className="cal-slot"/>)}
        {blocksFor(state, day, 'you').map((block, index) => <button key={`${block.start}-${index}`} type="button" className="cal-block"
         data-linked={!!block.linked} style={{ top: topOf(block.start), height: heightOf(block) }}
+        data-starred={state.starred.includes(blockStar(day, block))}
         onPointerDown={e => e.stopPropagation()} onClick={() => setEditing({ day, index, block })}>
         <b>{block.label || 'Busy'}</b>
         {heightOf(block) > 32 && <span>{formatTime(block.start)}</span>}
         {heightOf(block) > 46 && <Sprig kind="leaf" aria-hidden="true"/>}
+        {state.starred.includes(blockStar(day, block)) && <Star className="cal-star" aria-hidden="true"/>}
        </button>)}
        {draft && draft.column === column && <span className="cal-draft"
         style={{ top: ((draft.from - OPEN) / 60) * HOUR_PX, height: ((draft.to - draft.from) / 60) * HOUR_PX }}/>}
@@ -184,6 +186,17 @@ export function Schedule({ navigate }: { navigate: (page: string) => void }) {
      <DialogTitle>{editing.block.label || 'Busy'}</DialogTitle>
      <DialogDescription>{new Date(`${editing.day}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })} · {formatTime(editing.block.start)} – {formatTime(editing.block.end)}{editing.block.linked ? ' · from your calendar' : ''}</DialogDescription>
     </DialogHeader>
+    {(() => {
+     /* Starring a block puts it in the Starred list behind the bell, beside the
+        things your people shared, so the few that matter are in one place. */
+     const key = blockStar(editing.day, editing.block)
+     const on = state.starred.includes(key)
+     return <button type="button" className="btn btn-soft btn-block" onClick={() => {
+      update(s => ({ ...s, starred: on ? s.starred.filter(k => k !== key) : [...s.starred, key] }))
+      setEditing(null)
+      toast.success(on ? 'Unstarred.' : 'Starred. It is in your notifications now.')
+     }}><Star aria-hidden="true" style={{ fill: on ? 'currentColor' : 'none' }}/>{on ? 'Unstar This Block' : 'Star This Block'}</button>
+    })()}
     <button type="button" className="btn btn-soft btn-block" onClick={() => {
      setBlocks(editing.day, blocksFor(state, editing.day, 'you').filter((_, i) => i !== editing.index))
      setEditing(null); toast.success('Cleared. That time is yours again.')

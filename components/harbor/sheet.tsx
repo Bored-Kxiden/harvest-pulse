@@ -7,8 +7,10 @@ const SLOP = 6      /* below this, a drag was really a tap */
 
 /** The card the app lives in. Drag the handle to move it; from the very top of the
     content, dragging down puts it back. Anything shorter than a few pixels is a tap. */
-export function Sheet({ lift, onLift, onDragging, children, label }: {
+export function Sheet({ lift, onLift, onDragging, children, label, at }: {
  lift: number; onLift: (value: number) => void; onDragging: (value: boolean) => void; children: ReactNode; label: string
+ /** Which screen is in the card. Changing it puts the card back at its own top. */
+ at: string
 }) {
  const scroller = useRef<HTMLDivElement>(null)
  const [dragging, setDragging] = useState(false)
@@ -37,6 +39,11 @@ export function Sheet({ lift, onLift, onDragging, children, label }: {
   el.addEventListener('scroll', onScroll, { passive: true })
   return () => { el.removeEventListener('scroll', onScroll); clearTimeout(idle) }
  }, [])
+
+ /* One scroller holds every screen, so without this a new screen inherits how far
+    down the last one you had read: you tap a person and land halfway through their
+    conversation, past the heading and the way back. Each screen starts at its top. */
+ useEffect(() => { scroller.current?.scrollTo({ top: 0, behavior: 'auto' }) }, [at])
 
  useEffect(() => {
   const measure = () => { height.current = window.innerHeight || 1 }

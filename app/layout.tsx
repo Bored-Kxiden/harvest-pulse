@@ -11,8 +11,11 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true, title: 'Harbor', statusBarStyle: 'black-translucent' },
 }
 export const viewport: Viewport = {
-  /* No maximum-scale: pinch-zoom is somebody's only way to read this. */
-  width: 'device-width', initialScale: 1, viewportFit: 'cover',
+  /* The page itself does not zoom. A pinch here is almost always aimed at the meadow,
+     and letting the browser take it instead scaled the whole app away from under the
+     gesture. The field answers the pinch on its own, and the sheet's own zoom buttons
+     cover anyone who would rather press than pinch. */
+  width: 'device-width', initialScale: 1, maximumScale: 1, userScalable: false, viewportFit: 'cover',
   colorScheme: 'light dark',
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#9ECDE8' },

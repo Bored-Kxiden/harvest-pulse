@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { makeId, useHarbor } from '@/lib/harbor/store'
 import { formatTime, localDay, minutes, sharedWindows } from '@/lib/harbor/model'
 import { Avatar } from './avatar'
+import { BackBar } from './back'
 import { Sprig } from './sprigs'
 
 /** Say the heavy thing once, pick who hears it, and let that be the end of the asking. */
@@ -33,10 +34,11 @@ export function ShareLoad({ navigate }: { navigate: (page: string) => void }) {
  }
 
  return <div className="entrance">
+  <BackBar onBack={() => navigate('home')}/>
   <div className="page-head">
    <span className="eyebrow">Share my load</span>
    <h1>Let&rsquo;s lighten it.</h1>
-   <p>Share what&rsquo;s on your mind, and let someone carry a little with you.</p>
+   <p>Say the heavy thing once, pick who hears it, and let that be the end of the asking.</p>
   </div>
 
   <div className="wrap flow stagger">
