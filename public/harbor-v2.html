@@ -289,16 +289,20 @@ p { line-height: 1.55; margin: 0; }
 
 /* ---------- the instants rail ---------- */
 
-/* ---------- the meadow chip ---------- */
+/* ---------- the meadow chip ----------
+   One pill, two taps: the glyph on the left turns the weather over on its own; the
+   label is a button in its own right that opens the garden's map, so tapping "your
+   garden is blooming" does something a pinch cannot: takes you straight to a person. */
 .meadow-chip {
- position: absolute; z-index: 11; left: 18px; bottom: calc(48dvh + 16px); display: flex; align-items: center; gap: 9px;
+ position: absolute; z-index: 11; left: 18px; bottom: calc(48dvh + 16px); display: flex; align-items: center;
  transform: translate3d(0, calc(-41dvh * var(--lift, 0)), 0);
- padding: 11px 17px; border-radius: 99px; background: var(--float);
- font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 14.5px; color: var(--ink-deep);
- box-shadow: var(--shadow-card); white-space: nowrap;
+ border-radius: 99px; background: var(--float); box-shadow: var(--shadow-card);
  transition: transform .42s cubic-bezier(.22, .9, .28, 1), opacity .3s;
 }
-.meadow-chip:active { transform: translate3d(0, calc(-41dvh * var(--lift, 0)), 0) scale(.96) }
+.meadow-chip-icon, .meadow-chip-label { display: flex; align-items: center; gap: 9px; min-height: 44px }
+.meadow-chip-icon { padding: 0 6px 0 13px }
+.meadow-chip-label { padding: 0 15px 0 3px; font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 14.5px; color: var(--ink-deep); white-space: nowrap }
+.meadow-chip-icon:active, .meadow-chip-label:active { transform: scale(.96) }
 .meadow-chip svg { width: 18px; height: 18px; flex-shrink: 0 }
 .meadow-chip .caret { width: 14px; height: 14px; stroke-width: 2.4; color: var(--ink-faint) }
 /* The weather glyph turns over as the sky does. */
@@ -319,6 +323,22 @@ p { line-height: 1.55; margin: 0; }
 .stage[data-dragging='true'] .sheet,
 .stage[data-dragging='true'] .meadow-chip { transition: none }
 .meadow-chip[data-away='true'] { opacity: 0; pointer-events: none }
+
+/* ---------- zoom, as buttons ----------
+   Sitting at the edge of a thumb's reach on the right, the way a map app's own
+   zoom rocker does, since pinch and double tap are easy to miss on a first visit. */
+.meadow-zoom {
+ position: absolute; z-index: 11; right: 14px; top: 23dvh; display: flex; flex-direction: column;
+ border-radius: 20px; overflow: hidden; background: var(--float); box-shadow: var(--shadow-card);
+ transform: translate3d(0, calc(-41dvh * var(--lift, 0)), 0);
+ transition: transform .42s cubic-bezier(.22, .9, .28, 1), opacity .3s;
+}
+.meadow-zoom button { display: grid; place-items: center; width: 44px; height: 44px; color: var(--ink-deep) }
+.meadow-zoom button:active { background: var(--wash) }
+.meadow-zoom button:first-child { border-bottom: 1px solid var(--hairline) }
+.meadow-zoom svg { width: 19px; height: 19px; stroke-width: 2.2 }
+.meadow-zoom[data-away='true'] { opacity: 0; pointer-events: none }
+.stage[data-dragging='true'] .meadow-zoom { transition: none }
 .sheet::before {
  content: ''; position: absolute; inset: 0 0 auto; height: 30px; border-radius: 30px 30px 0 0;
  box-shadow: inset 0 1.5px 0 var(--glass); pointer-events: none; z-index: 2;
@@ -734,6 +754,11 @@ img.camera-feed { transform: none }
 /* ---------- shared primitives ---------- */
 
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0 }
+
+/* ---------- the garden, listed ---------- */
+.sections-panel { max-height: 82dvh; overflow-y: auto }
+.sections-list { display: flex; flex-direction: column; gap: 8px; margin-top: 6px }
+.sections-list .row { text-align: left }
 .entrance { animation: rise .45s cubic-bezier(.22,.9,.28,1) both }
 [data-reduced-motion='true'] *, [data-reduced-motion='true'] *::before, [data-reduced-motion='true'] *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important } }
@@ -845,6 +870,7 @@ img.camera-feed { transform: none }
 .stage[data-camera='true'] .nav,
 .stage[data-camera='true'] .topbar,
 .stage[data-camera='true'] .verge,
+.stage[data-camera='true'] .meadow-zoom,
 .stage[data-camera='true'] .meadow-chip { opacity: 0; pointer-events: none; transition: opacity .34s ease }
 .stage[data-camera='true'] .meadow-canvas { pointer-events: none }
 .camera { background: linear-gradient(180deg, rgb(16 38 25 / .42) 0%, rgb(16 38 25 / .56) 55%, rgb(12 30 20 / .78) 100%) }
@@ -959,12 +985,27 @@ img.camera-feed { transform: none }
  animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important;
 }
 
+/* ---------- the calling-vitality flower ----------
+   Alive stages breathe a little; wilted ones mostly don't, which is itself the
+   point, stillness reads as neglect without a word of copy needed. */
+.growth-bud, .growth-blooming, .growth-full {
+ transform-box: fill-box; transform-origin: 50% 100%;
+ animation: growth-breathe 5.2s var(--ease-soft, ease-in-out) infinite;
+}
+.growth-blooming { animation-duration: 6.4s }
+.growth-full { animation-duration: 4.6s }
+@keyframes growth-breathe { 0%, 100% { transform: scale(1) } 50% { transform: scale(1.035) } }
+.growth-withering { transform-box: fill-box; transform-origin: 50% 100%; animation: growth-sag 7.5s ease-in-out infinite }
+@keyframes growth-sag { 0%, 100% { transform: rotate(0deg) } 50% { transform: rotate(2.2deg) } }
+.growth-fallen { transform-box: fill-box; transform-origin: 50% 50%; animation: growth-drift 4.4s ease-in-out infinite }
+.growth-fallen-b { animation-duration: 5.6s; animation-delay: -1.8s }
+@keyframes growth-drift { 0%, 100% { transform: translateY(0) rotate(0deg) } 50% { transform: translateY(1.4px) rotate(-4deg) } }
+
 </style>
 </head>
 <body>
 <div class="stage">
  <div class="meadow" id="meadow"><canvas id="field" class="meadow-canvas" tabindex="0" role="application" aria-label="Your meadow. Arrow keys walk it, plus and minus go in and out, Home pulls back to the whole plan. Every flower here is also a row in the panel below."></canvas></div>
-
 
 
 
@@ -1014,7 +1055,7 @@ img.camera-feed { transform: none }
   </svg>
  </div>
 
- <header class="topbar">
+<header class="topbar">
   <a href="#home" class="brand" aria-label="Harbor, home">
    <svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M16 29V14" stroke="#1F6B43" stroke-width="3" stroke-linecap="round"/><path d="M15 15.5c-1.2-5-5-7.6-11-8 .4 6.6 3.8 10 11 8z" fill="#59A468"/><path d="M17 13c1-5.6 4.8-8.8 11.6-9.4C28.2 11 24.4 15 17 13z" fill="#79BC7F"/></svg>
    <span class="brand-stack"><span class="brand-word">harbor</span><span class="brand-line">A little closer, every&nbsp;day</span></span>
@@ -1025,11 +1066,19 @@ img.camera-feed { transform: none }
   </div>
  </header>
 
- <button class="meadow-chip" id="chip">
-  <span class="weather-turn" id="chipTurn" aria-hidden="true"></span>
-  <span class="chip-text" id="chipText">Your garden is blooming</span>
-  <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
- </button>
+ <div class="meadow-chip" id="chip">
+  <button class="meadow-chip-icon" id="chipIcon" type="button">
+   <span class="weather-turn" id="chipTurn" aria-hidden="true"></span>
+  </button>
+  <button class="meadow-chip-label" id="chipLabel" type="button" aria-label="Find people in your garden">
+   <span class="chip-text" id="chipText">Your garden is blooming</span>
+   <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+  </button>
+ </div>
+ <div class="meadow-zoom" id="meadowZoom">
+  <button type="button" id="zoomIn" aria-label="Zoom into the meadow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></button>
+  <button type="button" id="zoomOut" aria-label="Zoom out of the meadow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg></button>
+ </div>
 
  <section class="sheet" id="sheet" aria-label="Harbor">
   <button class="sheet-grab" id="sheetGrab" aria-label="Raise the panel" aria-expanded="false"><span aria-hidden="true"></span></button>
@@ -1422,13 +1471,25 @@ function paintSky(ctx, view, weather, tilt) {
    of day rather than a change of image. */
 const WHEEL_STEP = (Math.PI * 2) / 5;
 const wheelAngleFor = (index) => -index * WHEEL_STEP;
+/** Where a wheel position lands on screen, and how far risen it is. Shared by the
+   wheel's own paint and by the weather effects, so the sun disc the shaft comes
+   from is the same sun disc drawn on the rim, not a second, uncoordinated one. */
+function wheelPoint(view, angle, index) {
+    const horizon = view.h * HORIZON;
+    const R = view.h * 0.64;
+    const cx = view.w * 0.5, cy = horizon + R * 0.78;
+    const r = view.band * 0.078;
+    const a = -Math.PI / 2 + index * WHEEL_STEP + angle;
+    const x = cx + Math.cos(a) * R, y = cy + Math.sin(a) * R;
+    const rise = clamp01((horizon + 90 - y) / 130);
+    return { x, y, r, rise, visible: y <= horizon + 90 };
+}
 function paintWheel(ctx, view, angle, t, tilt) {
     if (tilt < 0.04)
         return;
     const horizon = view.h * HORIZON;
     const R = view.h * 0.64;
     const cx = view.w * 0.5, cy = horizon + R * 0.78;
-    const r = view.band * 0.078;
     ctx.save();
     /* The rim, barely there: enough to say the five skies are on one wheel and not
        five pictures that swap. */
@@ -1439,15 +1500,12 @@ function paintWheel(ctx, view, angle, t, tilt) {
     ctx.arc(cx, cy, R, 0, 6.283185);
     ctx.stroke();
     WEATHER_ORDER.forEach((id, i) => {
-        const a = -Math.PI / 2 + i * WHEEL_STEP + angle;
-        const x = cx + Math.cos(a) * R, y = cy + Math.sin(a) * R;
-        if (y > horizon + 90)
+        const { x, y, r, rise, visible } = wheelPoint(view, angle, i);
+        if (!visible)
             return;
-        /* Fading only over the last stretch keeps the travel honest: the emblem climbs
-           up out of the hills rather than materialising in the sky. */
-        const rise = clamp01((horizon + 90 - y) / 130);
-        ctx.globalAlpha = rise * tilt * 0.3;
+        const a = -Math.PI / 2 + i * WHEEL_STEP + angle;
         /* A spoke, so the turn is legible even when the emblem is a cloud among clouds. */
+        ctx.globalAlpha = rise * tilt * 0.3;
         ctx.strokeStyle = 'rgba(255,255,255,.5)';
         ctx.lineWidth = 1.2;
         ctx.beginPath();
@@ -1480,24 +1538,6 @@ function paintEmblem(ctx, id, x, y, r, t) {
         ctx.beginPath();
         ctx.arc(0, 0, r * 2.2, 0, 6.283185);
         ctx.fill();
-        if (id === 'bright') {
-            /* Rays turn with the wheel and a little on their own. */
-            ctx.save();
-            ctx.rotate(t * 0.00006);
-            ctx.strokeStyle = p.sun;
-            ctx.lineWidth = r * 0.1;
-            ctx.lineCap = 'round';
-            ctx.globalAlpha = 0.55;
-            for (let i = 0; i < 10; i++) {
-                const a = (i / 10) * 6.283185;
-                ctx.beginPath();
-                ctx.moveTo(Math.cos(a) * r * 1.24, Math.sin(a) * r * 1.24);
-                ctx.lineTo(Math.cos(a) * r * 1.44, Math.sin(a) * r * 1.44);
-                ctx.stroke();
-            }
-            ctx.globalAlpha = 1;
-            ctx.restore();
-        }
         ctx.fillStyle = p.sun;
         ctx.beginPath();
         ctx.arc(0, 0, r, 0, 6.283185);
@@ -1611,7 +1651,7 @@ function paintClouds(ctx, view, weather, t, tilt) {
     for (let i = 0; i < p.cloudCount; i++) {
         const s = 0.55 + hash(i, 811) * 0.75;
         const y = horizon * (0.16 + hash(i, 822) * 0.62);
-        const x = ((hash(i, 833) * (view.w + 340) + t * (0.006 + hash(i, 844) * 0.009) * 30) % (view.w + 340)) - 170;
+        const x = ((hash(i, 833) * (view.w + 340) + t * (0.0022 + hash(i, 844) * 0.0032) * 30) % (view.w + 340)) - 170;
         ctx.beginPath();
         for (let k = 0; k < 4; k++) {
             const dx = (k - 1.5) * 26 * s;
@@ -1854,12 +1894,14 @@ function paintBloom(ctx, x, y, size, kind, spin, gust, open) {
     ctx.fill();
 }
 /* ---------- weather you can feel ---------- */
-function paintWeather(ctx, view, weather, t, tilt) {
+function paintWeather(ctx, view, weather, t, tilt, sun) {
     const { w, h } = view;
     if (weather === 'clear' || weather === 'bright') {
+        /* The shaft has to come from where the sun disc actually sits on the wheel, or
+           it reads as two suns that don't agree with each other. */
+        const sx = sun?.x ?? w * 0.6, sy = sun?.y ?? h * 0.12;
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
-        const sx = w * 0.6, sy = h * 0.12;
         ctx.beginPath();
         ctx.rect(0, 0, w, h * HORIZON);
         ctx.clip();
@@ -2062,7 +2104,7 @@ PEOPLE.forEach((p, pi) => {
 })
 const S = {
  name: 'Maya', weather: 'bright', lift: 0, page: 'home',
- theme: 'system', night: false, reduced: false, camera: false,
+ theme: 'light', night: false, reduced: false, camera: false,
  sharing: false, mutual: false, linked: null, myNote: '',
  notes: PEOPLE.map(p => ({ person: p.id, text: p.line, at: Date.now() - 3600000 * (2 + PEOPLE.indexOf(p) * 8) })),
  instants: INSTANTS.map((x, i) => ({ id: 'i' + i, ...x })),
@@ -2548,9 +2590,54 @@ function activityRows() {
  }).join('') + '</div>'
 }
 const weatherIndex = () => WEATHERS.findIndex(w => w.id === S.weather)
+
+/* ---------- the flower that shows how the calling itself is going ----------
+   Not any one person's flower, the household's: called today and often lately, and
+   it stands fully open; go quiet for a while and it wilts, sheds, dies back. */
+const GROWTH_STAGES = [
+ { id: 'bud', label: 'A bud', caption: 'Nothing planted yet. The first call opens it.' },
+ { id: 'blooming', label: 'Blooming', caption: 'Coming along. A call would help it along further.' },
+ { id: 'full', label: 'Fully bloomed', caption: 'You have been calling often. It shows.' },
+ { id: 'withering', label: 'Withering', caption: 'A while since the last call. Worth a check-in.' },
+ { id: 'shedding', label: 'Shedding', caption: 'It has been a long time since anyone called.' },
+ { id: 'dying', label: 'Dying back', caption: 'Nobody has called in a long while. One call brings it back.' },
+]
+const GROWTH_SVG = {
+ bud: '<g class="growth growth-bud"><path d="M32 76V48" stroke="#7BA96B" stroke-width="2.6" stroke-linecap="round"/><path d="M31 60c-3-7-9-10-17-10 1 8 7 13 17 10z" fill="#9CCB8F"/><path d="M32 30c5 0 8 5 8 11 0 5-3 9-8 9s-8-4-8-9c0-6 3-11 8-11z" fill="#C7DE7E"/><path d="M32 30c-2.6 3-4 6.5-4 11s1.4 8 4 10c2.6-2 4-5.5 4-10s-1.4-8-4-11z" fill="#AECB63"/></g>',
+ blooming: '<g class="growth growth-blooming"><path d="M32 76V38" stroke="#6FA765" stroke-width="2.8" stroke-linecap="round"/><path d="M31 54c-3-9-10-13-20-14 1 11 8 17 20 14z" fill="#9CCB8F"/><path d="M33 48c2-9 8-13 18-14-1 10-7 16-18 14z" fill="#7FB878"/><path d="M32 12c6.5 0 11.5 5.4 11.5 12.4 0 3-1 5.7-2.7 7.8-2.2-1-4.7-1.5-8.8-1.5s-6.6.5-8.8 1.5c-1.7-2.1-2.7-4.8-2.7-7.8C20.5 17.4 25.5 12 32 12z" fill="#F7CE63"/><path d="M32 12c-4.3 3.6-6.6 8-6.6 12.4 0 2.6.7 4.9 1.9 6.9 1.4-.5 2.9-.8 4.7-.9V12z" fill="#F2B441"/></g>',
+ full: '<g class="growth growth-full"><path d="M32 76V32" stroke="#6FA765" stroke-width="3" stroke-linecap="round"/><path d="M31 50c-4-11-12-16-24-17 1 13 10 20 24 17z" fill="#9CCB8F"/><path d="M33 43c2-11 9-16 22-17-1 12-9 19-22 17z" fill="#7FB878"/><path d="M32 8c7.4 0 13.5 6.3 13.5 14.4 0 3.5-1.1 6.6-3 9-2.6-1.1-5.8-1.7-10.5-1.7s-7.9.6-10.5 1.7c-1.9-2.4-3-5.5-3-9C18.5 14.3 24.6 8 32 8z" fill="#F7CE63"/><path d="M32 8c-5 4.1-7.7 9.3-7.7 14.4 0 3 .8 5.7 2.2 8 1.7-.6 3.5-1 5.5-1.1V8z" fill="#F2B441"/></g>',
+ withering: '<g class="growth growth-withering"><path d="M32 76C33 60 30 50 24 44" stroke="#8C9E72" stroke-width="2.6" stroke-linecap="round" fill="none"/><path d="M30 56c-3-7-9-10-17-10 1 8 7 13 17 10z" fill="#A9B583"/><ellipse cx="24" cy="44" rx="10" ry="9" fill="#D9C079" transform="rotate(-25 24 44)"/><ellipse cx="21" cy="41" rx="6" ry="7" fill="#C6A85B" transform="rotate(-25 24 44)"/></g>',
+ shedding: '<g class="growth growth-shedding"><path d="M33 76C35 58 30 46 20 40" stroke="#9E9678" stroke-width="2.4" stroke-linecap="round" fill="none"/><path d="M27 52c-3-6-8-8-14-7 1 7 6 10 14 7z" fill="#C3BB94"/><ellipse cx="20" cy="40" rx="7.4" ry="6.6" fill="#C7A96A" transform="rotate(-35 20 40)"/><ellipse cx="18" cy="38" rx="4.4" ry="5" fill="#B99A5C" transform="rotate(-35 20 40)"/><ellipse class="growth-fallen growth-fallen-a" cx="9" cy="68" rx="5" ry="3.2" fill="#C7A96A" transform="rotate(-18 9 68)"/><ellipse class="growth-fallen growth-fallen-b" cx="28" cy="73" rx="4.4" ry="2.8" fill="#B99A5C" transform="rotate(22 28 73)"/></g>',
+ dying: '<g class="growth growth-dying"><path d="M34 76C38 54 32 40 18 34" stroke="#8A8677" stroke-width="2.2" stroke-linecap="round" fill="none"/><path d="M25 46c-2-4-6-6-10-5 1 5 4 7 10 5z" fill="#ADA88F"/><ellipse cx="18" cy="34" rx="6.4" ry="5.8" fill="#8B8776" transform="rotate(-55 18 34)"/><ellipse cx="16" cy="32" rx="3.6" ry="4.4" fill="#77735F" transform="rotate(-55 18 34)"/><ellipse cx="8" cy="70" rx="4.4" ry="2.6" fill="#8B8776" transform="rotate(-14 8 70)"/></g>',
+}
+/** 0 (never, or long forgotten) to 1 (called today, and often this fortnight). */
+function callingVitality() {
+ const calls = CALLS.slice().sort((a, b) => b.at.localeCompare(a.at))
+ if (!calls.length) return -1
+ const daysSince = Math.max(0, (Date.now() - new Date(calls[0].at).getTime()) / 86400000)
+ const freshness = Math.pow(2, -daysSince / 4)
+ const cutoff = Date.now() - 14 * 86400000
+ const recent = calls.filter(m => new Date(m.at).getTime() >= cutoff).length
+ const frequency = Math.min(1, recent / 6)
+ return Math.max(0, Math.min(1, freshness * 0.65 + frequency * 0.35))
+}
+function callingStage() {
+ const v = callingVitality()
+ if (v < 0) return 'bud'
+ if (v >= 0.82) return 'full'
+ if (v >= 0.56) return 'blooming'
+ if (v >= 0.32) return 'withering'
+ if (v >= 0.12) return 'shedding'
+ return 'dying'
+}
+function growthFlowerSVG() {
+ const stage = callingStage(), info = GROWTH_STAGES.find(g => g.id === stage)
+ return '<svg class="feelings-sprig" viewBox="0 0 64 78" fill="none" role="img" aria-label="' + esc(info.label + '. ' + info.caption) + '">' + GROWTH_SVG[stage] + '</svg>'
+}
+
 function card_feelings(w) {
  const f = weatherIndex() / 4
- return '<section class="card feelings" style="--i:0">' + SPRIG.tulip.replace('person-sprig', 'feelings-sprig') +
+ return '<section class="card feelings" style="--i:0">' + growthFlowerSVG() +
   '<span class="eyebrow">Your feelings right now</span><h2>' + w.label + '</h2><p>' + w.caption + '</p>' +
   '<div class="mood" id="mood" role="slider" tabindex="0" aria-valuemin="0" aria-valuemax="4" aria-valuenow="' + weatherIndex() + '" aria-label="How life feels right now" aria-valuetext="' + w.label + '. ' + w.caption + '">' +
    '<span class="mood-rail"></span><span class="mood-fill" style="--p:' + f + '"></span>' +
@@ -2887,11 +2974,46 @@ function showWeatherChip() {
  void turn.offsetWidth
  turn.firstElementChild.style.animation = ''
  setChipText(w.label)
- $('chip').setAttribute('aria-label', 'Weather in your meadow: ' + w.label + '. Turn it over.')
+ $('chipIcon').setAttribute('aria-label', 'Weather in your meadow: ' + w.label + '. Turn it over.')
  clearTimeout(chipTimer)
  chipTimer = setTimeout(() => setChipText('Your garden is blooming'), 2600)
 }
-$('chip').onclick = () => setWeather(WEATHERS[(weatherIndex() + 1) % 5].id)
+$('chipIcon').onclick = () => setWeather(WEATHERS[(weatherIndex() + 1) % 5].id)
+
+/* ---------- the garden, listed ----------
+   Tapping the label under the weather chip opens this instead of guessing where a
+   pinch will land: every person's plot, by name, and one tap carries the camera there. */
+function flyTo(personId) {
+ const plot = plots.find(p => p.id === personId)
+ if (!plot) return
+ goal.x = plot.x; goal.y = plot.y
+ goal.zoom = view.base * REST_REL
+ hold(goal)
+}
+function openSections() {
+ openScrim('<div class="panel sections-panel">' +
+  '<div class="panel-head"><h3>Your garden</h3><span class="panel-who">tap a name to walk there</span></div>' +
+  '<button class="row" data-act="overview"><span class="row-icon" style="background:var(--tint-blue)">' +
+   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></span>' +
+   '<span class="row-body"><b>See the whole garden</b><span>Pull all the way back to the plan</span></span>' + caret + '</button>' +
+  '<div class="sections-list">' + PEOPLE.map(p => {
+   const flower = dominant(p.id), n = callsFor(p.id).length
+   return '<button class="row" data-fly="' + p.id + '"><span class="avatar avatar-' + p.tone + ' avatar-md">' + p.initials + '</span>' +
+    '<span class="row-body"><b>' + esc(p.name) + '</b><span>' + (n ? n + ' ' + (n === 1 ? 'flower' : 'flowers') + ' growing' : 'Nothing planted yet') + '</span></span>' +
+    (flower ? flowerSVG(flower, 22) : '') + caret + '</button>'
+  }).join('') + '</div>' +
+  '<button class="btn btn-quiet btn-block" data-close>Close</button></div>')
+ $('scrimBody').querySelector('[data-act="overview"]').onclick = () => { goal.zoom = view.base; hold(goal); closeScrim() }
+ $('scrimBody').querySelectorAll('[data-fly]').forEach(b => b.onclick = () => { flyTo(b.dataset.fly); closeScrim() })
+ $('scrimBody').querySelector('[data-close]').onclick = closeScrim
+}
+$('chipLabel').onclick = openSections
+
+/* ---------- zoom, as buttons ----------
+   Sitting at the edge of a thumb's reach, since pinch and double tap are easy to
+   miss on a first visit. */
+$('zoomIn').onclick = () => { goal.zoom = clampZoom(goal.zoom * 1.5, view.base); hold(goal) }
+$('zoomOut').onclick = () => { goal.zoom = clampZoom(goal.zoom / 1.5, view.base); hold(goal) }
 
 /* ---------- schedule interaction ---------- */
 let calDraft = null, calDraftEl = null

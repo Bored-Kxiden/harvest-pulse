@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import { Bell, CalendarDays, Cloud, CloudLightning, CloudRain, CloudSun, House, Leaf, NotebookPen, Sprout, Sun, UserRound } from 'lucide-react'
+import { Bell, CalendarDays, Cloud, CloudLightning, CloudRain, CloudSun, House, Leaf, Minus, NotebookPen, Plus, Sprout, Sun, UserRound } from 'lucide-react'
 import { Toaster } from '@/components/ui/sonner'
 import { makeId, useHarbor } from '@/lib/harbor/store'
 import { activePacts, localDay, rollSnapWindow, snapWindowDue, weatherIndex, weathers, type Moment, type Weather } from '@/lib/harbor/model'
@@ -14,17 +14,17 @@ import { CueOverlay, CueScreen, type Cue } from './cue'
 import { CallFlow } from './call'
 import { DailyQuestion } from './daily-question'
 import { GlassCase } from './glass-case'
-import { Meadow } from './meadow'
+import { Meadow, type MeadowHandle } from './meadow'
 import { Sheet } from './sheet'
 import { CameraScreen, StoryViewer } from './instants'
 import { SnapPrompt } from './snap'
+import { SectionsOverlay } from './sections'
 
 const weatherIcon: Record<Weather, typeof Sun> = { clear: Sun, bright: CloudSun, cloudy: Cloud, rain: CloudRain, storm: CloudLightning }
 const leftTabs = [{ id: 'home', label: 'Home', icon: House }, { id: 'schedule', label: 'Schedule', icon: CalendarDays }]
 const rightTabs = [{ id: 'notes', label: 'Notes', icon: NotebookPen }, { id: 'account', label: 'Account', icon: UserRound }]
 
 
-/** The verge: the flowers that grow right at the foot of the screen, in front of everything. */
 /** The verge: the strip of meadow every screen stands in. Four clumps, four clocks,
     so the whole row never rocks as one shape. Drawn once and shared by every page. */
 function Verge() {
@@ -99,6 +99,8 @@ export function HarborApp() {
  const [moment, setMoment] = useState<Moment | null>(null)
  const [windowDue, setWindowDue] = useState(false)
  const [chipWeather, setChipWeather] = useState(false)
+ const [sections, setSections] = useState(false)
+ const meadowRef = useRef<MeadowHandle>(null)
  const asked = useRef(false)
  const [night, setNight] = useState(false)
  const chipTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -181,9 +183,15 @@ export function HarborApp() {
 
  return <div className="stage" data-reduced-motion={state?.settings.reducedMotion} data-dragging={dragging} data-camera={!!camera}
   style={{ ['--lift' as string]: lift }}>
-  <Meadow weather={weather} sheetLift={lift} freshBloomId={fresh} bare={!!camera} night={night} onOpenBloom={setMoment}
+  <Meadow ref={meadowRef} weather={weather} sheetLift={lift} freshBloomId={fresh} bare={!!camera} night={night} onOpenBloom={setMoment}
    onOpenPerson={id => navigate(`chat/${id}`)}/>
   <div className="verge" aria-hidden="true"><Verge/></div>
+
+  {/* Zoom, made into buttons: a pinch is not something everyone reaches for first. */}
+  <div className="meadow-zoom" data-away={lift > 0.72}>
+   <button type="button" onClick={() => meadowRef.current?.zoomBy(1.5)} aria-label="Zoom into the meadow"><Plus aria-hidden="true"/></button>
+   <button type="button" onClick={() => meadowRef.current?.zoomBy(1 / 1.5)} aria-label="Zoom out of the meadow"><Minus aria-hidden="true"/></button>
+  </div>
 
   <header className="topbar">
    <a href="#home" className="brand" aria-label="Harbor, home">
@@ -202,12 +210,20 @@ export function HarborApp() {
   </header>
 
 
-  <button type="button" className="meadow-chip" data-away={lift > 0.72}
-   onClick={turnWeather} aria-label={`Weather in your meadow: ${weathers[weatherIndex(weather)].label}. Turn it over.`}>
-   <span className="weather-turn" aria-hidden="true"><Icon key={weather}/></span>
-   <span className="chip-text" key={chipLabel}>{chipLabel}</span>
-   <svg className="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
-  </button>
+  {/* Two taps living in one pill: the glyph turns the weather over, the label opens
+      the garden's own map, since a pinch alone is not how everyone finds a person. */}
+  <div className="meadow-chip" data-away={lift > 0.72}>
+   <button type="button" className="meadow-chip-icon" onClick={turnWeather}
+    aria-label={`Weather in your meadow: ${weathers[weatherIndex(weather)].label}. Turn it over.`}>
+    <span className="weather-turn" aria-hidden="true"><Icon key={weather}/></span>
+   </button>
+   <button type="button" className="meadow-chip-label" onClick={() => setSections(true)} aria-label="Find people in your garden">
+    <span className="chip-text" key={chipLabel}>{chipLabel}</span>
+    <svg className="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+   </button>
+  </div>
+  {sections && <SectionsOverlay onClose={() => setSections(false)}
+   onGo={id => meadowRef.current?.flyTo(id)} onOverview={() => meadowRef.current?.recenter()}/>}
 
   <Sheet lift={lift} onLift={setLift} onDragging={setDragging} label="Harbor">
    {!state

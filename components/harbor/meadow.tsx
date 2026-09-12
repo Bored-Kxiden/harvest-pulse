@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import { useHarbor } from '@/lib/harbor/store'
 import { callsFor, type FlowerKind, type Moment, type Person, type Weather } from '@/lib/harbor/model'
 import {
@@ -9,7 +9,7 @@ import {
 } from '@/lib/harbor/terrain'
 import {
  paintBloom, paintClouds, paintDistance, paintGround, paintHaze, paintPlane, paintPlots,
- paintDusk, paintShadows, paintSky, paintWeather, paintWheel, wheelAngleFor, WHEEL_STEP, windAt, windStrength,
+ paintDusk, paintShadows, paintSky, paintWeather, paintWheel, wheelAngleFor, wheelPoint, WHEEL_STEP, windAt, windStrength,
 } from '@/lib/harbor/scene'
 
 /* How far in the camera rests, in multiples of the overview zoom. Past TILT_TO the
@@ -25,11 +25,16 @@ type Tag = { x: number; y: number; w: number; h: number; id: string }
 const TONE: Record<string, string> = { gold: '#E0AE39', green: '#4E9A5E', orange: '#D9813F', sky: '#5B8FC9' }
 const WEATHERS: Weather[] = ['clear', 'bright', 'cloudy', 'rain', 'storm']
 
+/** What the field lets the rest of the app do to it from outside: fly the camera
+    to someone's plot, step the zoom in or out, or pull all the way back to the plan.
+    Everything a finger can do, a button (or the sections list) can do too. */
+export type MeadowHandle = { flyTo: (personId: string) => void; zoomBy: (factor: number) => void; recenter: () => void }
+
 /** The meadow behind everything. Pull back and it lies down into a plan of who grows
     where; push in and it stands up into country you are walking through, bumps and all.
     It is one projection the whole way, which is why the change reads as the ground
     tipping rather than as two pictures swapped. */
-export function Meadow({ weather, sheetLift, freshBloomId, bare, night, onOpenBloom, onOpenPerson }: {
+export const Meadow = forwardRef<MeadowHandle, {
  weather: Weather; sheetLift: number; freshBloomId?: string
  /** With the camera open the meadow is scenery, not a map: the name tags step out. */
  bare?: boolean
@@ -37,7 +42,7 @@ export function Meadow({ weather, sheetLift, freshBloomId, bare, night, onOpenBl
  night?: boolean
  onOpenBloom: (moment: Moment) => void
  onOpenPerson: (personId: string) => void
-}) {
+}>(function Meadow({ weather, sheetLift, freshBloomId, bare, night, onOpenBloom, onOpenPerson }, ref) {
  const { state } = useHarbor()
  const holder = useRef<HTMLDivElement>(null)
  const canvas = useRef<HTMLCanvasElement>(null)
@@ -56,6 +61,8 @@ export function Meadow({ weather, sheetLift, freshBloomId, bare, night, onOpenBl
  const tagHits = useRef<Tag[]>([])
  const openBloom = useRef(onOpenBloom); openBloom.current = onOpenBloom
  const openPerson = useRef(onOpenPerson); openPerson.current = onOpenPerson
+ const api = useRef<MeadowHandle>({ flyTo: () => {}, zoomBy: () => {}, recenter: () => {} })
+ useImperativeHandle(ref, () => api.current, [])
 
  useEffect(() => {
   const node = holder.current, el = canvas.current
@@ -137,6 +144,28 @@ export function Meadow({ weather, sheetLift, freshBloomId, bare, night, onOpenBl
    c.x = Math.min(FIELD_W - 90, Math.max(90, c.x)) * (1 - home) + FIELD_W * 0.44 * home
    c.y = Math.min(FIELD_H - 90, Math.max(90, c.y)) * (1 - home) + FIELD_H * 0.46 * home
   }
+
+  /* useImperativeHandle read this object's identity once, at mount, so the methods
+     have to be written onto it, never replaced wholesale, or the ref outside keeps
+     pointing at the original no-op stub forever. */
+  Object.assign(api.current, {
+   flyTo(personId: string) {
+    lay()
+    const plot = plots.find(pl => pl.id === personId)
+    if (!plot) return
+    goal.x = plot.x; goal.y = plot.y
+    goal.zoom = view.base * REST_REL
+    hold(goal)
+   },
+   zoomBy(factor: number) {
+    goal.zoom = clampZoom(goal.zoom * factor, view.base)
+    hold(goal)
+   },
+   recenter() {
+    goal.zoom = view.base
+    hold(goal)
+   },
+  })
 
   const ro = new ResizeObserver(entries => {
    const rect = entries[0].contentRect
@@ -271,7 +300,10 @@ export function Meadow({ weather, sheetLift, freshBloomId, bare, night, onOpenBl
    /* Dusk before the weather, so rain still catches what light is left. */
    duskFade += ((dusk ? 1 : 0) - duskFade) * (reduced ? 1 : 0.08)
    paintDusk(ctx, view, duskFade, t)
-   paintWeather(ctx, view, sky, t, tilt)
+   /* The shaft has to come from the sun disc actually on the wheel, not a second,
+      uncoordinated point, or the two suns disagree with each other. */
+   const sunPoint = wheelPoint(view, wheel, index)
+   paintWeather(ctx, view, sky, t, tilt, sunPoint.visible ? sunPoint : undefined)
   }
   raf = requestAnimationFrame(draw)
 
@@ -390,7 +422,7 @@ export function Meadow({ weather, sheetLift, freshBloomId, bare, night, onOpenBl
   <canvas ref={canvas} className="meadow-canvas" tabIndex={0} role="application"
    aria-label="Your meadow. Arrow keys walk it, plus and minus go in and out, Home pulls back to the whole plan. Every flower here is also a row in the panel below."/>
  </div>
-}
+})
 
 function dominantOf(blossoms: Blossom[], id: string): FlowerKind {
  const tally = new Map<FlowerKind, number>()

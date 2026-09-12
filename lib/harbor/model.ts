@@ -166,6 +166,42 @@ export function dominantFlower(state: HarborState, personId: string): FlowerKind
  for (const [kind, n] of counts) if (n > top) { top = n; best = kind }
  return best
 }
+/* ---------- the flower that shows how the calling itself is going ----------
+   Not any one person's flower, the household's. Called today, and often lately,
+   and it stands fully open; go quiet for a while and it wilts, sheds, dies back.
+   The same six stages a real cut flower goes through, so no calling ever needed
+   an explanation of what "withering" means. */
+export type GrowthStage = 'bud' | 'blooming' | 'full' | 'withering' | 'shedding' | 'dying'
+export const growthStages: { id: GrowthStage; label: string; caption: string }[] = [
+ { id: 'bud', label: 'A bud', caption: 'Nothing planted yet. The first call opens it.' },
+ { id: 'blooming', label: 'Blooming', caption: 'Coming along. A call would help it along further.' },
+ { id: 'full', label: 'Fully bloomed', caption: 'You have been calling often. It shows.' },
+ { id: 'withering', label: 'Withering', caption: 'A while since the last call. Worth a check-in.' },
+ { id: 'shedding', label: 'Shedding', caption: 'It has been a long time since anyone called.' },
+ { id: 'dying', label: 'Dying back', caption: 'Nobody has called in a long while. One call brings it back.' },
+]
+/** 0 (never, or long forgotten) to 1 (called today, and often this fortnight). A call
+    today mostly resets it; the rest is how long ago that was and how often it happens. */
+export function callingVitality(state: HarborState): number {
+ const calls = state.moments.filter(m => m.kind === 'called').slice().sort((a, b) => b.at.localeCompare(a.at))
+ if (!calls.length) return -1
+ const daysSince = Math.max(0, (Date.now() - new Date(calls[0].at).getTime()) / 86400000)
+ const freshness = Math.pow(2, -daysSince / 4)
+ const cutoff = Date.now() - 14 * 86400000
+ const recent = calls.filter(m => new Date(m.at).getTime() >= cutoff).length
+ const frequency = Math.min(1, recent / 6)
+ return Math.max(0, Math.min(1, freshness * 0.65 + frequency * 0.35))
+}
+export function callingStage(state: HarborState): GrowthStage {
+ const v = callingVitality(state)
+ if (v < 0) return 'bud'
+ if (v >= 0.82) return 'full'
+ if (v >= 0.56) return 'blooming'
+ if (v >= 0.32) return 'withering'
+ if (v >= 0.12) return 'shedding'
+ return 'dying'
+}
+
 /** A longer call opens a fuller bloom. Bounded so a two-minute call is still a whole flower. */
 export function bloomScale(minutesLong: number | undefined) {
  const m = Number.isFinite(minutesLong) ? (minutesLong as number) : 8
@@ -293,7 +329,7 @@ export function seedState(now = new Date()): HarborState {
   weather: 'bright', milestone: { title: 'Midterms', date: localDay(milestone) },
   messages: Object.fromEntries(seedPeople.map(p => [p.id, [{ id: `hello-${p.id}`, text: p.note ?? 'Thinking of you.', mine: false, at: new Date(now.getTime() - 3600000).toISOString() }]])),
   read: [], drafts: {}, moments, cues: [], notes, games: {}, snaps, pacts: [], snapWindows: {},
-  settings: { cuesEnabled: true, walkingMinutes: 10, sessionMinutes: 20, dailyCap: 2, cooldownMinutes: 120, sound: 'chime', reducedMotion: false, theme: 'system' },
+  settings: { cuesEnabled: true, walkingMinutes: 10, sessionMinutes: 20, dailyCap: 2, cooldownMinutes: 120, sound: 'chime', reducedMotion: false, theme: 'light' },
  }
 }
 
