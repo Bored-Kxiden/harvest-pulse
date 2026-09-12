@@ -92,7 +92,10 @@
 
 /* ---------- the viewport ---------- */
 .stage {
- position: fixed; inset: 0; overflow: hidden;
+ /* clip, not hidden: the sheet hangs past the foot of the stage, and `hidden` would
+    make that a scroll container the browser can shunt on focus, dragging every
+    overlay off screen with it. */
+ position: fixed; inset: 0; overflow: clip;
  max-width: 480px; margin-inline: auto; background: var(--ivory);
  box-shadow: 0 0 80px -30px rgb(24 70 46 / .35);
 }
@@ -155,6 +158,7 @@
 }
 .stage[data-dragging='true'] .sheet,
 .stage[data-dragging='true'] .meadow-chip { transition: none }
+.meadow-chip[data-away='true'] { opacity: 0; pointer-events: none }
 .sheet::before {
  content: ''; position: absolute; inset: 0 0 auto; height: 30px; border-radius: 30px 30px 0 0;
  box-shadow: inset 0 1.5px 0 rgb(255 255 255 / .9); pointer-events: none;
@@ -162,15 +166,20 @@
 .sheet-grab { display: grid; place-items: center; width: 100%; height: 44px; margin-bottom: -18px; flex-shrink: 0; touch-action: none }
 .sheet-grab span { width: 42px; height: 5px; border-radius: 99px; background: #CFD8C9; transition: background .2s, width .24s cubic-bezier(.22,.9,.28,1) }
 .sheet-grab:hover span { background: #B9C6B2; width: 52px }
+/* The sheet is cut for its lifted height, so while it is down its tail hangs past the
+   foot of the stage. Pad the scroll by exactly that overhang and the last row can still
+   be brought onto the screen; lifted, the overhang is gone and so is the padding. */
 .sheet-scroll {
  flex: 1; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
- padding-bottom: calc(112px + env(safe-area-inset-bottom)); touch-action: pan-y;
+ padding-bottom: calc(112px + 41dvh + env(safe-area-inset-bottom)); touch-action: pan-y;
 }
+.sheet[data-lifted='true'] .sheet-scroll { padding-bottom: calc(112px + env(safe-area-inset-bottom)) }
 .sheet-scroll::-webkit-scrollbar { width: 0 }
 
 /* ---------- page furniture inside the sheet ---------- */
 .wrap { padding: 0 20px }
 .eyebrow { font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 11.5px; letter-spacing: 2.4px; text-transform: uppercase; color: var(--ink-soft) }
+.eyebrow svg { width: 15px; height: 15px; flex-shrink: 0 }
 .page-head { padding: 4px 20px 16px }
 .page-head h1 { font-size: 34px; font-weight: 700; letter-spacing: -.9px; color: var(--ink-deep); margin: 7px 0 6px }
 .page-head p { font-size: 15.5px; color: var(--ink-mid) }
@@ -583,8 +592,18 @@ img.camera-feed { transform: none }
 .segment-tab[aria-selected='true'] { color: #4A3A16 }
 .segment-tab[aria-selected='true'] svg { transform: scale(1.12) rotate(-6deg) }
 
-/* ---------- the verge: flowers at the foot of the screen ---------- */
-.verge { position: absolute; z-index: 22; left: 0; right: 0; bottom: 0; height: 132px; pointer-events: none }
+/* ---------- the verge: the flowers the card sits down in ----------
+   Rooted below the sheet's lip so the stems disappear behind it and only the
+   heads show. It rides the same lift the sheet does, so pulling the panel up
+   draws the meadow closed over them. */
+.verge {
+ position: absolute; z-index: 8; left: 0; right: 0; height: 132px;
+ bottom: calc(48dvh - 66px);
+ transform: translate3d(0, calc(-41dvh * var(--lift, 0)), 0);
+ transition: transform .5s cubic-bezier(.2, .86, .3, 1);
+ pointer-events: none;
+}
+.stage[data-dragging='true'] .verge { transition: none }
 .verge svg { width: 100%; height: 100% }
 .verge-sway { transform-box: fill-box; transform-origin: 50% 100%; animation: verge 7s ease-in-out infinite }
 .verge-slow { animation-duration: 10.5s; animation-direction: alternate-reverse }

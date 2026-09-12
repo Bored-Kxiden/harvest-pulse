@@ -55,7 +55,7 @@ export function Sheet({ lift, onLift, onDragging, children, label }: {
  }
 
  /* The travel itself lives in CSS, off --lift, so it runs on the compositor. */
- return <section className="sheet" aria-label={label}>
+ return <section className="sheet" aria-label={label} data-lifted={lift > 0.5}>
   <button type="button" className="sheet-grab" aria-label={lift > 0.5 ? 'Lower the panel' : 'Raise the panel'} aria-expanded={lift > 0.5}
    onPointerDown={e => { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); start(e, false) }}
    onPointerMove={move}

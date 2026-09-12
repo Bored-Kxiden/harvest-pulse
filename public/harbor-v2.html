@@ -7,19 +7,15 @@
 <title>Harbor</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Nunito:wght@400;500;600;700&family=Caveat:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--body:'Nunito',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;--round:'Quicksand',ui-rounded,'Nunito',sans-serif;--script:'Caveat',cursive}
-button{font:inherit;color:inherit;background:none;border:0;padding:0}
-input,select,textarea{font-family:inherit}
-[hidden]{display:none!important}
-/* ================================================================
-   Harbor — the meadow is the app.
-   A painted landscape holds the top of the screen; everything you do
-   rides in a warm ivory sheet pulled up over its waist. Green carries
-   meaning, gold carries the thing you last chose, and every surface is
-   paper — soft shoulders, tinted shadows, no hard black anywhere.
-   ================================================================ */
+/* The two families the app actually uses. The handwriting is gone. */
+:root {
+ --font-body: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+ --font-round: 'Quicksand', ui-rounded, 'Nunito', sans-serif;
+ --body: var(--font-body);
+ --round: var(--font-round);
+}
 :root {
  color-scheme: light;
  --ivory: #FAF5EA;
@@ -71,25 +67,30 @@ input,select,textarea{font-family:inherit}
  --radius: 1.4rem;
 }
 
-
-
- *, *::before, *::after { box-sizing: border-box }
- html, body { height: 100%; overscroll-behavior: none; }
- body { background: var(--background); color: var(--foreground); font-family: var(--body); -webkit-font-smoothing: antialiased; margin: 0 }
- button:not(:disabled), [role='button']:not(:disabled), a, label.tap { cursor: pointer; touch-action: manipulation; }
- button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
- a { text-decoration: none; color: inherit; }
- button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible,
- textarea:focus-visible, [role='slider']:focus-visible, [tabindex]:focus-visible {
-  outline: 2.5px solid var(--leaf); outline-offset: 3px; border-radius: 10px;
- }
- h1, h2, h3, h4 { font-family: var(--round), ui-rounded, sans-serif; text-wrap: balance; margin: 0; }
- p { line-height: 1.55; margin: 0; }
+*, *::before, *::after { box-sizing: border-box; border-color: var(--border); border-style: solid; border-width: 0 }
+img, svg, video, canvas { display: block; max-width: 100% }
+html, body { height: 100%; overscroll-behavior: none; }
+body { background: var(--background); color: var(--foreground); font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif; margin: 0; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+button:not(:disabled), [role='button']:not(:disabled), a, label.tap { cursor: pointer; touch-action: manipulation; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0 }
+input, textarea, select { font: inherit }
+a { text-decoration: none; color: inherit; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible,
+textarea:focus-visible, [role='slider']:focus-visible, [tabindex]:focus-visible {
+ outline: 2.5px solid var(--leaf); outline-offset: 3px; border-radius: 10px;
+}
+h1, h2, h3, h4 { font-family: var(--font-round), ui-rounded, sans-serif; text-wrap: balance; margin: 0; }
+p { line-height: 1.55; margin: 0; }
+[hidden] { display: none !important }
 
 
 /* ---------- the viewport ---------- */
 .stage {
- position: fixed; inset: 0; overflow: hidden;
+ /* clip, not hidden: the sheet hangs past the foot of the stage, and `hidden` would
+    make that a scroll container the browser can shunt on focus, dragging every
+    overlay off screen with it. */
+ position: fixed; inset: 0; overflow: clip;
  max-width: 480px; margin-inline: auto; background: var(--ivory);
  box-shadow: 0 0 80px -30px rgb(24 70 46 / .35);
 }
@@ -103,11 +104,11 @@ input,select,textarea{font-family:inherit}
  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; pointer-events: none;
 }
 .topbar > * { pointer-events: auto }
-.brand { display: flex; align-items: flex-start; gap: 8px; font-family: var(--round), sans-serif; font-weight: 700; font-size: 30px; letter-spacing: -.6px; color: var(--ink); text-shadow: 0 2px 12px rgb(255 255 255 / .6) }
+.brand { display: flex; align-items: flex-start; gap: 8px; font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 30px; letter-spacing: -.6px; color: var(--ink); text-shadow: 0 2px 12px rgb(255 255 255 / .6) }
 .brand svg { width: 27px; height: 27px; flex-shrink: 0; margin-top: 3px }
 .brand-stack { display: flex; flex-direction: column }
 .brand-word { line-height: 1 }
-.brand-line { font-family: var(--script), cursive; font-weight: 500; font-size: 16px; line-height: 1.08; color: var(--ink-mid); margin-top: 3px; letter-spacing: .2px; max-width: 130px; text-shadow: 0 1px 8px rgb(255 255 255 / .7) }
+.brand-line { font-family: var(--font-round), ui-rounded, sans-serif; font-weight: 500; font-size: 16px; line-height: 1.08; color: var(--ink-mid); margin-top: 3px; letter-spacing: .2px; max-width: 130px; text-shadow: 0 1px 8px rgb(255 255 255 / .7) }
 .top-acts { display: flex; align-items: center; gap: 9px }
 .disc {
  position: relative; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
@@ -119,44 +120,16 @@ input,select,textarea{font-family:inherit}
 .disc svg { width: 20px; height: 20px; stroke-width: 1.9 }
 .disc[data-tint='leaf'] { background: #C9E5C7 }
 .disc i { position: absolute; top: 9px; right: 10px; width: 9px; height: 9px; border-radius: 50%; background: var(--blush); box-shadow: 0 0 0 2.5px var(--paper) }
-.script-note {
- position: absolute; z-index: 11; right: 74px; top: calc(env(safe-area-inset-top) + 116px);
- font-family: var(--script), cursive; font-size: 21px; line-height: 1.15; color: var(--ink-mid);
- text-align: center; max-width: 160px; transform: rotate(-3.5deg); pointer-events: none;
- text-shadow: 0 2px 14px rgb(255 255 255 / .75);
- animation: settle .9s cubic-bezier(.22,.9,.28,1) both .25s;
-}
 @keyframes settle { from { opacity: 0; transform: rotate(-3.5deg) translateY(-8px) } to { opacity: 1; transform: rotate(-3.5deg) translateY(0) } }
 
 /* ---------- the instants rail ---------- */
-.rail {
- position: absolute; z-index: 12; right: 12px; top: 22%;
- display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 9px 7px;
- border-radius: 34px; background: rgb(254 252 245 / .92); box-shadow: var(--shadow-card);
- backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-}
-.rail-dot { position: relative; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; transition: transform .2s cubic-bezier(.22,.9,.28,1) }
-.rail-dot:hover { transform: scale(1.06) }
-.rail-dot:active { transform: scale(.94) }
-.rail-ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid transparent }
-.rail-dot[data-unseen='true'] .rail-ring { border-color: var(--blush); box-shadow: 0 0 0 2px rgb(254 252 245 / .9) inset }
-.rail-face { width: 38px; height: 38px; border-radius: 50%; overflow: hidden; display: grid; place-items: center }
-.rail-photo { width: 100%; height: 100%; object-fit: cover }
-.rail-initial { font-family: var(--round), sans-serif; font-weight: 700; font-size: 15px; color: #4B5B4C }
-.rail-camera {
- width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; margin-top: 2px;
- background: linear-gradient(160deg, var(--leaf-bright), #4A8E58); color: #FEFCF5;
- box-shadow: 0 8px 16px -8px rgb(31 107 67 / .8); transition: transform .2s cubic-bezier(.22,.9,.28,1);
-}
-.rail-camera:hover { transform: scale(1.06) } .rail-camera:active { transform: scale(.92) }
-.rail-camera svg { width: 21px; height: 21px; stroke-width: 1.9 }
 
 /* ---------- the meadow chip ---------- */
 .meadow-chip {
  position: absolute; z-index: 11; left: 18px; bottom: calc(48dvh + 16px); display: flex; align-items: center; gap: 9px;
  transform: translate3d(0, calc(-41dvh * var(--lift, 0)), 0);
  padding: 11px 17px; border-radius: 99px; background: rgb(254 252 245 / .94);
- font-family: var(--round), sans-serif; font-weight: 700; font-size: 14.5px; color: var(--ink-deep);
+ font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 14.5px; color: var(--ink-deep);
  box-shadow: var(--shadow-card); white-space: nowrap;
  transition: transform .42s cubic-bezier(.22, .9, .28, 1), opacity .3s;
 }
@@ -180,6 +153,7 @@ input,select,textarea{font-family:inherit}
 }
 .stage[data-dragging='true'] .sheet,
 .stage[data-dragging='true'] .meadow-chip { transition: none }
+.meadow-chip[data-away='true'] { opacity: 0; pointer-events: none }
 .sheet::before {
  content: ''; position: absolute; inset: 0 0 auto; height: 30px; border-radius: 30px 30px 0 0;
  box-shadow: inset 0 1.5px 0 rgb(255 255 255 / .9); pointer-events: none;
@@ -187,15 +161,20 @@ input,select,textarea{font-family:inherit}
 .sheet-grab { display: grid; place-items: center; width: 100%; height: 44px; margin-bottom: -18px; flex-shrink: 0; touch-action: none }
 .sheet-grab span { width: 42px; height: 5px; border-radius: 99px; background: #CFD8C9; transition: background .2s, width .24s cubic-bezier(.22,.9,.28,1) }
 .sheet-grab:hover span { background: #B9C6B2; width: 52px }
+/* The sheet is cut for its lifted height, so while it is down its tail hangs past the
+   foot of the stage. Pad the scroll by exactly that overhang and the last row can still
+   be brought onto the screen; lifted, the overhang is gone and so is the padding. */
 .sheet-scroll {
  flex: 1; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
- padding-bottom: calc(112px + env(safe-area-inset-bottom)); touch-action: pan-y;
+ padding-bottom: calc(112px + 41dvh + env(safe-area-inset-bottom)); touch-action: pan-y;
 }
+.sheet[data-lifted='true'] .sheet-scroll { padding-bottom: calc(112px + env(safe-area-inset-bottom)) }
 .sheet-scroll::-webkit-scrollbar { width: 0 }
 
 /* ---------- page furniture inside the sheet ---------- */
 .wrap { padding: 0 20px }
-.eyebrow { font-family: var(--round), sans-serif; font-weight: 700; font-size: 11.5px; letter-spacing: 2.4px; text-transform: uppercase; color: var(--ink-soft) }
+.eyebrow { font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 11.5px; letter-spacing: 2.4px; text-transform: uppercase; color: var(--ink-soft) }
+.eyebrow svg { width: 15px; height: 15px; flex-shrink: 0 }
 .page-head { padding: 4px 20px 16px }
 .page-head h1 { font-size: 34px; font-weight: 700; letter-spacing: -.9px; color: var(--ink-deep); margin: 7px 0 6px }
 .page-head p { font-size: 15.5px; color: var(--ink-mid) }
@@ -210,12 +189,12 @@ input,select,textarea{font-family:inherit}
 .pill-link {
  display: inline-flex; align-items: center; gap: 4px; min-height: 40px; padding: 8px 14px; border-radius: 99px;
  background: var(--paper); box-shadow: var(--shadow-soft);
- font-family: var(--round), sans-serif; font-weight: 700; font-size: 13px; color: var(--ink);
+ font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 13px; color: var(--ink);
  transition: transform .2s cubic-bezier(.22,.9,.28,1);
 }
 .pill-link:active { transform: scale(.95) }
 .pill-link svg { width: 13px; height: 13px; stroke-width: 2.4 }
-.text-link { display: inline-flex; align-items: center; gap: 5px; min-height: 40px; font-family: var(--round), sans-serif; font-weight: 700; font-size: 13.5px; color: var(--ink-soft) }
+.text-link { display: inline-flex; align-items: center; gap: 5px; min-height: 40px; font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 13.5px; color: var(--ink-soft) }
 .text-link:hover { color: var(--ink) }
 .text-link svg { width: 14px; height: 14px; stroke-width: 2.4 }
 .note-strip { display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; line-height: 1.5; color: var(--ink-soft) }
@@ -230,7 +209,7 @@ input,select,textarea{font-family:inherit}
 .btn {
  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 50px; padding: 0 20px;
  border-radius: 16px; background: var(--ink); color: #FEFCF5;
- font-family: var(--round), sans-serif; font-weight: 700; font-size: 15.5px;
+ font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 15.5px;
  box-shadow: 0 10px 22px -14px rgb(19 73 44 / .95);
  transition: transform .18s cubic-bezier(.22,.9,.28,1), background .18s, box-shadow .18s;
 }
@@ -251,18 +230,18 @@ input,select,textarea{font-family:inherit}
 .input::placeholder { color: var(--ink-faint) }
 .input:focus-visible { outline: none; box-shadow: inset 0 0 0 2.5px var(--leaf) }
 textarea.input { min-height: 92px; resize: none; line-height: 1.5 }
-.label { display: block; font-family: var(--round), sans-serif; font-weight: 700; font-size: 12.5px; color: var(--ink-soft); margin-bottom: 6px }
+.label { display: block; font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 12.5px; color: var(--ink-soft); margin-bottom: 6px }
 .chips { display: flex; flex-wrap: wrap; gap: 8px }
 .chip-choice {
  padding: 9px 14px; border-radius: 99px; background: var(--paper); box-shadow: inset 0 0 0 1.5px rgb(31 107 67 / .14);
- font-family: var(--round), sans-serif; font-weight: 700; font-size: 13px; color: var(--ink-soft);
+ font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 13px; color: var(--ink-soft);
  transition: transform .18s cubic-bezier(.22,.9,.28,1), background .18s, color .18s, box-shadow .18s;
 }
 .chip-choice:hover { box-shadow: inset 0 0 0 1.5px rgb(31 107 67 / .3) }
 .chip-choice:active { transform: scale(.95) }
 .chip-choice[aria-pressed='true'], .chip-choice[aria-checked='true'] { background: var(--gold); color: #4A3A16; box-shadow: none }
 .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 14px }
-.switch-row b { display: block; font-family: var(--round), sans-serif; font-weight: 700; font-size: 15.5px; color: var(--ink-deep) }
+.switch-row b { display: block; font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 15.5px; color: var(--ink-deep) }
 .toggle { position: relative; width: 52px; height: 31px; border-radius: 99px; background: #DCE5D7; flex-shrink: 0; transition: background .25s }
 .toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 25px; height: 25px; border-radius: 50%; background: var(--paper); box-shadow: 0 2px 6px -2px rgb(24 70 46 / .6); transition: transform .28s cubic-bezier(.3,1.4,.5,1) }
 .toggle[aria-pressed='true'] { background: var(--leaf) }
@@ -297,7 +276,7 @@ textarea.input { min-height: 92px; resize: none; line-height: 1.5 }
 .call-now {
  display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 44px; margin-top: 10px;
  border-radius: 14px; background: rgb(254 252 245 / .82); color: var(--ink);
- font-family: var(--round), sans-serif; font-weight: 700; font-size: 13px; position: relative; z-index: 1;
+ font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 13px; position: relative; z-index: 1;
  box-shadow: inset 0 0 0 1.5px rgb(31 107 67 / .16);
  transition: transform .18s cubic-bezier(.22,.9,.28,1), background .18s;
 }
@@ -307,7 +286,7 @@ textarea.input { min-height: 92px; resize: none; line-height: 1.5 }
 .unread { position: absolute; top: -1px; right: -1px; width: 12px; height: 12px; border-radius: 50%; background: var(--blush); box-shadow: 0 0 0 2.5px var(--paper) }
 
 /* ---------- avatars ---------- */
-.avatar { display: inline-grid; place-items: center; border-radius: 50%; overflow: hidden; font-family: var(--round), sans-serif; font-weight: 700; color: #43543F; flex-shrink: 0 }
+.avatar { display: inline-grid; place-items: center; border-radius: 50%; overflow: hidden; font-family: var(--font-round), sans-serif; font-weight: 700; color: #43543F; flex-shrink: 0 }
 .avatar-gold { background: var(--av-gold) } .avatar-green { background: var(--av-mint) }
 .avatar-orange { background: var(--av-rose) } .avatar-sky { background: var(--av-blue) }
 .avatar-photo { width: 100%; height: 100%; object-fit: cover }
@@ -337,8 +316,8 @@ textarea.input { min-height: 92px; resize: none; line-height: 1.5 }
 }
 .note-face { position: relative; width: 60px; height: 60px; border-radius: 20px; display: grid; place-items: center; box-shadow: var(--shadow-card); overflow: hidden }
 .note-face svg { width: 23px; height: 23px; stroke-width: 1.9; color: #43543F }
-.note-initial { font-family: var(--round), sans-serif; font-weight: 700; font-size: 22px; color: #43543F }
-.note-name { font-family: var(--round), sans-serif; font-weight: 700; font-size: 11.5px; color: var(--ink-soft); max-width: 66px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.note-initial { font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 22px; color: #43543F }
+.note-name { font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 11.5px; color: var(--ink-soft); max-width: 66px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
 .note-dot { position: absolute; top: 4px; right: 4px; width: 11px; height: 11px; border-radius: 50%; background: var(--blush); box-shadow: 0 0 0 2.5px var(--paper) }
 
 /* ---------- small rows ---------- */
@@ -351,19 +330,12 @@ textarea.input { min-height: 92px; resize: none; line-height: 1.5 }
 .row-icon { width: 38px; height: 38px; border-radius: 13px; display: grid; place-items: center; flex-shrink: 0; background: var(--tint-mint) }
 .row-icon svg { width: 18px; height: 18px; stroke-width: 1.9; color: #43543F }
 .row-body { flex: 1; min-width: 0 }
-.row-body b { display: block; font-family: var(--round), sans-serif; font-size: 14.5px; font-weight: 700; color: var(--ink-deep) }
+.row-body b { display: block; font-family: var(--font-round), sans-serif; font-size: 14.5px; font-weight: 700; color: var(--ink-deep) }
 .row-body span { display: block; font-size: 12.5px; color: var(--ink-soft) }
 .caret { width: 15px; height: 15px; flex-shrink: 0; color: var(--ink-faint); stroke-width: 2.2 }
 .empty { padding: 18px 16px; border-radius: 20px; background: rgb(254 252 245 / .6); font-size: 13.5px; color: var(--ink-soft); text-align: center }
 
 /* ---------- the little-something tile row ---------- */
-.tool-row { display: flex; gap: 4px; padding: 10px 6px; background: var(--paper); border-radius: 22px; box-shadow: var(--shadow-card); overflow-x: auto; scrollbar-width: none }
-.tool-row::-webkit-scrollbar { display: none }
-.tool { flex: 1 0 62px; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 4px 2px; transition: transform .2s cubic-bezier(.22,.9,.28,1) }
-.tool:active { transform: scale(.92) }
-.tool-disc { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center }
-.tool-disc svg { width: 21px; height: 21px; stroke-width: 1.8 }
-.tool b { font-family: var(--round), sans-serif; font-weight: 700; font-size: 11.5px; color: var(--ink-mid) }
 
 /* ---------- bottom nav ---------- */
 .nav {
@@ -376,7 +348,7 @@ textarea.input { min-height: 92px; resize: none; line-height: 1.5 }
 .nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 60px; color: var(--ink-faint); transition: color .2s, transform .2s cubic-bezier(.22,.9,.28,1) }
 .nav-item:active { transform: scale(.92) }
 .nav-item svg { width: 21px; height: 21px; stroke-width: 1.9 }
-.nav-item b { font-family: var(--round), sans-serif; font-weight: 700; font-size: 11px }
+.nav-item b { font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 11px }
 .nav-item i { width: 4px; height: 4px; border-radius: 50%; background: transparent; margin-top: 1px }
 .nav-item[aria-current='page'] { color: var(--ink) }
 .nav-item[aria-current='page'] i { background: var(--ink) }
@@ -398,18 +370,18 @@ textarea.input { min-height: 92px; resize: none; line-height: 1.5 }
  animation: rays 9s linear infinite;
 }
 @keyframes rays { to { transform: rotate(360deg) } }
-.nav-share b { font-family: var(--round), sans-serif; font-weight: 700; font-size: 10.5px; color: var(--ink-faint); white-space: nowrap }
+.nav-share b { font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 10.5px; color: var(--ink-faint); white-space: nowrap }
 .nav-share[aria-pressed='true'] b { color: var(--ink) }
 
 /* ---------- the week ---------- */
 .cal { padding: 12px 10px 10px }
 .cal-week { display: flex; align-items: center; justify-content: space-between; padding: 0 4px 8px }
-.cal-week b { font-family: var(--round), sans-serif; font-size: 15px; font-weight: 700; color: var(--ink-deep) }
+.cal-week b { font-family: var(--font-round), sans-serif; font-size: 15px; font-weight: 700; color: var(--ink-deep) }
 .cal-step { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: var(--ink); transition: background .2s }
 .cal-step:hover { background: var(--secondary) }
 .cal-step svg { width: 18px; height: 18px; stroke-width: 2.2 }
 .cal-head { display: grid; grid-template-columns: 30px repeat(7, 1fr); padding-bottom: 5px }
-.cal-head span { font-family: var(--round), sans-serif; font-weight: 700; font-size: 11.5px; color: var(--ink-soft); text-align: center }
+.cal-head span { font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 11.5px; color: var(--ink-soft); text-align: center }
 .cal-head span[data-today='true'] { color: var(--ink) }
 .cal-head span i { display: block; font-style: normal; font-size: 10px; font-weight: 600; color: var(--ink-faint) }
 .cal-body { display: grid; grid-template-columns: 30px 1fr; max-height: 340px; overflow-y: auto; overscroll-behavior: contain }
@@ -429,7 +401,7 @@ textarea.input { min-height: 92px; resize: none; line-height: 1.5 }
  animation: pop-block .32s cubic-bezier(.3,1.3,.5,1) both;
 }
 @keyframes pop-block { from { opacity: 0; transform: scale(.86) } to { opacity: 1; transform: none } }
-.cal-block b { display: block; font-family: var(--round), sans-serif; font-weight: 700; font-size: 9.5px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.cal-block b { display: block; font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 9.5px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
 .cal-block span { font-size: 8.5px; opacity: .8; white-space: nowrap }
 .cal-block svg { position: absolute; right: 3px; bottom: 2px; width: 11px; height: 11px; opacity: .35 }
 .cal-block[data-linked='true'] { background: var(--gold); color: #4A3A16; box-shadow: 0 4px 10px -6px rgb(190 150 40 / .8) }
@@ -453,8 +425,8 @@ textarea.input { min-height: 92px; resize: none; line-height: 1.5 }
 .polaroid-shot { aspect-ratio: 1; border-radius: 2px; overflow: hidden; display: grid; place-items: center }
 .polaroid-shot img { width: 100%; height: 100%; object-fit: cover }
 .polaroid-date { display: block; font-size: 10px; color: var(--ink-faint); margin-top: 7px }
-.polaroid-note { display: block; font-family: var(--script), cursive; font-size: 15px; line-height: 1.2; color: var(--ink-mid) }
-.scrap-note { break-inside: avoid; margin-bottom: 13px; padding: 20px 16px; border-radius: 6px; border: 1.5px dashed rgb(31 107 67 / .3); background: rgb(226 239 220 / .35); font-family: var(--script), cursive; font-size: 18px; line-height: 1.25; color: var(--ink-mid); text-align: center }
+.polaroid-note { display: block; font-family: var(--font-round), ui-rounded, sans-serif; font-size: 15px; line-height: 1.2; color: var(--ink-mid) }
+.scrap-note { break-inside: avoid; margin-bottom: 13px; padding: 20px 16px; border-radius: 6px; border: 1.5px dashed rgb(31 107 67 / .3); background: rgb(226 239 220 / .35); font-family: var(--font-round), ui-rounded, sans-serif; font-size: 18px; line-height: 1.25; color: var(--ink-mid); text-align: center }
 .fab {
  position: absolute; z-index: 25; right: 20px; bottom: calc(92px + env(safe-area-inset-bottom));
  width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center;
@@ -471,7 +443,7 @@ textarea.input { min-height: 92px; resize: none; line-height: 1.5 }
 .who:active { transform: scale(.93) }
 .who-face { position: relative; border-radius: 50%; transition: box-shadow .2s }
 .who[aria-pressed='true'] .who-face { box-shadow: 0 0 0 2.5px var(--leaf), 0 0 0 5px rgb(89 164 104 / .22) }
-.who b { font-family: var(--round), sans-serif; font-weight: 700; font-size: 11.5px; color: var(--ink-soft) }
+.who b { font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 11.5px; color: var(--ink-soft) }
 .who[aria-pressed='true'] b { color: var(--ink) }
 .who-add { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; background: var(--tint-blue); color: var(--ink) }
 .pick { display: flex; align-items: center; gap: 12px; width: 100%; padding: 13px 15px; border-radius: 18px; background: var(--paper); box-shadow: var(--shadow-card); text-align: left }
@@ -494,7 +466,7 @@ textarea.input { min-height: 92px; resize: none; line-height: 1.5 }
 .panel-rows { display: flex; flex-direction: column; margin-top: 8px }
 .panel-row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 10px 2px; border-bottom: 1px solid var(--hairline); font-size: 14px }
 .panel-row:last-child { border-bottom: 0 }
-.panel-row b { font-family: var(--round), sans-serif; font-weight: 700; font-size: 12.5px; color: var(--ink-soft); white-space: nowrap }
+.panel-row b { font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 12.5px; color: var(--ink-soft); white-space: nowrap }
 .panel-row span { text-align: right; color: var(--ink-deep) }
 
 .curtain { position: absolute; inset: 0; z-index: 70; display: grid; place-items: center; padding: 20px; overflow-y: auto; background: linear-gradient(172deg, #FBF5E9 0%, #F3E9D6 55%, #E7DCC7 100%); animation: fade .24s ease both }
@@ -509,9 +481,9 @@ textarea.input { min-height: 92px; resize: none; line-height: 1.5 }
 .path:active { transform: scale(.98) }
 .path-icon { grid-row: 1 / 3; width: 42px; height: 42px; border-radius: 14px; background: #E4F0E2; display: grid; place-items: center }
 .path-icon svg { width: 19px; height: 19px; stroke-width: 1.9; color: var(--ink) }
-.path b { font-family: var(--round), sans-serif; font-weight: 700; font-size: 15px; color: var(--ink-deep) }
+.path b { font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 15px; color: var(--ink-deep) }
 .path span { font-size: 12px; color: var(--ink-soft) }
-.timer { font-family: var(--round), sans-serif; font-weight: 700; font-size: 32px; color: var(--ink); font-variant-numeric: tabular-nums }
+.timer { font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 32px; color: var(--ink); font-variant-numeric: tabular-nums }
 .bloom-stage { display: grid; place-items: end center; height: 180px }
 .bloom-svg { width: 180px; height: 180px; overflow: visible }
 .bloom-ground { fill: rgb(31 107 67 / .13) }
@@ -524,7 +496,7 @@ textarea.input { min-height: 92px; resize: none; line-height: 1.5 }
 .flower-option { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 11px 9px; border-radius: 18px; background: var(--paper); box-shadow: inset 0 0 0 1.5px rgb(31 107 67 / .12); transition: transform .2s cubic-bezier(.22,.9,.28,1), box-shadow .2s }
 .flower-option:active { transform: scale(.96) }
 .flower-option[aria-checked='true'] { box-shadow: inset 0 0 0 2.5px var(--leaf); background: #F4FAF2 }
-.flower-option b { font-family: var(--round), sans-serif; font-weight: 700; font-size: 13px; color: var(--ink-deep) }
+.flower-option b { font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 13px; color: var(--ink-deep) }
 .flower-option span { font-size: 10.5px; color: var(--ink-soft); text-align: center; line-height: 1.35 }
 
 /* ---------- instants viewer ---------- */
@@ -534,7 +506,7 @@ textarea.input { min-height: 92px; resize: none; line-height: 1.5 }
 .story-bar i { display: block; height: 100%; background: #FEFCF5; border-radius: 99px }
 .story-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px }
 .story-who { flex: 1; min-width: 0; color: #FEFCF5 }
-.story-who b { display: block; font-family: var(--round), sans-serif; font-size: 14.5px; font-weight: 700 }
+.story-who b { display: block; font-family: var(--font-round), sans-serif; font-size: 14.5px; font-weight: 700 }
 .story-who span { font-size: 12px; color: rgb(254 252 245 / .6) }
 .story-icon { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: #FEFCF5; transition: background .2s }
 .story-icon:hover { background: rgb(255 255 255 / .12) }
@@ -544,7 +516,7 @@ textarea.input { min-height: 92px; resize: none; line-height: 1.5 }
 .story-frame { position: relative; width: 100%; max-width: 340px; aspect-ratio: 3 / 4; border-radius: 22px; overflow: hidden; display: grid; place-items: center; box-shadow: 0 30px 60px -30px #000 }
 .story-photo { width: 100%; height: 100%; object-fit: cover }
 .story-empty { width: 100%; height: 100% }
-.story-caption { position: absolute; left: 18px; right: 18px; bottom: 26px; font-family: var(--script), cursive; font-size: 21px; line-height: 1.2; color: #FEFCF5; text-align: center; text-shadow: 0 2px 12px rgb(16 37 26 / .8) }
+.story-caption { position: absolute; left: 18px; right: 18px; bottom: 26px; font-family: var(--font-round), ui-rounded, sans-serif; font-size: 21px; line-height: 1.2; color: #FEFCF5; text-align: center; text-shadow: 0 2px 12px rgb(16 37 26 / .8) }
 .story-half { position: absolute; top: 0; bottom: 0; width: 34%; background: transparent }
 .story-prev { left: 0 } .story-next { right: 0 }
 .story-reply { display: flex; align-items: center; gap: 8px; padding: 0 14px calc(16px + env(safe-area-inset-bottom)) }
@@ -555,7 +527,7 @@ textarea.input { min-height: 92px; resize: none; line-height: 1.5 }
 /* ---------- camera ---------- */
 .camera { position: absolute; inset: 0; z-index: 80; display: flex; flex-direction: column; background: #17281D; animation: fade .22s ease both }
 .camera-bar { display: flex; align-items: center; justify-content: space-between; padding: calc(env(safe-area-inset-top) + 12px) 12px 4px; color: #FEFCF5 }
-.camera-title { font-family: var(--round), sans-serif; font-weight: 700; font-size: 15px }
+.camera-title { font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 15px }
 .camera-stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 6px 20px; min-height: 0 }
 .camera-frame { position: relative; width: 100%; max-width: 330px; aspect-ratio: 3 / 4; border-radius: 26px; overflow: hidden; background: #24382A; display: grid; place-items: center }
 .camera-feed { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1) }
@@ -569,9 +541,9 @@ img.camera-feed { transform: none }
 }
 .camera-fallback { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; height: 100%; padding: 24px; text-align: center; color: #FEFCF5 }
 .camera-fallback svg { width: 28px; height: 28px }
-.camera-fallback b { font-family: var(--round), sans-serif; font-size: 17px }
+.camera-fallback b { font-family: var(--font-round), sans-serif; font-size: 17px }
 .camera-fallback span { font-size: 13px; color: rgb(254 252 245 / .7) }
-.camera-caption { width: 100%; max-width: 330px; min-height: 44px; padding: 0 16px; border-radius: 99px; border: 1.5px solid rgb(255 255 255 / .35); background: transparent; color: #FEFCF5; font-family: var(--script), cursive; font-size: 18px; text-align: center }
+.camera-caption { width: 100%; max-width: 330px; min-height: 44px; padding: 0 16px; border-radius: 99px; border: 1.5px solid rgb(255 255 255 / .35); background: transparent; color: #FEFCF5; font-family: var(--font-round), ui-rounded, sans-serif; font-size: 18px; text-align: center }
 .camera-caption::placeholder { color: rgb(254 252 245 / .5) }
 .camera-deck { display: flex; align-items: center; justify-content: center; gap: 26px; padding: 8px 20px 6px }
 .camera-side { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; background: rgb(255 255 255 / .14); color: #FEFCF5 }
@@ -580,13 +552,10 @@ img.camera-feed { transform: none }
 .camera-shutter:active { transform: scale(.9) }
 .camera-shutter span { width: 60px; height: 60px; border-radius: 50%; background: #FEFCF5; box-shadow: inset 0 0 0 2px #17281D, inset 0 0 0 4px #FEFCF5 }
 .camera-send { min-width: 180px }
-.camera-audience { align-self: center; display: inline-flex; align-items: center; gap: 6px; margin-bottom: calc(16px + env(safe-area-inset-bottom)); padding: 9px 16px; border-radius: 99px; background: rgb(255 255 255 / .16); color: #FEFCF5; font-family: var(--round), sans-serif; font-weight: 700; font-size: 13px }
+.camera-audience { align-self: center; display: inline-flex; align-items: center; gap: 6px; margin-bottom: calc(16px + env(safe-area-inset-bottom)); padding: 9px 16px; border-radius: 99px; background: rgb(255 255 255 / .16); color: #FEFCF5; font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 13px }
 .camera-audience svg { width: 14px; height: 14px; stroke-width: 2.2 }
 
 /* ---------- shared primitives ---------- */
-[data-slot='dialog-content'] { border-radius: 28px !important; background: var(--paper) !important; border: 0 !important; box-shadow: 0 30px 70px -34px rgb(12 30 20 / .9) !important; padding: 20px !important; display: flex; flex-direction: column; gap: 13px; max-width: min(340px, calc(100vw - 36px)) !important }
-[data-slot='dialog-title'] { font-family: var(--round), sans-serif !important; font-size: 21px !important; font-weight: 700 !important; color: var(--ink-deep) !important; letter-spacing: -.3px }
-[data-slot='dialog-description'] { font-size: 14px !important; color: var(--ink-soft) !important; line-height: 1.5 }
 
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0 }
 .entrance { animation: rise .45s cubic-bezier(.22,.9,.28,1) both }
@@ -596,27 +565,143 @@ img.camera-feed { transform: none }
 /* ---------- loading ---------- */
 .skeleton { border-radius: 22px; background: linear-gradient(100deg, #F1EADB 30%, #F8F2E6 48%, #F1EADB 66%); background-size: 300% 100%; animation: shimmer 1.5s ease-in-out infinite }
 @keyframes shimmer { from { background-position: 140% 0 } to { background-position: -40% 0 } }
-/* one-file extras */
-.toast{position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 14px);transform:translateX(-50%);z-index:90;padding:12px 18px;border-radius:16px;background:var(--ink);color:#FEFCF5;font-family:var(--round);font-weight:700;font-size:14px;box-shadow:0 14px 30px -16px rgba(19,73,44,.9);opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;max-width:calc(100% - 40px);text-align:center}
-.toast[data-on='1']{opacity:1;transform:translateX(-50%) translateY(4px)}
-.person-foot svg{width:13px;height:auto}
-.tool-disc svg{width:21px;height:21px}
-.row-icon svg{width:18px;height:18px}
-.btn svg,.text-link svg,.pill-link svg{width:16px;height:16px;flex-shrink:0}
-.disc svg,.cal-step svg,.story-icon svg{width:20px;height:20px}
-.path-icon svg{width:19px;height:19px}
-.note-strip svg{width:15px;height:15px}
-.who-add svg{width:18px;height:18px}
-.nav-item svg,.nav-share-disc svg{width:21px;height:21px}
-.rail-camera svg{width:21px;height:21px}
-.meadow-chip>svg,.meadow-chip .weather-turn svg{width:18px;height:18px}
-.scrim[hidden],.curtain[hidden],.story[hidden],.camera[hidden]{display:none!important}
+
+/* ---------- the segmented control ---------- */
+.segment { position: relative; display: flex; padding: 5px; margin-bottom: 13px; border-radius: 99px; background: var(--paper); box-shadow: var(--shadow-card) }
+.segment-slide {
+ position: absolute; top: 5px; bottom: 5px; left: 5px; width: calc((100% - 10px) / 3); border-radius: 99px;
+ background: linear-gradient(160deg, #F8D583, var(--gold)); box-shadow: 0 6px 14px -8px rgb(190 150 40 / .9);
+ transform: translateX(calc(var(--i, 0) * 100%));
+ transition: transform .46s cubic-bezier(.34, 1.36, .5, 1);
+}
+.segment-tab {
+ position: relative; z-index: 1; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+ min-height: 40px; border-radius: 99px; font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 13px;
+ color: var(--ink-soft); transition: color .28s, transform .2s cubic-bezier(.22, .9, .28, 1);
+}
+.segment-tab svg { width: 15px; height: 15px; stroke-width: 2; transition: transform .36s cubic-bezier(.34, 1.36, .5, 1) }
+.segment-tab:active { transform: scale(.95) }
+.segment-tab[aria-selected='true'] { color: #4A3A16 }
+.segment-tab[aria-selected='true'] svg { transform: scale(1.12) rotate(-6deg) }
+
+/* ---------- the verge: the flowers the card sits down in ----------
+   Rooted below the sheet's lip so the stems disappear behind it and only the
+   heads show. It rides the same lift the sheet does, so pulling the panel up
+   draws the meadow closed over them. */
+.verge {
+ position: absolute; z-index: 8; left: 0; right: 0; height: 132px;
+ bottom: calc(48dvh - 66px);
+ transform: translate3d(0, calc(-41dvh * var(--lift, 0)), 0);
+ transition: transform .5s cubic-bezier(.2, .86, .3, 1);
+ pointer-events: none;
+}
+.stage[data-dragging='true'] .verge { transition: none }
+.verge svg { width: 100%; height: 100% }
+.verge-sway { transform-box: fill-box; transform-origin: 50% 100%; animation: verge 7s ease-in-out infinite }
+.verge-slow { animation-duration: 10.5s; animation-direction: alternate-reverse }
+@keyframes verge { 0%, 100% { transform: rotate(-1.1deg) } 50% { transform: rotate(1.1deg) } }
+
+/* ---------- the weather turns over ---------- */
+.weather-turn { display: grid; place-items: center; width: 22px; height: 22px; perspective: 90px }
+.weather-turn > * { grid-area: 1 / 1; transform-origin: center; animation: turn-over .72s cubic-bezier(.32, 1.24, .4, 1) both }
+@keyframes turn-over {
+ 0% { opacity: 0; transform: rotate(-170deg) scale(.25) }
+ 55% { opacity: 1; transform: rotate(14deg) scale(1.14) }
+ 100% { opacity: 1; transform: none }
+}
+.chip-text { display: inline-block; animation: chip-in .5s cubic-bezier(.22, .9, .28, 1) both }
+@keyframes chip-in { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
+
+/* ---------- the camera stands in the meadow ---------- */
+.camera { background: linear-gradient(180deg, rgb(18 40 27 / .58) 0%, rgb(18 40 27 / .74) 58%, rgb(14 32 21 / .88) 100%); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px) }
+.camera-frame { background: rgb(20 42 29 / .35); box-shadow: 0 30px 60px -30px rgb(9 24 16 / .9), inset 0 0 0 1px rgb(255 253 248 / .16) }
+
+/* ---------- the window opens ---------- */
+.window-card { position: relative; width: 100%; max-width: 330px; padding: 26px 22px 22px; border-radius: 30px; background: var(--paper); box-shadow: 0 30px 70px -30px rgb(12 30 20 / .8); text-align: center; overflow: hidden; animation: pop .5s cubic-bezier(.26, 1.3, .36, 1) both }
+.window-card::before { content: ''; position: absolute; inset: -40% -20% auto; height: 150px; background: radial-gradient(ellipse at 50% 0, rgb(242 199 92 / .4), rgb(242 199 92 / 0) 70%); pointer-events: none }
+.window-bloom { position: relative; display: grid; place-items: center; width: 104px; height: 104px; margin: 0 auto 4px; border-radius: 50%; background: radial-gradient(circle, #FBF0D4, #F3E7CE) }
+.window-bloom svg { width: 58px; height: 58px; animation: bloom-open .9s cubic-bezier(.24, 1.3, .36, 1) both .1s }
+@keyframes bloom-open { from { opacity: 0; transform: scale(.2) rotate(-40deg) } to { opacity: 1; transform: none } }
+.window-ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgb(242 199 92 / .55); animation: ping 2.6s ease-out infinite }
+.window-ring:nth-of-type(2) { animation-delay: .9s }
+
+/* ---------- motion that earns its place ---------- */
+/* An unread mark breathes; it is the one thing on the card asking for you. */
+.unread, .disc i { animation: breathe 2.6s ease-in-out infinite }
+@keyframes breathe { 0%, 100% { transform: scale(1); opacity: 1 } 50% { transform: scale(1.22); opacity: .82 } }
+
+/* The flower on a person's card leans, the way its cousins in the field do. */
+.person-foot svg { transform-box: fill-box; transform-origin: 50% 100%; animation: lean 5.5s ease-in-out infinite }
+.person:nth-of-type(2n) .person-foot svg { animation-duration: 6.8s; animation-direction: reverse }
+@keyframes lean { 0%, 100% { transform: rotate(-4deg) } 50% { transform: rotate(4deg) } }
+
+/* The sprig in a card corner drifts, slower than the field so it reads as nearer. */
+.person-sprig, .feelings-sprig { transform-box: fill-box; transform-origin: 50% 100%; animation: lean 8s ease-in-out infinite }
+.feelings-sprig { animation-duration: 9.5s }
+
+/* A nav icon lands with a bounce when it becomes the page you are on. */
+.nav-item svg { transition: transform .38s cubic-bezier(.34, 1.5, .5, 1) }
+.nav-item[aria-current='page'] svg { transform: translateY(-2px) scale(1.1) }
+.nav-item i { transition: transform .3s cubic-bezier(.34, 1.5, .5, 1), background .2s; transform: scale(0) }
+.nav-item[aria-current='page'] i { transform: scale(1) }
+
+/* The toggle knob overshoots and the track floods from the side it was pressed. */
+.toggle::before { content: ''; position: absolute; inset: 0; border-radius: 99px; background: var(--leaf); transform: scaleX(0); transform-origin: left center; transition: transform .32s cubic-bezier(.4, 1.1, .5, 1) }
+.toggle[aria-pressed='true']::before { transform: scaleX(1) }
+.toggle::after { z-index: 1 }
+.toggle:active::after { width: 30px }
+
+/* Each screen arrives rather than appearing. */
+.sheet-scroll > .entrance { animation: page-in .42s cubic-bezier(.22, .9, .28, 1) both }
+@keyframes page-in { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
+
+/* The meadow chip settles in when the app opens. */
+.meadow-chip { animation: chip-arrive .7s cubic-bezier(.26, 1.24, .36, 1) both .3s }
+@keyframes chip-arrive { from { opacity: 0; transform: translate3d(0, 14px, 0) scale(.9) } }
+
+/* A pressed row sinks a hair, then comes back. */
+.row:active, .path:active, .polaroid:active, .person-card:active { transform: scale(.982) translateY(1px) }
+
+/* With the camera open the app steps out of the way, so what you are standing in
+   is the meadow itself rather than a photograph of a card. */
+.stage[data-camera='true'] .sheet,
+.stage[data-camera='true'] .nav,
+.stage[data-camera='true'] .topbar,
+.stage[data-camera='true'] .verge,
+.stage[data-camera='true'] .meadow-chip { opacity: 0; pointer-events: none; transition: opacity .34s ease }
+.stage[data-camera='true'] .meadow-canvas { pointer-events: none }
+.camera { background: linear-gradient(180deg, rgb(16 38 25 / .42) 0%, rgb(16 38 25 / .56) 55%, rgb(12 30 20 / .78) 100%) }
 
 </style>
 </head>
 <body>
 <div class="stage">
  <div class="meadow" id="meadow"><canvas id="field" class="meadow-canvas" role="img" aria-label="Your meadow. Tap a flower to read the call it came from."></canvas></div>
+
+ <div class="verge" aria-hidden="true">
+  <svg viewBox="0 0 430 132" preserveAspectRatio="none" aria-hidden="true">
+   <g class="verge-sway">
+    <path d="M6 132c-4-38 4-62 22-78-12 30-12 52-6 78z" fill="#8FBE7C"/>
+    <path d="M30 132c-8-40 6-70 34-88-18 32-22 58-16 88z" fill="#7EB16A"/>
+    <path d="M404 132c6-40-6-70-34-88 18 32 22 58 16 88z" fill="#8FBE7C"/>
+    <path d="M424 132c4-38-4-62-22-78 12 30 12 52 6 78z" fill="#7EB16A"/>
+    <ellipse cx="46" cy="54" rx="11" ry="15" fill="#F2A254"/>
+    <path d="M46 68v56" stroke="#6FA765" stroke-width="4" stroke-linecap="round"/>
+    <ellipse cx="37" cy="52" rx="6.5" ry="12" fill="#F5B76F"/>
+    <ellipse cx="55" cy="52" rx="6.5" ry="12" fill="#EE9445"/>
+    <ellipse cx="384" cy="60" rx="11" ry="15" fill="#F7CE63"/>
+    <path d="M384 74v50" stroke="#6FA765" stroke-width="4" stroke-linecap="round"/>
+    <ellipse cx="375" cy="58" rx="6.5" ry="12" fill="#FADC86"/>
+    <ellipse cx="393" cy="58" rx="6.5" ry="12" fill="#F2BE45"/>
+   </g>
+   <g class="verge-sway verge-slow">
+    <path d="M82 132c-4-30 2-52 16-66-10 26-10 44-6 66z" fill="#A3CC8A"/>
+    <path d="M348 132c4-30-2-52-16-66 10 26 10 44 6 66z" fill="#A3CC8A"/>
+    <circle cx="98" cy="72" r="7" fill="#FBFCF6"/><circle cx="98" cy="72" r="2.6" fill="#F7C948"/>
+    <circle cx="332" cy="78" r="6" fill="#F7C3D8"/><circle cx="332" cy="78" r="2.2" fill="#F7C948"/>
+   </g>
+  </svg>
+ </div>
 
  <header class="topbar">
   <a href="#home" class="brand" aria-label="Harbor, home">
@@ -629,12 +714,9 @@ img.camera-feed { transform: none }
   </div>
  </header>
 
- <p class="script-note" id="scriptNote" aria-hidden="true">Good morning</p>
- <div class="rail" id="rail"></div>
-
  <button class="meadow-chip" id="chip">
   <span class="weather-turn" id="chipTurn" aria-hidden="true"></span>
-  <span id="chipText">Your garden is blooming</span>
+  <span class="chip-text" id="chipText">Your garden is blooming</span>
   <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
  </button>
 
@@ -687,7 +769,7 @@ img.camera-feed { transform: none }
     <video id="camFeed" class="camera-feed" playsinline muted autoplay aria-label="Camera preview"></video>
     <label class="camera-fallback" id="camFallback" hidden>
      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L8 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-4l-1.5-2z"/><circle cx="12" cy="13" r="3.2"/></svg>
-     <b>No camera here.</b><span>Choose a picture instead — it works the same way.</span>
+     <b>No camera here.</b><span>Choose a picture instead. It works the same way.</span>
      <input type="file" accept="image/*" class="sr-only">
     </label>
     <span class="camera-corners" aria-hidden="true"></span>
@@ -789,6 +871,8 @@ function windAt(x, y, t, strength) {
     return (Math.sin(t * 0.0016 + x * 0.011 + y * 0.02) + 0.45 * Math.sin(t * 0.0031 + x * 0.026)) * gust * strength;
 }
 const windStrength = { clear: 3.2, bright: 4.4, cloudy: 6, rain: 8.5, storm: 15 };
+/** The world is wider than the window: panning has somewhere to go, zoom something to find. */
+const WORLD_SPAN = 2.6;
 const WILD = ['daisy', 'cosmos', 'tulip', 'marigold', 'bluebell', 'aster'];
 /** The meadow is laid out for the visible band above the sheet, so nothing important hides behind it. */
 function buildScene(w, h, fieldTop) {
@@ -948,7 +1032,7 @@ function paintBackdrop(ctx, scene, weather) {
             ctx.fill();
         }
     }
-    /* Distance goes pale before it disappears — the one trick that stops bands reading as stripes. */
+    /* Distance goes pale before it disappears: the one trick that stops bands reading as stripes. */
     const haze = ctx.createLinearGradient(0, horizon - 26, 0, horizon + 96);
     haze.addColorStop(0, p.haze);
     haze.addColorStop(1, 'rgba(255,255,255,0)');
@@ -992,11 +1076,14 @@ function paintClouds(ctx, scene, weather, t) {
     ctx.restore();
 }
 /** Grass and wild flowers, every stem bending on the same gust. */
-function paintField(ctx, scene, weather, t) {
+function paintField(ctx, scene, weather, t, view) {
     const p = PALETTES[weather];
     const strength = windStrength[weather];
     ctx.lineCap = 'round';
     for (const b of scene.blades) {
+        /* Off screen is not drawn: the world is wide and most of it is behind you. */
+        if (view && (b.x < view.x0 - 40 || b.x > view.x1 + 40 || b.y < view.y0 - 60 || b.y > view.y1 + 40))
+            continue;
         const bend = windAt(b.x, b.y, t, strength) * (b.h / 18);
         const tipX = b.x + bend + b.lean * b.h;
         const tipY = b.y - b.h;
@@ -1046,6 +1133,28 @@ function placeBlooms(people, calls, w, fieldTop, horizon) {
         });
     });
     return out.sort((a, b) => a.y - b.y);
+}
+/** The centre of each person's drift of the field, and the flower they grow most of,
+    so the meadow can name a patch when you are too far out to read single flowers. */
+function placePatches(people, blooms) {
+    return people.map(person => {
+        var _a;
+        const mine = blooms.filter(b => b.person.id === person.id);
+        const tally = new Map();
+        for (const b of mine)
+            tally.set(b.kind, ((_a = tally.get(b.kind)) !== null && _a !== void 0 ? _a : 0) + 1);
+        let dominant = 'daisy', top = 0;
+        for (const [kind, n] of tally)
+            if (n > top) {
+                top = n;
+                dominant = kind;
+            }
+        return {
+            person, count: mine.length, dominant,
+            x: mine.reduce((sum, b) => sum + b.x, 0) / Math.max(mine.length, 1),
+            y: mine.reduce((sum, b) => sum + b.y, 0) / Math.max(mine.length, 1),
+        };
+    }).filter(patch => patch.count > 0);
 }
 /** A call flower, drawn upright on a stem that bends with everything else. */
 function paintBloom(ctx, bloom, t, strength, lift) {
@@ -1272,14 +1381,29 @@ const SPRIGS = ['tulip', 'leaf', 'cosmos', 'bell']
 
 /* ============================ the meadow ============================ */
 const holder = $('meadow'), canvas = $('field'), ctx = canvas.getContext('2d')
-let scene = null, blooms = [], backdrop = null, fading = null, painted = null, hits = []
-let dpr = 1, cssW = 0, cssH = 0, signature = ''
+let scene = null, blooms = [], patches = [], backdrop = null, fading = null, painted = null, hits = [], tagHits = []
+let dpr = 1, cssW = 0, cssH = 0, worldW = 0, signature = '', started = false, tagFade = 1
+const NEAR = 3.4, TAGS_FADE = 1.9
+let cam = { x: 0, y: 0, zoom: 1 }, goal = { x: 0, y: 0, zoom: 1 }
 const fieldTop = () => cssH * 0.52
 
-function rebuild() { scene = buildScene(cssW, cssH, fieldTop()); backdrop = null; painted = null; signature = '' }
+function rebuild() {
+ worldW = cssW * WORLD_SPAN
+ scene = buildScene(worldW, cssH, fieldTop())
+ backdrop = null; painted = null; signature = ''
+ if (!started) { started = true; cam = { x: worldW / 2, y: cssH / 2, zoom: 1 }; goal = Object.assign({}, cam) }
+ clampCam(goal); clampCam(cam)
+}
+/* You can wander, but not off the edge of the world. */
+function clampCam(c) {
+ c.zoom = Math.min(NEAR, Math.max(1, c.zoom))
+ const halfW = cssW / 2 / c.zoom, halfH = cssH / 2 / c.zoom
+ c.x = worldW <= halfW * 2 ? worldW / 2 : Math.min(worldW - halfW, Math.max(halfW, c.x))
+ c.y = cssH <= halfH * 2 ? cssH / 2 : Math.min(cssH - halfH, Math.max(halfH, c.y))
+}
 function repaintBackdrop(weather) {
  const next = document.createElement('canvas')
- next.width = Math.round(cssW * dpr); next.height = Math.round(cssH * dpr)
+ next.width = Math.round(worldW * dpr); next.height = Math.round(cssH * dpr)
  const b = next.getContext('2d')
  b.setTransform(dpr, 0, 0, dpr, 0, 0)
  paintBackdrop(b, scene, weather)
@@ -1300,49 +1424,172 @@ function render(now) {
  if (!scene) rebuild()
  if (painted !== S.weather) repaintBackdrop(S.weather)
  const sig = PEOPLE.length + '|' + CALLS.length
- if (sig !== signature) { blooms = placeBlooms(PEOPLE, CALLS, cssW, fieldTop(), scene.horizon); signature = sig }
+ if (sig !== signature) {
+  blooms = placeBlooms(PEOPLE, CALLS, worldW, fieldTop(), scene.horizon)
+  patches = placePatches(PEOPLE, blooms)
+  signature = sig
+ }
 
  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
  ctx.clearRect(0, 0, cssW, cssH)
+ cam.x += (goal.x - cam.x) * 0.16
+ cam.y += (goal.y - cam.y) * 0.16
+ cam.zoom += (goal.zoom - cam.zoom) * 0.16
+ const rel = cam.zoom
+
  ctx.save()
- ctx.translate(0, -S.lift * 46)
- if (backdrop) ctx.drawImage(backdrop, 0, 0, cssW, cssH)
+ ctx.translate(0, -S.lift * 40)
+
+ /* The backdrop is far away: it drifts a fraction as fast and can never slide off the frame. */
+ const far = 1 + (rel - 1) * 0.1
+ const along = Math.min(1, Math.max(0, (cam.x - cssW / 2) / Math.max(worldW - cssW, 1)))
+ ctx.save()
+ ctx.translate(-(worldW * far - cssW) * along * 0.55, 0)
+ ctx.scale(far, far)
+ if (backdrop) ctx.drawImage(backdrop, 0, 0, worldW, cssH)
  if (fading) {
-  const mix = Math.min(1, (now - fading.at) / 900)
-  ctx.globalAlpha = 1 - mix; ctx.drawImage(fading.from, 0, 0, cssW, cssH); ctx.globalAlpha = 1
-  if (mix >= 1) fading = null
+  /* The old sky does not just dim, it lifts away: the new weather is already painted
+     underneath, so the outgoing one can drift up without leaving a gap. */
+  const raw = Math.min(1, (now - fading.at) / 1100)
+  const mix = raw < 0.5 ? 2 * raw * raw : 1 - Math.pow(2 - 2 * raw, 2) / 2
+  ctx.save()
+  ctx.globalAlpha = 1 - mix
+  ctx.translate(0, -mix * 30)
+  ctx.drawImage(fading.from, 0, 0, worldW, cssH)
+  ctx.restore()
+  if (raw >= 1) fading = null
  }
+ ctx.restore()
+
  paintClouds(ctx, scene, S.weather, now)
- paintField(ctx, scene, S.weather, now)
+
+ ctx.save()
+ ctx.translate(cssW / 2 - cam.x * cam.zoom, cssH / 2 - cam.y * cam.zoom)
+ ctx.scale(cam.zoom, cam.zoom)
+ const view = { x0: cam.x - cssW / 2 / cam.zoom, x1: cam.x + cssW / 2 / cam.zoom, y0: cam.y - cssH / 2 / cam.zoom, y1: cam.y + cssH / 2 / cam.zoom }
+ paintField(ctx, scene, S.weather, now, view)
  const strength = windStrength[S.weather]
  hits = []
  for (const bloom of blooms) {
+  if (bloom.x < view.x0 - 60 || bloom.x > view.x1 + 60) continue
   const fresh = S.fresh === bloom.moment.id
   const head = paintBloom(ctx, bloom, now, strength, fresh ? Math.max(0, 1 - (now % 4000) / 4000) * 0.5 : 0)
-  hits.push({ x: head.hx, y: head.hy - S.lift * 46, r: Math.max(head.r, 15), bloom })
+  hits.push({
+   x: cssW / 2 + (head.hx - cam.x) * cam.zoom,
+   y: cssH / 2 + (head.hy - cam.y) * cam.zoom - S.lift * 40,
+   r: Math.max(head.r * cam.zoom, 16), bloom,
+  })
   if (fresh) {
    const pulse = 1 + ((now % 1800) / 1800) * 1.1
-   ctx.strokeStyle = 'rgba(254,252,245,.9)'; ctx.lineWidth = 2
+   ctx.strokeStyle = 'rgba(254,252,245,.9)'; ctx.lineWidth = 2 / cam.zoom
    ctx.globalAlpha = Math.max(0, 1 - (now % 1800) / 1800)
    ctx.beginPath(); ctx.arc(head.hx, head.hy, head.r * pulse, 0, 6.283185); ctx.stroke()
    ctx.globalAlpha = 1
   }
  }
+ ctx.restore()
+
+ /* Far out a patch is a name and a count; coming in the names get out of the way. */
+ tagHits = []
+ /* With the camera open the meadow is scenery, not a map: the name tags step out. */
+ tagFade += ((stage.dataset.camera === 'true' ? 0 : 1) - tagFade) * 0.14
+ const tagAlpha = (rel > TAGS_FADE ? Math.max(0, 1 - (rel - TAGS_FADE) / 0.8) : 1) * tagFade
+ if (tagAlpha > 0.02) {
+  ctx.save()
+  ctx.globalAlpha = tagAlpha
+  ctx.font = "700 12px var(--round), ui-rounded, sans-serif"
+  const laid = []
+  for (const patch of patches) {
+   const sx = cssW / 2 + (patch.x - cam.x) * cam.zoom
+   let sy = cssH / 2 + (patch.y - cam.y) * cam.zoom - 44 - S.lift * 40
+   if (sx < -60 || sx > cssW + 60) continue
+   const text = patch.person.name + ' · ' + patch.count
+   const wide = ctx.measureText(text).width + 42
+   const x = Math.min(Math.max(sx, wide / 2 + 10), cssW - wide / 2 - 10)
+   while (laid.some(l => Math.abs(l.x - x) < wide * 0.8 && Math.abs(l.y - sy) < 30)) sy -= 30
+   laid.push({ x: x, y: sy })
+   ctx.fillStyle = 'rgba(254,252,245,.95)'
+   ctx.beginPath(); ctx.roundRect(x - wide / 2, sy - 13, wide, 26, 13); ctx.fill()
+   ctx.beginPath(); ctx.moveTo(x - 5, sy + 13); ctx.lineTo(x + 5, sy + 13); ctx.lineTo(x, sy + 20); ctx.closePath(); ctx.fill()
+   const f = flowerSpec(patch.dominant)
+   for (let i = 0; i < f.petals; i++) {
+    const a = (i / f.petals) * 6.283185
+    ctx.fillStyle = i % 2 ? f.petal : f.petalDeep
+    ctx.beginPath(); ctx.ellipse(x - wide / 2 + 15 + Math.cos(a) * 4.4, sy + Math.sin(a) * 4.4, 3.4, 2.5, a, 0, 6.283185); ctx.fill()
+   }
+   ctx.fillStyle = f.heart
+   ctx.beginPath(); ctx.arc(x - wide / 2 + 15, sy, 2.2, 0, 6.283185); ctx.fill()
+   ctx.fillStyle = '#13492C'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+   ctx.fillText(text, x + 9, sy + 1)
+   ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic'
+   tagHits.push({ x: x - wide / 2, y: sy - 13, w: wide, h: 26, id: patch.person.id })
+  }
+  ctx.restore()
+ }
+
  paintWeather(ctx, scene, S.weather, now)
  ctx.restore()
 }
 requestAnimationFrame(render)
 
+const camPointers = new Map()
+let camDrag = null, camPinch = null, lastTap = 0
+const camLocal = e => { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top } }
 canvas.addEventListener('pointerdown', e => {
- const r = canvas.getBoundingClientRect()
- const x = e.clientX - r.left, y = e.clientY - r.top
+ canvas.setPointerCapture(e.pointerId)
+ const pt = camLocal(e)
+ camPointers.set(e.pointerId, pt)
+ if (camPointers.size === 2) {
+  const [a, b] = [...camPointers.values()]
+  camPinch = { gap: Math.hypot(a.x - b.x, a.y - b.y), zoom: goal.zoom }
+  camDrag = null
+ } else camDrag = { x: pt.x, y: pt.y, moved: 0 }
+})
+canvas.addEventListener('pointermove', e => {
+ if (!camPointers.has(e.pointerId)) return
+ const pt = camLocal(e)
+ camPointers.set(e.pointerId, pt)
+ if (camPinch && camPointers.size === 2) {
+  const [a, b] = [...camPointers.values()]
+  goal.zoom = camPinch.zoom * (Math.hypot(a.x - b.x, a.y - b.y) / Math.max(camPinch.gap, 1))
+  clampCam(goal)
+  return
+ }
+ if (!camDrag) return
+ const dx = pt.x - camDrag.x, dy = pt.y - camDrag.y
+ camDrag.moved += Math.hypot(dx, dy); camDrag.x = pt.x; camDrag.y = pt.y
+ goal.x -= dx / goal.zoom
+ goal.y -= dy / goal.zoom
+ clampCam(goal)
+})
+function camEnd(e) {
+ const pt = camPointers.get(e.pointerId)
+ const startedDrag = camDrag
+ camPointers.delete(e.pointerId)
+ if (camPointers.size < 2) camPinch = null
+ camDrag = null
+ if (!startedDrag || !pt || startedDrag.moved >= 6) return
+ for (const tag of tagHits) {
+  if (pt.x >= tag.x && pt.x <= tag.x + tag.w && pt.y >= tag.y && pt.y <= tag.y + tag.h) { toast('Conversations live in the full app.'); return }
+ }
  let found = null, best = Infinity
  for (const h of hits) {
-  const d = Math.hypot(h.x - x, h.y - y)
-  if (d < h.r * 1.6 && d < best) { best = d; found = h.bloom }
+  const d = Math.hypot(h.x - pt.x, h.y - pt.y)
+  if (d < h.r * 1.5 && d < best) { best = d; found = h.bloom }
  }
- if (found) openCase(found.moment)
-})
+ if (found) { openCase(found.moment); return }
+ /* A double tap is the only zoom control there is. */
+ const now = performance.now()
+ if (now - lastTap < 320) {
+  const world = { x: cam.x + (pt.x - cssW / 2) / cam.zoom, y: cam.y + (pt.y - cssH / 2) / cam.zoom }
+  goal = cam.zoom > NEAR * 0.7 ? { x: cam.x, y: cssH / 2, zoom: 1 } : { x: world.x, y: world.y, zoom: NEAR }
+  clampCam(goal)
+  lastTap = 0
+ } else lastTap = now
+}
+canvas.addEventListener('pointerup', camEnd)
+canvas.addEventListener('pointercancel', camEnd)
+canvas.addEventListener('wheel', e => { e.preventDefault(); goal.zoom *= e.deltaY < 0 ? 1.14 : 1 / 1.14; clampCam(goal) }, { passive: false })
 
 /* ============================ the sheet ============================ */
 const REST = 0.52, UP = 0.11, SLOP = 6
@@ -1352,11 +1599,10 @@ const stage = document.querySelector('.stage')
 function setLift(v) {
  S.lift = Math.min(1, Math.max(0, v))
  stage.style.setProperty('--lift', String(S.lift))
- const chip = $('chip')
- chip.style.opacity = S.lift > 0.72 ? '0' : '1'
- chip.style.pointerEvents = S.lift > 0.72 ? 'none' : 'auto'
+ $('chip').dataset.away = String(S.lift > 0.72)
  grab.setAttribute('aria-expanded', String(S.lift > 0.5))
  grab.setAttribute('aria-label', S.lift > 0.5 ? 'Lower the panel' : 'Raise the panel')
+ sheet.dataset.lifted = String(S.lift > 0.5)
 }
 function startDrag(e, collapseOnly) {
  if (collapseOnly && scroller.scrollTop > 0) return
@@ -1403,7 +1649,7 @@ function openCase(call) {
  const f = flowerSpec(call.flower), who = person(call.person), feel = FEELINGS[call.feeling]
  const rows = [['Date', new Date(call.at).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })], ['Duration', fmtDuration(call.minutes)]]
  if (call.topic) rows.push(['What it was about', call.topic])
- rows.push(['How you felt', feel.label + ' — ' + feel.caption.toLowerCase().replace(/\.$/, '')])
+ rows.push(['How you felt', feel.label + ', ' + feel.caption.toLowerCase().replace(/\.$/, '')])
  openScrim('<div class="panel">' +
   '<div class="vitrine"><span class="vitrine-shadow"></span><span class="vitrine-stage">' + flowerSVG(call.flower, 110) + '</span></div>' +
   '<div class="panel-head"><h3>' + f.name + '</h3><span class="panel-who">with ' + esc(who.name) + '</span></div>' +
@@ -1415,49 +1661,72 @@ function openCase(call) {
 
 /* ============================ screens ============================ */
 const caret = '<svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>'
-const TOOLS = [
- ['Breathe', I.wind, 'var(--tint-blue)', 'Four in, six out, eight times.'],
- ['Move', I.sprout, 'var(--tint-yellow)', 'Round the block is enough.'],
- ['Read', I.book, 'var(--tint-mint)', 'Ten pages, no phone.'],
- ['Reflect', I.sun, 'var(--tint-peach)', 'One line about today.'],
- ['Music', I.music, 'var(--tint-lilac)', 'The album you keep meaning to finish.'],
- ['More', I.spark, 'var(--tint-rose)', 'A longer list lives in your account.'],
-]
+const HOME_TABS = [['people', 'People', I.users], ['schedule', 'Schedule', I.cal], ['activities', 'Activities', I.bell]]
 const SCREENS = {}
 
 SCREENS.home = () => {
- const w = WEATHERS[weatherIndex()]
+ const w = WEATHERS[weatherIndex()], tab = S.homeTab || 'people'
  return '<div class="wrap flow stagger">' +
   card_feelings(w) +
   '<section style="--i:1"><div class="row-head"><h2>Your people' +
    '<svg class="squiggle" viewBox="0 0 54 12" fill="none" aria-hidden="true"><path d="M1 7c6-7 12 5 18-1s11 4 17-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M45.5 10c-3-2.4-5-4-5-6a2.4 2.4 0 0 1 5-.9 2.4 2.4 0 0 1 5 .9c0 2-2 3.6-5 6z" fill="currentColor"/></svg>' +
    '</h2><button class="pill-link" data-act="expand">View all ' + I.caret + '</button></div>' +
-   '<div class="people-grid">' + PEOPLE.map((p, i) => {
-    const flower = dominant(p.id), n = callsFor(p.id).length
-    return '<div class="person tint-' + p.tone + '">' + SPRIG[SPRIGS[i % 4]] +
-     '<button class="person-top" data-chat="' + p.id + '" aria-label="Open your conversation with ' + esc(p.name) + '">' +
-      '<span class="avatar avatar-' + p.tone + ' avatar-md">' + p.initials + '</span>' + caret + '</button>' +
-     '<h3>' + esc(p.name) + '</h3><p class="person-note">' + esc(p.note) + '</p>' +
-     '<span class="person-foot">' + flowerSVG(flower, 13) + n + ' flowers in their path</span>' +
-     '<button class="call-now" data-call="' + p.id + '">' + I.phone + 'Call ' + esc(p.name) + '</button></div>'
-   }).join('') + '</div></section>' +
+   '<div class="segment" role="tablist" aria-label="Your people">' +
+    '<span class="segment-slide" style="--i:' + HOME_TABS.findIndex(t => t[0] === tab) + '" aria-hidden="true"></span>' +
+    HOME_TABS.map(t => '<button role="tab" class="segment-tab" data-tab="' + t[0] + '" aria-selected="' + (tab === t[0]) + '">' + t[2] + t[1] + '</button>').join('') +
+   '</div>' +
+   (tab === 'people' ? peopleGrid() : tab === 'schedule' ? todayPanel() : activityRows()) +
+  '</section>' +
   '<section style="--i:2"><div class="row-head"><h2>A little something</h2>' +
    '<button class="text-link" data-go="notes">notes &amp; instants ' + I.caret + '</button></div>' +
    notesRail() +
-   '<div class="tool-row" style="margin-top:12px">' + TOOLS.map((t, i) =>
-    '<button class="tool" data-tool="' + i + '"><span class="tool-disc" style="background:' + t[2] + '">' + t[1] + '</span><b>' + t[0] + '</b></button>').join('') + '</div></section>' +
+   '<button class="row" style="margin-top:12px" data-act="story"><span class="row-icon" style="background:var(--tint-blue)">' + I.camera + '</span>' +
+   '<span class="row-body"><b>Today&rsquo;s instants</b><span>' + S.instants.length + ' from your people, before they fade</span></span>' + caret + '</button></section>' +
   '<section class="tint-card" style="background:var(--tint-mint);position:relative;overflow:hidden;--i:3">' + SPRIG.tulip +
-   '<span class="eyebrow" style="display:flex;align-items:center;gap:7px;color:var(--ink)">A little window, together</span>' +
+   '<span class="eyebrow" style="display:flex;align-items:center;gap:7px;color:var(--ink)">' + I.sun + 'A little window, together</span>' +
    (S.sharing && S.mutual
-    ? '<h3 style="font-size:24px;margin:8px 0 4px;color:var(--ink-deep)">8:40 – 10:00 pm</h3><p class="small">80 unhurried minutes, today. A possibility, not an obligation.</p>'
+    ? '<h3 style="font-size:24px;margin:8px 0 4px;color:var(--ink-deep)">8:40 to 10:00 pm</h3><p class="small">80 unhurried minutes, today. A possibility, not an obligation.</p>'
     : '<h3 style="font-size:21px;margin:8px 0 4px;color:var(--ink-deep)">Your rhythm stays yours.</h3><p class="small" style="max-width:78%">Turn on Share my load to look for a window you are both free in.</p>') +
    '<button class="text-link" style="margin-top:4px" data-go="share">Open Share my load ' + I.caret + '</button></section>' +
-  '<section style="--i:4"><div class="row-head"><h2 style="font-size:20px">Today</h2>' +
-   '<button class="text-link" data-go="schedule">the whole week ' + I.caret + '</button></div>' +
-   '<div class="flow" style="gap:9px">' + todayRows() + '</div></section>' +
   '<button class="row" style="--i:5" data-act="cue"><span class="row-icon" style="background:var(--tint-blue)">' + I.waves + '</span>' +
    '<span class="row-body"><b>Find a quiet moment</b><span>A cue at the end of a walk, never a demand</span></span>' + caret + '</button>' +
-  '<p class="fineprint" style="--i:6">An interactive demo · saved only on this device</p></div>'
+  '<button class="row" style="--i:6" data-act="window"><span class="row-icon" style="background:var(--tint-peach)">' + I.camera + '</span>' +
+   '<span class="row-body"><b>See a snap window</b><span>The same nudge, at the same minute, for both of you</span></span>' + caret + '</button>' +
+  '<p class="fineprint" style="--i:7">An interactive demo · saved only on this device</p></div>'
+}
+
+/** The people themselves: one card each, with the flower their calls keep growing. */
+function peopleGrid() {
+ return '<div class="people-grid">' + PEOPLE.map((p, i) => {
+  const flower = dominant(p.id), n = callsFor(p.id).length
+  return '<div class="person tint-' + p.tone + '">' + SPRIG[SPRIGS[i % 4]] +
+   '<button class="person-top" data-chat="' + p.id + '" aria-label="Open your conversation with ' + esc(p.name) + '">' +
+    '<span class="avatar avatar-' + p.tone + ' avatar-md">' + p.initials + '</span>' + caret + '</button>' +
+   '<h3>' + esc(p.name) + '</h3><p class="person-note">' + esc(p.note) + '</p>' +
+   '<span class="person-foot">' + flowerSVG(flower, 13) + n + ' flowers in their path</span>' +
+   '<button class="call-now" data-call="' + p.id + '">' + I.phone + 'Call ' + esc(p.name) + '</button></div>'
+ }).join('') + '</div>'
+}
+
+/** Today in a couple of lines. The whole week lives on the schedule screen. */
+function todayPanel() {
+ return '<div class="row-head" style="margin-top:2px"><h2 style="font-size:19px">Today</h2>' +
+  '<button class="text-link" data-go="schedule">the whole week ' + I.caret + '</button></div>' +
+  '<div class="flow" style="gap:9px">' + todayRows() + '</div>'
+}
+
+/** What has actually happened lately: every call, newest first. */
+function activityRows() {
+ const recent = CALLS.slice().sort((a, b) => b.at.localeCompare(a.at)).slice(0, 5)
+ if (!recent.length) return '<p class="empty">No calls yet. The first one plants the first flower.</p>'
+ return '<div class="flow stagger" style="gap:9px">' + recent.map((c, i) => {
+  const who = person(c.person), feel = FEELINGS[c.feeling]
+  return '<button class="row" style="--i:' + i + '" data-case="' + c.id + '">' +
+   '<span class="row-icon tint-' + who.tone + '">' + flowerSVG(c.flower, 19) + '</span>' +
+   '<span class="row-body"><b>' + esc(c.topic || ('A call with ' + who.name)) + '</b>' +
+   '<span>' + fmtDuration(c.minutes) + ' · ' + feel.label.toLowerCase() + ' · ' +
+   new Date(c.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + '</span></span>' + caret + '</button>'
+ }).join('') + '</div>'
 }
 const weatherIndex = () => WEATHERS.findIndex(w => w.id === S.weather)
 function card_feelings(w) {
@@ -1555,14 +1824,14 @@ SCREENS.schedule = () => {
      '<span class="row-body"><b>' + S.linked + ' is linked</b><span>New events fill themselves in</span></span>' +
      '<button class="cal-step" data-act="unlink" aria-label="Unlink this calendar">' + I.x + '</button></div>'
    : '<button class="row" style="--i:2" data-act="link"><span class="row-icon" style="background:var(--tint-blue)">' + I.link + '</span>' +
-     '<span class="row-body"><b>Bring your calendar in</b><span>Outlook, Google or Apple — marks your week for you</span></span>' + caret + '</button>') +
+     '<span class="row-body"><b>Bring your calendar in</b><span>Outlook, Google or Apple, and it marks your week for you</span></span>' + caret + '</button>') +
   '<button class="row" style="--i:3" data-go="share"><span class="row-icon">' + I.shield + '</span>' +
-   '<span class="row-body"><b>Share my load</b><span>' + (S.sharing ? (S.mutual ? 'On, both ways' : 'On — waiting on them') : 'Free and busy times only, when you say so') + '</span></span>' + caret + '</button>' +
+   '<span class="row-body"><b>Share my load</b><span>' + (S.sharing ? (S.mutual ? 'On, both ways' : 'On, waiting on them') : 'Free and busy times only, when you say so') + '</span></span>' + caret + '</button>' +
   '<p class="fineprint" style="--i:4">Editable demo schedule · nothing syncs to a real calendar</p></div>'
 }
 
 SCREENS.share = () => '<div class="page-head"><span class="eyebrow">Share my load</span><h1>Let&rsquo;s lighten it.</h1>' +
- '<p>Share what&rsquo;s on your mind — and let someone carry a little with you.</p></div>' +
+ '<p>Share what&rsquo;s on your mind, and let someone carry a little with you.</p></div>' +
  '<div class="wrap flow stagger">' +
  '<section class="card card-pad flow" style="--i:0">' + SPRIG.cosmos +
   '<label class="label" for="loadText" style="font-size:16px;color:var(--ink-deep)">What&rsquo;s on your mind?</label>' +
@@ -1581,7 +1850,7 @@ SCREENS.share = () => '<div class="page-head"><span class="eyebrow">Share my loa
   '<button role="radio" aria-checked="false" class="pick" data-how="group"><span class="row-icon" style="background:var(--tint-blue)">' + I.users + '</span>' +
    '<span class="row-body"><b>Group load</b><span>Share it with everyone you picked at once.</span></span><span class="pick-mark"></span></button></div></section>' +
  '<section class="card card-pad flow" style="--i:3"><div class="switch-row">' +
-  '<div><b id="rhythmHead">Share my rhythm too</b><p class="small">Free and busy times only — never what a block is called.</p></div>' +
+  '<div><b id="rhythmHead">Share my rhythm too</b><p class="small">Free and busy times only. Never what a block is called.</p></div>' +
   '<button class="toggle" id="shareToggle" aria-pressed="' + S.sharing + '" aria-labelledby="rhythmHead"></button></div>' +
   (S.sharing ? '<div class="switch-row"><div><b>Mutual sharing</b><p class="small">Mom shares back.</p></div>' +
    '<button class="toggle" id="mutualToggle" aria-pressed="' + S.mutual + '" aria-label="Mutual sharing with Mom"></button></div>' : '') + '</section>' +
@@ -1609,14 +1878,16 @@ SCREENS.notes = () => {
     '<div class="row" style="box-shadow:none;background:transparent;padding:0">' +
     '<span class="avatar avatar-' + who.tone + ' avatar-sm">' + who.initials + '</span>' +
     '<span class="row-body"><b>' + esc(who.name) + '</b><span>' + new Date(n.at).toLocaleString(undefined, { weekday: 'long', hour: 'numeric', minute: '2-digit' }) + '</span></span></div>' +
-    '<p style="font-family:var(--script);font-size:23px;line-height:1.25;color:var(--ink-deep);margin:10px 2px 0;position:relative;z-index:1">' + esc(n.text) + '</p></article>'
+    '<p style="font-family:var(--round);font-weight:600;font-size:17px;line-height:1.45;color:var(--ink-deep);margin:10px 2px 0;position:relative;z-index:1">' + esc(n.text) + '</p></article>'
   }).join('') +
   '<button class="row" style="--i:8" data-act="story"><span class="row-icon" style="background:var(--tint-blue)">' + I.camera + '</span>' +
   '<span class="row-body"><b>Today&rsquo;s instants</b><span>' + S.instants.length + ' pictures from your people</span></span>' + caret + '</button>' +
   '<p class="fineprint" style="--i:9">Instants fade on their own. Tap one to keep it.</p></div>'
 }
-const segment = () => '<div class="tool-row" role="tablist" aria-label="What to look at" style="--i:0;padding:5px;gap:3px">' +
- ['notes', 'scrapbook'].map(id => '<button role="tab" class="chip-choice" data-view="' + id + '" aria-selected="' + ((S.notesView || 'notes') === id) + '" aria-pressed="' + ((S.notesView || 'notes') === id) + '" style="flex:1;display:flex;justify-content:center">' + (id === 'notes' ? 'Notes' : 'Scrapbook') + '</button>').join('') + '</div>'
+const NOTE_TABS = [['notes', 'Notes', I.pen], ['scrapbook', 'Scrapbook', I.camera]]
+const segment = () => '<div class="segment" role="tablist" aria-label="What to look at" style="--i:0">' +
+ '<span class="segment-slide" style="--i:' + Math.max(0, NOTE_TABS.findIndex(t => t[0] === (S.notesView || 'notes'))) + ';width:calc((100% - 10px) / 2)" aria-hidden="true"></span>' +
+ NOTE_TABS.map(t => '<button role="tab" class="segment-tab" data-view="' + t[0] + '" aria-selected="' + ((S.notesView || 'notes') === t[0]) + '">' + t[2] + t[1] + '</button>').join('') + '</div>'
 
 SCREENS.account = () => '<div class="page-head"><span class="eyebrow">Your account.</span><h1>Your account.</h1><p>A little space that fits your life.</p></div>' +
  '<div class="wrap flow stagger">' +
@@ -1665,11 +1936,13 @@ function wire() {
  host.querySelectorAll('[data-go]').forEach(b => b.onclick = () => route(b.dataset.go))
  host.querySelectorAll('[data-chat]').forEach(b => b.onclick = () => toast('Conversations live in the full app.'))
  host.querySelectorAll('[data-call]').forEach(b => b.onclick = () => startCall(b.dataset.call))
- host.querySelectorAll('[data-tool]').forEach(b => b.onclick = () => { const t = TOOLS[+b.dataset.tool]; t[0] === 'More' ? route('account') : toast(t[3]) })
+ host.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { S.homeTab = b.dataset.tab; route('home') })
  host.querySelectorAll('[data-act="expand"]').forEach(b => b.onclick = () => setLift(1))
  host.querySelectorAll('[data-act="cue"]').forEach(b => b.onclick = fireCue)
  host.querySelectorAll('[data-act="camera"]').forEach(b => b.onclick = openCamera)
  host.querySelectorAll('[data-act="story"]').forEach(b => b.onclick = () => openStory(0))
+ host.querySelectorAll('[data-act="window"]').forEach(b => b.onclick = openWindow)
+ host.querySelectorAll('[data-case]').forEach(b => b.onclick = () => { const c = CALLS.find(x => x.id === b.dataset.case); if (c) openCase(c) })
  host.querySelectorAll('[data-view]').forEach(b => b.onclick = () => { S.notesView = b.dataset.view; route('notes') })
  host.querySelectorAll('[data-keep]').forEach(b => b.onclick = () => {
   const s = S.instants.find(x => x.id === b.dataset.keep)
@@ -1688,7 +1961,7 @@ function wire() {
    const p = PEOPLE[i - 1], n = S.notes.find(x => x.person === p.id)
    openScrim('<div class="panel"><h3 style="font-size:21px;color:var(--ink-deep)">' + esc(p.name) + '</h3>' +
     '<p class="small" style="margin:4px 0 12px">Left a couple of hours ago · nothing owed</p>' +
-    '<p style="font-family:var(--script);font-size:24px;line-height:1.25;color:var(--ink-deep)">' + esc(n ? n.text : 'Say hello whenever.') + '</p>' +
+    '<p style="font-family:var(--round);font-weight:600;font-size:18px;line-height:1.45;color:var(--ink-deep)">' + esc(n ? n.text : 'Say hello whenever.') + '</p>' +
     '<button class="btn btn-quiet btn-block" style="margin-top:12px" data-close>Just noticing, thanks</button></div>')
    $('scrimBody').querySelector('[data-close]').onclick = closeScrim
   }
@@ -1713,7 +1986,7 @@ function wire() {
  wireSchedule(); wireShare()
  host.querySelectorAll('[data-toggle]').forEach(b => b.onclick = () => b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true')))
  const name = $('yourName')
- if (name) name.oninput = () => { S.name = name.value.trim() || 'Maya'; $('scriptNote').textContent = greeting() + ', ' + S.name }
+ if (name) name.oninput = () => { S.name = name.value.trim() || 'Maya' }
 }
 
 /* ---------- weather ---------- */
@@ -1734,6 +2007,12 @@ function setWeather(id, quiet) {
  }
  showWeatherChip()
 }
+/** Replacing the node restarts the arrive animation, the way a React key does. */
+function setChipText(text) {
+ const old = $('chipText'), next = document.createElement('span')
+ next.className = 'chip-text'; next.id = 'chipText'; next.textContent = text
+ old.replaceWith(next)
+}
 function showWeatherChip() {
  const w = WEATHERS[weatherIndex()]
  const turn = $('chipTurn')
@@ -1741,13 +2020,12 @@ function showWeatherChip() {
  turn.firstElementChild.style.animation = 'none'
  void turn.offsetWidth
  turn.firstElementChild.style.animation = ''
- $('chipText').textContent = w.label
+ setChipText(w.label)
  $('chip').setAttribute('aria-label', 'Weather in your meadow: ' + w.label + '. Turn it over.')
  clearTimeout(chipTimer)
- chipTimer = setTimeout(() => { $('chipText').textContent = 'Your garden is blooming' }, 2600)
+ chipTimer = setTimeout(() => setChipText('Your garden is blooming'), 2600)
 }
 $('chip').onclick = () => setWeather(WEATHERS[(weatherIndex() + 1) % 5].id)
-const greeting = () => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening' }
 
 /* ---------- schedule interaction ---------- */
 let calDraft = null, calDraftEl = null
@@ -1878,18 +2156,6 @@ function wireShare() {
 }
 
 /* ============================ instants: rail, story, camera ============================ */
-function drawRail() {
- const rail = $('rail')
- rail.innerHTML = S.instants.slice(0, 4).map((s, i) => {
-  const who = person(s.person)
-  return '<button class="rail-dot" data-story="' + i + '" data-unseen="' + !s.saved + '" aria-label="Instant from ' + esc(who.name) + ': ' + esc(s.caption) + '">' +
-   '<span class="rail-ring"></span><span class="rail-face tint-' + who.tone + '"><span class="rail-initial">' + who.initials + '</span></span></button>'
- }).join('') + '<button class="rail-camera" id="railCam" aria-label="Take an instant">' + I.camera + '</button>'
- rail.querySelectorAll('[data-story]').forEach(b => b.onclick = () => openStory(+b.dataset.story))
- $('railCam').onclick = openCamera
-}
-drawRail()
-
 const STORY_MS = 5200
 let storyIndex = 0, storyHeld = false, storyStart = 0, storyFrame = 0, storyElapsed = 0
 function openStory(i) {
@@ -1943,6 +2209,7 @@ $('storyReply').addEventListener('submit', e => {
 let camStream = null
 function openCamera() {
  $('camera').hidden = false
+ stage.dataset.camera = 'true'
  const video = $('camFeed')
  navigator.mediaDevices && navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
   .then(s => { camStream = s; video.srcObject = s; video.play().catch(() => {}) })
@@ -1951,6 +2218,7 @@ function openCamera() {
 }
 function closeCamera() {
  $('camera').hidden = true
+ stage.dataset.camera = 'false'
  if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null }
 }
 $('camClose').onclick = closeCamera
@@ -2004,7 +2272,7 @@ function pickFlower() {
  callState.flower = FEELINGS[callState.feeling].flower
  openCurtain('<span class="eyebrow">' + esc(person(callState.id).name) + '&rsquo;s patch</span>' +
   '<h1 class="curtain-title">Which flower was it?</h1>' +
-  '<p class="curtain-sub">Picked for a ' + FEELINGS[callState.feeling].label.toLowerCase() + ' call — or pick another.</p>' +
+  '<p class="curtain-sub">Picked for a ' + FEELINGS[callState.feeling].label.toLowerCase() + ' call. Pick another if it is not.</p>' +
   '<div class="flower-grid">' + flowerLibrary.map(f =>
    '<button class="flower-option" role="radio" data-kind="' + f.id + '" aria-checked="' + (f.id === callState.flower) + '">' +
    flowerSVG(f.id, 40) + '<b>' + f.name + '</b><span>' + f.note + '</span></button>').join('') + '</div>' +
@@ -2041,7 +2309,7 @@ function fireCue() {
   '<span class="halo"><span class="avatar avatar-' + who.tone + ' avatar-xl">' + who.initials + '</span></span>' +
   '<p style="font-family:var(--round);font-weight:700;font-size:23px;color:var(--ink-deep)">' + esc(who.name) + '</p>' +
   '<h1 class="curtain-title">Looks like you&rsquo;re free.</h1>' +
-  '<p class="curtain-sub">You just stopped walking — a good moment, if you want it.</p>' +
+  '<p class="curtain-sub">You just stopped walking, so this is a good moment if you want it.</p>' +
   '<div class="chips" style="justify-content:center">' + ['Catch up', 'Ask for help', 'Share news', 'Just because'].map(t =>
    '<button class="chip-choice" data-topic="' + t + '" aria-pressed="false">' + t + '</button>').join('') + '</div>' +
   '<div class="paths">' +
@@ -2060,6 +2328,22 @@ function fireCue() {
  $('cueLater').onclick = () => { closeCurtain(); toast('Saved. You will see it when the time comes.') }
  $('cueOut').onclick = () => { closeCurtain(); toast('Kept a little space for yourself.') }
 }
+/** The window both of you agreed to. It opens like a flower, not like an alert. */
+function openWindow() {
+ try { navigator.vibrate && navigator.vibrate([140, 90, 200]) } catch (e) { /* vibration blocked; the card still opens */ }
+ const names = PEOPLE.slice(0, 2).map(p => p.name).join(' and ')
+ openScrim('<div class="window-card">' +
+  '<span class="window-bloom"><span class="window-ring"></span><span class="window-ring"></span>' + flowerSVG('cosmos', 58) + '</span>' +
+  '<span class="eyebrow" style="display:block;margin-top:10px">Your window is open</span>' +
+  '<h2 style="font-size:27px;color:var(--ink-deep);letter-spacing:-.6px;margin:6px 0">It&rsquo;s time.</h2>' +
+  '<p class="small" style="margin-bottom:16px">Whatever you&rsquo;re doing right now. That&rsquo;s the one. ' +
+   esc(names) + ' got the same nudge at the same moment.</p>' +
+  '<button class="btn btn-block" id="winTake">' + I.camera + 'Take It</button>' +
+  '<button class="btn btn-quiet btn-block" style="margin-top:6px" id="winSkip">skip today</button></div>')
+ $('winTake').onclick = () => { closeScrim(); openCamera() }
+ $('winSkip').onclick = () => { closeScrim(); toast('Let it pass. There is another one tomorrow.') }
+}
+
 function ringTone(times) {
  try {
   const actx = new (window.AudioContext || window.webkitAudioContext)()
@@ -2084,7 +2368,7 @@ const TODAY_Q = QUESTIONS[new Date().getDate() % QUESTIONS.length]
 function askQuestion() {
  openCurtain('<span class="eyebrow">Today&rsquo;s little question</span>' +
   '<h1 class="curtain-title">' + esc(TODAY_Q.q) + '</h1>' +
-  '<p class="curtain-sub">No streak to keep — answer today, skip tomorrow, either is fine.</p>' +
+  '<p class="curtain-sub">No streak to keep. Answer today, skip tomorrow, either is fine.</p>' +
   '<div style="width:100%"><textarea class="input" id="answer" maxlength="200" placeholder="Whatever comes to mind…"></textarea></div>' +
   '<button class="btn btn-block" id="shareAnswer">Share My Answer</button>' +
   '<button class="btn btn-quiet" id="skipQ">Not today</button>')
@@ -2106,7 +2390,6 @@ function askQuestion() {
 }
 
 /* ---------- go ---------- */
-$('scriptNote').textContent = greeting() + ', ' + S.name
 route('home')
 setTimeout(askQuestion, 1200)
 

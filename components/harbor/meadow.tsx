@@ -18,8 +18,10 @@ const TAGS_FADE = 1.9
 /** The meadow behind everything. You can push it around and come down into it;
     the sky and hills sit far enough back that they barely move, which is what makes
     the field feel like ground rather than wallpaper. */
-export function Meadow({ weather, sheetLift, freshBloomId, onOpenBloom, onOpenPerson }: {
+export function Meadow({ weather, sheetLift, freshBloomId, bare, onOpenBloom, onOpenPerson }: {
  weather: Weather; sheetLift: number; freshBloomId?: string
+ /** With the camera open the meadow is scenery, not a map: the name tags step out. */
+ bare?: boolean
  onOpenBloom: (moment: Moment) => void
  onOpenPerson: (personId: string) => void
 }) {
@@ -27,10 +29,11 @@ export function Meadow({ weather, sheetLift, freshBloomId, onOpenBloom, onOpenPe
  const holder = useRef<HTMLDivElement>(null)
  const canvas = useRef<HTMLCanvasElement>(null)
 
- const live = useRef({ weather, sheetLift, freshBloomId, people: state?.people ?? [], calls: [] as Moment[], reduced: false })
+ const live = useRef({ weather, sheetLift, freshBloomId, bare: false, people: state?.people ?? [], calls: [] as Moment[], reduced: false })
  live.current.weather = weather
  live.current.sheetLift = sheetLift
  live.current.freshBloomId = freshBloomId
+ live.current.bare = !!bare
  live.current.people = state?.people ?? []
  live.current.calls = state ? state.people.flatMap(p => callsFor(state, p.id)) : []
  live.current.reduced = !!state?.settings.reducedMotion
@@ -40,6 +43,7 @@ export function Meadow({ weather, sheetLift, freshBloomId, onOpenBloom, onOpenPe
  const openBloom = useRef(onOpenBloom); openBloom.current = onOpenBloom
  const openPerson = useRef(onOpenPerson); openPerson.current = onOpenPerson
 
+ const tagFade = useRef(1)
  const cam = useRef<Camera>({ x: 0, y: 0, zoom: 1 })
  const goal = useRef<Camera>({ x: 0, y: 0, zoom: 1 })
  const fit = useRef(1)
@@ -110,7 +114,7 @@ export function Meadow({ weather, sheetLift, freshBloomId, onOpenBloom, onOpenPe
   const render = (now: number) => {
    frame = requestAnimationFrame(render)
    if (!cssW || !cssH) return
-   const { weather, sheetLift, freshBloomId, people, calls, reduced } = live.current
+   const { weather, sheetLift, freshBloomId, bare, people, calls, reduced } = live.current
    if (!scene) rebuild()
    if (!scene) return
    if (painted !== weather) repaintBackdrop(weather)
@@ -147,11 +151,16 @@ export function Meadow({ weather, sheetLift, freshBloomId, onOpenBloom, onOpenPe
    ctx.scale(far, far)
    if (backdrop) ctx.drawImage(backdrop, 0, 0, worldW, cssH)
    if (fading) {
-    const mix = Math.min(1, (now - fading.at) / 900)
+    /* The old sky does not just dim, it lifts away: the new weather is already
+       painted underneath, so the outgoing one can drift up without leaving a gap. */
+    const raw = Math.min(1, (now - fading.at) / 1100)
+    const mix = raw < 0.5 ? 2 * raw * raw : 1 - ((2 - 2 * raw) ** 2) / 2
+    ctx.save()
     ctx.globalAlpha = 1 - mix
+    ctx.translate(0, -mix * 30)
     ctx.drawImage(fading.from, 0, 0, worldW, cssH)
-    ctx.globalAlpha = 1
-    if (mix >= 1) fading = null
+    ctx.restore()
+    if (raw >= 1) fading = null
    }
    ctx.restore()
 
@@ -187,7 +196,8 @@ export function Meadow({ weather, sheetLift, freshBloomId, onOpenBloom, onOpenPe
 
    /* Far out, a patch is a name and a count. Coming in, the names get out of the way. */
    tagHits.current.length = 0
-   const tagAlpha = rel > TAGS_FADE ? Math.max(0, 1 - (rel - TAGS_FADE) / 0.8) : 1
+   tagFade.current += ((bare ? 0 : 1) - tagFade.current) * 0.14
+   const tagAlpha = (rel > TAGS_FADE ? Math.max(0, 1 - (rel - TAGS_FADE) / 0.8) : 1) * tagFade.current
    if (tagAlpha > 0.02) {
     ctx.save()
     ctx.globalAlpha = tagAlpha

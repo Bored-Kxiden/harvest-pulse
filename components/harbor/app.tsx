@@ -131,7 +131,7 @@ export function HarborApp() {
 
  return <div className="stage" data-reduced-motion={state?.settings.reducedMotion} data-dragging={dragging} data-camera={!!camera}
   style={{ ['--lift' as string]: lift }}>
-  <Meadow weather={weather} sheetLift={lift} freshBloomId={fresh} onOpenBloom={setMoment}
+  <Meadow weather={weather} sheetLift={lift} freshBloomId={fresh} bare={!!camera} onOpenBloom={setMoment}
    onOpenPerson={id => navigate(`chat/${id}`)}/>
   <div className="verge" aria-hidden="true"><Verge/></div>
 
@@ -152,8 +152,7 @@ export function HarborApp() {
   </header>
 
 
-  <button type="button" className="meadow-chip"
-   style={{ opacity: lift > 0.72 ? 0 : 1, pointerEvents: lift > 0.72 ? 'none' : 'auto' }}
+  <button type="button" className="meadow-chip" data-away={lift > 0.72}
    onClick={turnWeather} aria-label={`Weather in your meadow: ${weathers[weatherIndex(weather)].label}. Turn it over.`}>
    <span className="weather-turn" aria-hidden="true"><Icon key={weather}/></span>
    <span className="chip-text" key={chipLabel}>{chipLabel}</span>

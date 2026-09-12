@@ -3,11 +3,13 @@ import { Camera } from 'lucide-react'
 import { useHarbor } from '@/lib/harbor/store'
 import { activePacts } from '@/lib/harbor/model'
 import { FlowerGlyph } from './flowers'
+import { useEscape } from './use-escape'
 
 /** The daily window, once two people have agreed to it: a random moment, a short fuse,
     and no expectation that the picture is any good. It opens like a flower does. */
 export function SnapPrompt({ onTake, onSkip }: { onTake: () => void; onSkip: () => void }) {
  const { state } = useHarbor()
+ useEscape(onSkip)
  if (!state) return null
  const names = activePacts(state).map(p => state.people.find(x => x.id === p.personId)?.name).filter(Boolean)
  const withWhom = names.length ? names.join(' and ') : 'Your people'

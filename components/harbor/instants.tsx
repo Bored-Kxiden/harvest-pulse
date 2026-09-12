@@ -6,6 +6,7 @@ import { makeId, useHarbor } from '@/lib/harbor/store'
 import { saveMedia } from '@/lib/harbor/media'
 import type { Snap } from '@/lib/harbor/model'
 import { Avatar } from './avatar'
+import { useEscape } from './use-escape'
 import { LocalPhoto } from './media-view'
 
 const STORY_MS = 5200
@@ -127,6 +128,7 @@ export function CameraScreen({ promptDay, onClose }: { promptDay?: string; onClo
  const [caption, setCaption] = useState('')
  const [audience, setAudience] = useState<'people' | 'close'>('people')
  const [busy, setBusy] = useState(false)
+ useEscape(onClose)
 
  useEffect(() => {
   if (shot) return

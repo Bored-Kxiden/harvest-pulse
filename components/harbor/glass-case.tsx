@@ -2,10 +2,12 @@
 import { feelings, flowerSpec, formatDuration, type Moment } from '@/lib/harbor/model'
 import { useHarbor } from '@/lib/harbor/store'
 import { FlowerGlyph } from './flowers'
+import { useEscape } from './use-escape'
 
 /** One call, under glass: the flower it grew, and the four things worth remembering about it. */
 export function GlassCase({ moment, onClose }: { moment: Moment; onClose: () => void }) {
  const { state } = useHarbor()
+ useEscape(onClose)
  const flower = flowerSpec(moment.flower)
  const who = state?.people.find(p => p.id === moment.person)
  const feeling = feelings.find(f => f.id === moment.feeling)
