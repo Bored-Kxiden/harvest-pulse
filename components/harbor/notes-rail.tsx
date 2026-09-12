@@ -10,7 +10,7 @@ import { LocalPhoto } from './media-view'
 const DAY = 86400000
 
 /** One bubble per person, each over its own face, with room between them.
-    Pictures do not live here — they live on the rail down the right of the meadow. */
+    Pictures do not live here, they live on the rail down the right of the meadow. */
 export function NotesRail({ navigate, onOpenCamera }: { navigate: (page: string) => void; onOpenCamera: () => void }) {
  const { state, update } = useHarbor()
  const [composing, setComposing] = useState(false)
@@ -75,7 +75,7 @@ export function NotesRail({ navigate, onOpenCamera }: { navigate: (page: string)
       <DialogTitle>{state.people.find(p => p.id === open.person)?.name ?? 'Family'}</DialogTitle>
       <DialogDescription>{new Date(open.at).toLocaleString(undefined, { weekday: 'long', hour: 'numeric', minute: '2-digit' })}</DialogDescription>
      </DialogHeader>
-     <p style={{ fontFamily: 'var(--font-script), cursive', fontSize: 24, lineHeight: 1.25, color: 'var(--ink-deep)' }}>{open.text}</p>
+     <p style={{ fontFamily: 'var(--font-round), sans-serif', fontSize: 24, lineHeight: 1.25, color: 'var(--ink-deep)' }}>{open.text}</p>
      <button type="button" className="btn btn-block" onClick={() => { const person = open.person; setOpen(null); navigate(`chat/${person}`) }}>
       <MessageCircle aria-hidden="true"/>Say Something Back
      </button>

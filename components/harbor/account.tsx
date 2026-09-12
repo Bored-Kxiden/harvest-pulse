@@ -117,7 +117,7 @@ export function AccountScreen({ navigate }: { navigate: (page: string) => void }
      const pact = pactOf(person.id)
      return <div key={person.id} className="row" style={{ boxShadow: 'none', background: 'transparent', padding: '5px 0' }}>
       <Avatar person={person.id} size="sm"/>
-      <span className="row-body"><b>{person.name}</b><span>{pact?.status === 'active' ? 'On — you both agreed' : pact?.status === 'invited' ? 'Waiting on them' : 'Not set up'}</span></span>
+      <span className="row-body"><b>{person.name}</b><span>{pact?.status === 'active' ? 'On, you both agreed' : pact?.status === 'invited' ? 'Waiting on them' : 'Not set up'}</span></span>
       {pact?.status === 'active'
        ? <button type="button" className="btn btn-quiet" style={{ minHeight: 38, padding: '0 12px' }} onClick={() => setPact(person.id, null)}>End</button>
        : pact?.status === 'invited'

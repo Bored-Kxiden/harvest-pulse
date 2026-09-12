@@ -8,7 +8,7 @@ import { Avatar } from './avatar'
 
 export type Cue = { id: string; person: string }
 
-/** The cue itself: it buzzes, rings two or three times, then takes the whole screen —
+/** The cue itself: it buzzes, rings two or three times, then takes the whole screen 
     the person's name and face first, and three equal ways through. */
 export function CueOverlay({ cue, onDismiss, onCall }: { cue: Cue; onDismiss: () => void; onCall: (topic?: string) => void }) {
  const { state, log } = useHarbor()
@@ -50,7 +50,7 @@ export function CueOverlay({ cue, onDismiss, onCall }: { cue: Cue; onDismiss: ()
 
    {step === 'cue' && <>
     <h1 className="curtain-title">Looks like you&apos;re free.</h1>
-    <p className="curtain-sub">You just stopped walking — a good moment, if you want it.</p>
+    <p className="curtain-sub">You just stopped walking. A good moment, if you want it.</p>
     <p className="small">calls with {person.name} usually run <b>~{usual ?? 12} min</b></p>
 
     <div className="chips" role="group" aria-label="Give the call a shape, before it starts">
@@ -128,7 +128,7 @@ export function CueScreen({ navigate, onFire }: { navigate: (page: string) => vo
    <div className="tint-card flow">
     <Waves className="size-9" strokeWidth={1.2} style={{ color: 'var(--ink)' }}/>
     <h2 style={{ fontSize: 24, color: 'var(--ink)' }}>Nothing to catch up on.</h2>
-    <p className="small">When a walk ends, your phone buzzes and rings the sound you chose, and the cue takes over the screen. A call, a little love, or a plan for later — all are welcome. So is doing nothing.</p>
+    <p className="small">When a walk ends, your phone buzzes and rings the sound you chose, and the cue takes over the screen. A call, a little love, or a plan for later: all are welcome. So is doing nothing.</p>
    </div>
    <section className="card card-pad flow">
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Footprints className="size-5" style={{ color: 'var(--ink)' }}/><h2 style={{ fontSize: 19 }}>Try a walking-stop moment</h2></div>

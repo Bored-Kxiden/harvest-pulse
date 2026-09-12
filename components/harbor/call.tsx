@@ -83,7 +83,7 @@ export function CallFlow({ person, topic, onDone, onCancel }: { person: string; 
    {step === 'flower' && <div className="flow" style={{ width: '100%' }}>
     <p className="eyebrow">{who.name}&apos;s patch</p>
     <h1 className="curtain-title" style={{ textAlign: 'left' }}>Which flower was it?</h1>
-    <p className="small">{library ? 'The whole library. Pick whatever fits.' : `Picked for a ${feelings.find(f => f.id === feeling)?.label.toLowerCase()} call — or open the library.`}</p>
+    <p className="small">{library ? 'The whole library. Pick whatever fits.' : `Picked for a ${feelings.find(f => f.id === feeling)?.label.toLowerCase()} call, or open the library.`}</p>
     <FlowerPicker value={flower} onChange={setFlower} suggested={library ? undefined : suggested}/>
     <button type="button" className="link" onClick={() => setLibrary(v => !v)}>{library ? 'Back to the suggestions' : 'Open the flower library'}</button>
     <button type="button" className="btn btn-block" onClick={plant}><Check/>Plant {flowerSpec(flower).name.toLowerCase()}</button>

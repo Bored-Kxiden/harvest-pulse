@@ -1,4 +1,4 @@
-/* Little painted sprigs. Every card in the reference has one tucked into a corner —
+/* Little painted sprigs. Every card in the reference has one tucked into a corner 
    they are what stop the layout reading as boxes on a page. */
 export function Sprig({ kind = 'tulip', className, style }: { kind?: 'tulip' | 'leaf' | 'cosmos' | 'bell'; className?: string; style?: React.CSSProperties }) {
  if (kind === 'leaf') return <svg className={className} style={style} viewBox="0 0 64 78" fill="none" aria-hidden="true">

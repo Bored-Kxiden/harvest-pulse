@@ -152,13 +152,13 @@ export function Schedule({ navigate }: { navigate: (page: string) => void }) {
     </div>
     : <button type="button" className="row" style={{ ['--i' as string]: 2 }} onClick={() => setLinkOpen(true)}>
      <span className="row-icon" style={{ background: 'var(--tint-blue)' }}><CalendarPlus aria-hidden="true"/></span>
-     <span className="row-body"><b>Bring your calendar in</b><span>Outlook, Google or Apple — marks your week for you</span></span>
+     <span className="row-body"><b>Bring your calendar in</b><span>Outlook, Google or Apple, marks your week for you</span></span>
      <ChevronRight className="caret" aria-hidden="true"/>
     </button>}
 
    <button type="button" className="row" style={{ ['--i' as string]: 3 }} onClick={() => navigate('share')}>
     <span className="row-icon"><ShieldCheck aria-hidden="true"/></span>
-    <span className="row-body"><b>Share my load</b><span>{state.sharing ? (state.momConsent ? 'On, both ways' : 'On — waiting on them') : 'Free and busy times only, when you say so'}</span></span>
+    <span className="row-body"><b>Share my load</b><span>{state.sharing ? (state.momConsent ? 'On, both ways' : 'On, waiting on them') : 'Free and busy times only, when you say so'}</span></span>
     <ChevronRight className="caret" aria-hidden="true"/>
    </button>
 
@@ -195,7 +195,7 @@ export function Schedule({ navigate }: { navigate: (page: string) => void }) {
   <Dialog open={linkOpen} onOpenChange={setLinkOpen}><DialogContent>
    <DialogHeader>
     <DialogTitle>Bring your calendar in</DialogTitle>
-    <DialogDescription>Harbor reads when you are busy and marks those blocks for you. In this demo a sample week is filled in — nothing connects to a real account.</DialogDescription>
+    <DialogDescription>Harbor reads when you are busy and marks those blocks for you. In this demo a sample week is filled in, nothing connects to a real account.</DialogDescription>
    </DialogHeader>
    {calendarProviders.map(provider => <button key={provider.id} type="button" className="row" onClick={() => connect(provider.id)}>
     <span className="row-icon" style={{ background: 'var(--tint-blue)' }}><CalendarDays aria-hidden="true"/></span>

@@ -28,7 +28,7 @@ export function DailyQuestion({ open, onOpenChange }: { open: boolean; onOpenCha
  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent>
   <DialogHeader>
    <DialogTitle style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}><Dices className="size-5" style={{ marginTop: 4, flexShrink: 0, color: 'var(--leaf)' }}/>{prompt.q}</DialogTitle>
-   <DialogDescription>Today&apos;s little question. No streak to keep — answer today, skip tomorrow, either is fine.</DialogDescription>
+   <DialogDescription>Today&apos;s little question. No streak to keep. Answer today, skip tomorrow, either is fine.</DialogDescription>
   </DialogHeader>
 
   {mine ? <>

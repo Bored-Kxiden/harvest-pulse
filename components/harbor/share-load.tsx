@@ -36,7 +36,7 @@ export function ShareLoad({ navigate }: { navigate: (page: string) => void }) {
   <div className="page-head">
    <span className="eyebrow">Share my load</span>
    <h1>Let&rsquo;s lighten it.</h1>
-   <p>Share what&rsquo;s on your mind — and let someone carry a little with you.</p>
+   <p>Share what&rsquo;s on your mind, and let someone carry a little with you.</p>
   </div>
 
   <div className="wrap flow stagger">
@@ -83,7 +83,7 @@ export function ShareLoad({ navigate }: { navigate: (page: string) => void }) {
 
    <section className="card card-pad flow" style={{ ['--i' as string]: 3 }} aria-labelledby="rhythm-heading">
     <div className="switch-row">
-     <div><b id="rhythm-heading">Share my rhythm too</b><p className="small">Free and busy times only — never what a block is called.</p></div>
+     <div><b id="rhythm-heading">Share my rhythm too</b><p className="small">Free and busy times only, never what a block is called.</p></div>
      <button type="button" className="toggle" aria-pressed={state.sharing} aria-labelledby="rhythm-heading"
       onClick={() => update(s => ({ ...s, sharing: !s.sharing, sharingSetupDone: true }))}/>
     </div>
@@ -95,7 +95,7 @@ export function ShareLoad({ navigate }: { navigate: (page: string) => void }) {
     {state.sharing && state.momConsent && <p className="note-strip">
      <Users aria-hidden="true"/>
      {windows.length
-      ? `You are both free ${formatTime(windows[0].start)} – ${formatTime(windows[0].end)} today — ${minutes(windows[0].end) - minutes(windows[0].start)} unhurried minutes.`
+      ? `You are both free ${formatTime(windows[0].start)} – ${formatTime(windows[0].end)} today, ${minutes(windows[0].end) - minutes(windows[0].start)} unhurried minutes.`
       : 'No overlap today. Try another day, or just leave a note.'}
     </p>}
    </section>

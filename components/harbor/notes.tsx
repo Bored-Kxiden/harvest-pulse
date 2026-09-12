@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { BookHeart, Camera, ChevronRight, MessageCircle, Plus } from 'lucide-react'
+import { BookHeart, Camera, ChevronRight, Images, MessageCircle, NotebookPen, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { useHarbor } from '@/lib/harbor/store'
 import type { Snap } from '@/lib/harbor/model'
@@ -34,10 +34,12 @@ export function NotesScreen({ navigate, onOpenCamera, onOpenStory }: {
   </div>
 
   <div className="wrap flow stagger">
-   <div className="tool-row" role="tablist" aria-label="What to look at" style={{ ['--i' as string]: 0, padding: 5, gap: 3 }}>
-    {(['notes', 'scrapbook'] as const).map(id => <button key={id} type="button" role="tab" aria-selected={view === id}
-     className="chip-choice" aria-pressed={view === id} style={{ flex: 1, justifyContent: 'center', display: 'flex' }}
-     onClick={() => setView(id)}>{id === 'notes' ? 'Notes' : 'Scrapbook'}</button>)}
+   <div className="segment" role="tablist" aria-label="What to look at" style={{ ['--i' as string]: 0 }}>
+    <span className="segment-slide" style={{ ['--i' as string]: view === 'notes' ? 0 : 1, width: 'calc((100% - 10px) / 2)' }} aria-hidden="true"/>
+    {(['notes', 'scrapbook'] as const).map(id => <button key={id} type="button" role="tab" className="segment-tab"
+     aria-selected={view === id} onClick={() => setView(id)}>
+     {id === 'notes' ? <><NotebookPen aria-hidden="true"/>Notes</> : <><Images aria-hidden="true"/>Scrapbook</>}
+    </button>)}
    </div>
 
    {view === 'notes' ? <>
@@ -52,7 +54,7 @@ export function NotesScreen({ navigate, onOpenCamera, onOpenStory }: {
         <span>{new Date(note.at).toLocaleString(undefined, { weekday: 'long', hour: 'numeric', minute: '2-digit' })}</span>
        </span>
       </div>
-      <p style={{ fontFamily: 'var(--font-script), cursive', fontSize: 23, lineHeight: 1.25, color: 'var(--ink-deep)', margin: '10px 2px 0', position: 'relative', zIndex: 1 }}>{note.text}</p>
+      <p style={{ fontFamily: 'var(--font-round), sans-serif', fontSize: 23, lineHeight: 1.25, color: 'var(--ink-deep)', margin: '10px 2px 0', position: 'relative', zIndex: 1 }}>{note.text}</p>
       {who && <button type="button" className="text-link" onClick={() => navigate(`chat/${who.id}`)}>
        <MessageCircle aria-hidden="true"/>Say something back
       </button>}

@@ -1,13 +1,10 @@
 'use client'
 import { useState } from 'react'
-import {
- BookOpen, Camera, ChevronRight, Clock3, Music, Phone, Sparkles, Sprout, Sun, Waves, Wind,
-} from 'lucide-react'
-import { toast } from 'sonner'
+import { Bell, CalendarDays, ChevronRight, Clock3, Images, Phone, Sprout, Sun, Users, Waves } from 'lucide-react'
 import { useHarbor } from '@/lib/harbor/store'
 import {
- blocksFor, callsFor, dominantFlower, formatTime, freeWindows, localDay, minutes,
- sharedWindows, weatherIndex, weathers, type Moment,
+ blocksFor, callsFor, dominantFlower, feelings, formatDuration, formatTime, freeWindows, localDay,
+ minutes, sharedWindows, weatherIndex, weathers, type Moment,
 } from '@/lib/harbor/model'
 import { Avatar } from './avatar'
 import { FlowerGlyph } from './flowers'
@@ -16,24 +13,24 @@ import { Sprig } from './sprigs'
 
 const TINTS = ['gold', 'green', 'orange', 'sky'] as const
 const SPRIGS = ['tulip', 'leaf', 'cosmos', 'bell'] as const
-const TOOLS = [
- { id: 'breathe', label: 'Breathe', icon: Wind, tint: 'var(--tint-blue)', line: 'Four in, six out, eight times.' },
- { id: 'move', label: 'Move', icon: Sprout, tint: 'var(--tint-yellow)', line: 'Round the block is enough.' },
- { id: 'read', label: 'Read', icon: BookOpen, tint: 'var(--tint-mint)', line: 'Ten pages, no phone.' },
- { id: 'reflect', label: 'Reflect', icon: Sun, tint: 'var(--tint-peach)', line: 'One line about today.' },
- { id: 'music', label: 'Music', icon: Music, tint: 'var(--tint-lilac)', line: 'The album you keep meaning to finish.' },
- { id: 'more', label: 'More', icon: Sparkles, tint: 'var(--tint-rose)', line: 'A longer list lives in your account.' },
-]
+const TABS = [
+ { id: 'people', label: 'People', icon: Users },
+ { id: 'schedule', label: 'Schedule', icon: CalendarDays },
+ { id: 'activities', label: 'Activities', icon: Bell },
+] as const
+type Tab = typeof TABS[number]['id']
 
-export function Home({ navigate, onCall, onOpenMoment, onOpenCamera, onWeatherShown, onExpand }: {
+export function Home({ navigate, onCall, onOpenMoment, onOpenCamera, onOpenStory, onWeatherShown, onExpand }: {
  navigate: (page: string) => void
  onCall: (personId: string) => void
  onOpenMoment: (moment: Moment) => void
  onOpenCamera: () => void
+ onOpenStory: () => void
  onWeatherShown: () => void
  onExpand: () => void
 }) {
  const { state } = useHarbor()
+ const [tab, setTab] = useState<Tab>('people')
  if (!state) return null
  const partner = state.people[0]
  const windows = sharedWindows(state, localDay())
@@ -53,7 +50,16 @@ export function Home({ navigate, onCall, onOpenMoment, onOpenCamera, onWeatherSh
      </h2>
      <button type="button" className="pill-link" onClick={onExpand}>View all <ChevronRight aria-hidden="true"/></button>
     </div>
-    <div className="people-grid">
+
+    <div className="segment" role="tablist" aria-label="Your people">
+     <span className="segment-slide" style={{ ['--i' as string]: TABS.findIndex(t => t.id === tab) }} aria-hidden="true"/>
+     {TABS.map(({ id, label, icon: Icon }) => <button key={id} type="button" role="tab" className="segment-tab"
+      aria-selected={tab === id} onClick={() => setTab(id)}>
+      <Icon aria-hidden="true"/>{label}
+     </button>)}
+    </div>
+
+    {tab === 'people' && <div className="people-grid">
      {state.people.map((person, i) => {
       const flower = dominantFlower(state, person.id)
       const calls = callsFor(state, person.id).length
@@ -80,7 +86,10 @@ export function Home({ navigate, onCall, onOpenMoment, onOpenCamera, onWeatherSh
        </button>
       </div>
      })}
-    </div>
+    </div>}
+
+    {tab === 'schedule' && <TodayAtAGlance navigate={navigate}/>}
+    {tab === 'activities' && <Activities onOpenMoment={onOpenMoment}/>}
    </section>
 
    <section aria-labelledby="something-heading" style={{ ['--i' as string]: 2 }}>
@@ -91,16 +100,11 @@ export function Home({ navigate, onCall, onOpenMoment, onOpenCamera, onWeatherSh
      </button>
     </div>
     <NotesRail navigate={navigate} onOpenCamera={onOpenCamera}/>
-    <div className="tool-row" style={{ marginTop: 12 }}>
-     {TOOLS.map(tool => {
-      const Icon = tool.icon
-      return <button key={tool.id} type="button" className="tool"
-       onClick={() => tool.id === 'more' ? navigate('account') : toast.success(tool.line)}>
-       <span className="tool-disc" style={{ background: tool.tint }}><Icon aria-hidden="true"/></span>
-       <b>{tool.label}</b>
-      </button>
-     })}
-    </div>
+    <button type="button" className="row" style={{ marginTop: 12 }} onClick={onOpenStory}>
+     <span className="row-icon" style={{ background: 'var(--tint-blue)' }}><Images aria-hidden="true"/></span>
+     <span className="row-body"><b>Today&rsquo;s instants</b><span>{state.snaps.length} from your people, before they fade</span></span>
+     <ChevronRight className="caret" aria-hidden="true"/>
+    </button>
    </section>
 
    <section className="tint-card" style={{ background: 'var(--tint-mint)', position: 'relative', overflow: 'hidden', ['--i' as string]: 3 }} aria-labelledby="window-heading">
@@ -124,8 +128,6 @@ export function Home({ navigate, onCall, onOpenMoment, onOpenCamera, onWeatherSh
     </button>
    </section>
 
-   <TodayAtAGlance navigate={navigate}/>
-
    <button type="button" className="row" style={{ ['--i' as string]: 5 }} onClick={() => navigate('cue')}>
     <span className="row-icon" style={{ background: 'var(--tint-blue)' }}><Waves aria-hidden="true"/></span>
     <span className="row-body"><b>Find a quiet moment</b><span>A cue at the end of a walk, never a demand</span></span>
@@ -134,6 +136,30 @@ export function Home({ navigate, onCall, onOpenMoment, onOpenCamera, onWeatherSh
 
    <p className="fineprint" style={{ ['--i' as string]: 6 }}>An interactive demo · saved only on this device</p>
   </div>
+ </div>
+}
+
+/** What has actually happened lately: every call, newest first. */
+function Activities({ onOpenMoment }: { onOpenMoment: (moment: Moment) => void }) {
+ const { state } = useHarbor()
+ if (!state) return null
+ const recent = state.moments
+  .filter(m => m.kind === 'called' && m.flower)
+  .slice().sort((a, b) => b.at.localeCompare(a.at)).slice(0, 5)
+ if (!recent.length) return <p className="empty">No calls yet. The first one plants the first flower.</p>
+ return <div className="flow stagger" style={{ gap: 9 }}>
+  {recent.map((moment, i) => {
+   const who = state.people.find(p => p.id === moment.person)
+   const feeling = feelings.find(f => f.id === moment.feeling)
+   return <button key={moment.id} type="button" className="row" style={{ ['--i' as string]: i }} onClick={() => onOpenMoment(moment)}>
+    <span className={`row-icon tint-${who?.tone ?? 'green'}`}><FlowerGlyph kind={moment.flower ?? 'daisy'} size={19}/></span>
+    <span className="row-body">
+     <b>{moment.topic || `A call with ${who?.name ?? 'family'}`}</b>
+     <span>{formatDuration(moment.minutes)} · {feeling?.label.toLowerCase() ?? 'steady'} · {new Date(moment.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+    </span>
+    <ChevronRight className="caret" aria-hidden="true"/>
+   </button>
+  })}
  </div>
 }
 
@@ -184,7 +210,7 @@ function Feelings({ onWeatherShown }: { onWeatherShown: () => void }) {
  </section>
 }
 
-/** Today in three lines — the same read the schedule screen keeps in full. */
+/** Today in three lines: the same read the schedule screen keeps in full. */
 function TodayAtAGlance({ navigate }: { navigate: (page: string) => void }) {
  const { state } = useHarbor()
  if (!state) return null

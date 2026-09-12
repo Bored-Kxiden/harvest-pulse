@@ -1,5 +1,5 @@
 /* The meadow.
-   Not a card any more — the whole background, painted once per weather change into an
+   Not a card any more, the whole background, painted once per weather change into an
    offscreen layer, with everything that moves (cloud, wind, rain, blooms) drawn live on top.
    One rule holds the illustration together: nothing is a hard edge. Hills, petals and
    water all get soft shoulders, because the reference is watercolour, not vector. */
@@ -86,6 +86,9 @@ export function windAt(x: number, y: number, t: number, strength: number) {
  return (Math.sin(t * 0.0016 + x * 0.011 + y * 0.02) + 0.45 * Math.sin(t * 0.0031 + x * 0.026)) * gust * strength
 }
 export const windStrength: Record<Weather, number> = { clear: 3.2, bright: 4.4, cloudy: 6, rain: 8.5, storm: 15 }
+
+/** The world is wider than the window: panning has somewhere to go, zoom something to find. */
+export const WORLD_SPAN = 2.6
 
 /* ---------- static geometry, laid out once for a given size ---------- */
 type Hill = { path: Path2D; fill: string; baseY: number }
@@ -259,7 +262,7 @@ export function paintBackdrop(ctx: CanvasRenderingContext2D, scene: Scene, weath
   }
  }
 
- /* Distance goes pale before it disappears — the one trick that stops bands reading as stripes. */
+ /* Distance goes pale before it disappears: the one trick that stops bands reading as stripes. */
  const haze = ctx.createLinearGradient(0, horizon - 26, 0, horizon + 96)
  haze.addColorStop(0, p.haze); haze.addColorStop(1, 'rgba(255,255,255,0)')
  ctx.fillStyle = haze
@@ -297,11 +300,13 @@ export function paintClouds(ctx: CanvasRenderingContext2D, scene: Scene, weather
 }
 
 /** Grass and wild flowers, every stem bending on the same gust. */
-export function paintField(ctx: CanvasRenderingContext2D, scene: Scene, weather: Weather, t: number) {
+export function paintField(ctx: CanvasRenderingContext2D, scene: Scene, weather: Weather, t: number, view?: { x0: number; x1: number; y0: number; y1: number }) {
  const p = PALETTES[weather]
  const strength = windStrength[weather]
  ctx.lineCap = 'round'
  for (const b of scene.blades) {
+  /* Off screen is not drawn: the world is wide and most of it is behind you. */
+  if (view && (b.x < view.x0 - 40 || b.x > view.x1 + 40 || b.y < view.y0 - 60 || b.y > view.y1 + 40)) continue
   const bend = windAt(b.x, b.y, t, strength) * (b.h / 18)
   const tipX = b.x + bend + b.lean * b.h
   const tipY = b.y - b.h
@@ -350,6 +355,25 @@ export function placeBlooms(people: Person[], calls: Moment[], w: number, fieldT
   })
  })
  return out.sort((a, b) => a.y - b.y)
+}
+
+export type Patch = { person: Person; x: number; y: number; count: number; dominant: FlowerKind }
+
+/** The centre of each person's drift of the field, and the flower they grow most of,
+    so the meadow can name a patch when you are too far out to read single flowers. */
+export function placePatches(people: Person[], blooms: Bloom[]): Patch[] {
+ return people.map(person => {
+  const mine = blooms.filter(b => b.person.id === person.id)
+  const tally = new Map<FlowerKind, number>()
+  for (const b of mine) tally.set(b.kind, (tally.get(b.kind) ?? 0) + 1)
+  let dominant: FlowerKind = 'daisy', top = 0
+  for (const [kind, n] of tally) if (n > top) { top = n; dominant = kind }
+  return {
+   person, count: mine.length, dominant,
+   x: mine.reduce((sum, b) => sum + b.x, 0) / Math.max(mine.length, 1),
+   y: mine.reduce((sum, b) => sum + b.y, 0) / Math.max(mine.length, 1),
+  }
+ }).filter(patch => patch.count > 0)
 }
 
 /** A call flower, drawn upright on a stem that bends with everything else. */

@@ -188,7 +188,7 @@ export function CameraScreen({ promptDay, onClose }: { promptDay?: string; onClo
       ? <label className="camera-fallback">
        <Camera aria-hidden="true"/>
        <b>No camera here.</b>
-       <span>Choose a picture instead — it works the same way.</span>
+       <span>Choose a picture instead, it works the same way.</span>
        <input type="file" accept="image/*" className="sr-only" onChange={e => { const f = e.target.files?.[0]; if (f) pick(f) }}/>
       </label>
       : <video ref={video} className="camera-feed" playsInline muted autoPlay aria-label="Camera preview"/>}

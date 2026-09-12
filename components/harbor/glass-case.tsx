@@ -14,9 +14,9 @@ export function GlassCase({ moment, onClose }: { moment: Moment; onClose: () => 
   ['Duration', formatDuration(moment.minutes)],
  ]
  if (moment.topic) rows.push(['What it was about', moment.topic])
- if (feeling) rows.push(['How you felt', `${feeling.label} — ${feeling.caption.toLowerCase().replace(/\.$/, '')}`])
+ if (feeling) rows.push(['How you felt', `${feeling.label}, ${feeling.caption.toLowerCase().replace(/\.$/, '')}`])
 
- return <div className="scrim" role="dialog" aria-modal="true" aria-label={`${flower.name} — a call with ${who?.name ?? 'your people'}`}
+ return <div className="scrim" role="dialog" aria-modal="true" aria-label={`${flower.name}, a call with ${who?.name ?? 'your people'}`}
   onPointerDown={e => { if (e.target === e.currentTarget) onClose() }}>
   <div className="panel">
    <div className="vitrine">

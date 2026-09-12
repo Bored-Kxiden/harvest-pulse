@@ -16,14 +16,39 @@ import { DailyQuestion } from './daily-question'
 import { GlassCase } from './glass-case'
 import { Meadow } from './meadow'
 import { Sheet } from './sheet'
-import { CameraScreen, InstantsRail, StoryViewer } from './instants'
+import { CameraScreen, StoryViewer } from './instants'
 import { SnapPrompt } from './snap'
 
 const weatherIcon: Record<Weather, typeof Sun> = { clear: Sun, bright: CloudSun, cloudy: Cloud, rain: CloudRain, storm: CloudLightning }
 const leftTabs = [{ id: 'home', label: 'Home', icon: House }, { id: 'schedule', label: 'Schedule', icon: CalendarDays }]
 const rightTabs = [{ id: 'notes', label: 'Notes', icon: NotebookPen }, { id: 'account', label: 'Account', icon: UserRound }]
 
-const greetingOfDay = () => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening' }
+
+/** The verge: the flowers that grow right at the foot of the screen, in front of everything. */
+function Verge() {
+ return <svg viewBox="0 0 430 132" preserveAspectRatio="none" aria-hidden="true">
+  <g className="verge-sway">
+   <path d="M6 132c-4-38 4-62 22-78-12 30-12 52-6 78z" fill="#8FBE7C"/>
+   <path d="M30 132c-8-40 6-70 34-88-18 32-22 58-16 88z" fill="#7EB16A"/>
+   <path d="M404 132c6-40-6-70-34-88 18 32 22 58 16 88z" fill="#8FBE7C"/>
+   <path d="M424 132c4-38-4-62-22-78 12 30 12 52 6 78z" fill="#7EB16A"/>
+   <ellipse cx="46" cy="54" rx="11" ry="15" fill="#F2A254"/>
+   <path d="M46 68v56" stroke="#6FA765" strokeWidth="4" strokeLinecap="round"/>
+   <ellipse cx="37" cy="52" rx="6.5" ry="12" fill="#F5B76F"/>
+   <ellipse cx="55" cy="52" rx="6.5" ry="12" fill="#EE9445"/>
+   <ellipse cx="384" cy="60" rx="11" ry="15" fill="#F7CE63"/>
+   <path d="M384 74v50" stroke="#6FA765" strokeWidth="4" strokeLinecap="round"/>
+   <ellipse cx="375" cy="58" rx="6.5" ry="12" fill="#FADC86"/>
+   <ellipse cx="393" cy="58" rx="6.5" ry="12" fill="#F2BE45"/>
+  </g>
+  <g className="verge-sway verge-slow">
+   <path d="M82 132c-4-30 2-52 16-66-10 26-10 44-6 66z" fill="#A3CC8A"/>
+   <path d="M348 132c4-30-2-52-16-66 10 26 10 44 6 66z" fill="#A3CC8A"/>
+   <circle cx="98" cy="72" r="7" fill="#FBFCF6"/><circle cx="98" cy="72" r="2.6" fill="#F7C948"/>
+   <circle cx="332" cy="78" r="6" fill="#F7C3D8"/><circle cx="332" cy="78" r="2.2" fill="#F7C948"/>
+  </g>
+ </svg>
+}
 
 export function HarborApp() {
  const [route, setRoute] = useState('home')
@@ -77,7 +102,7 @@ export function HarborApp() {
  const weather = state?.weather ?? 'clear'
  const Icon = weatherIcon[weather]
 
- /* Tapping the chip turns the weather over — the sky crossfades behind, the glyph rotates in front. */
+ /* Tapping the chip turns the weather over: the sky crossfades behind, the glyph rotates in front. */
  const turnWeather = () => {
   const next = weathers[(weatherIndex(weather) + 1) % weathers.length].id
   update(s => ({ ...s, weather: next }))
@@ -104,9 +129,11 @@ export function HarborApp() {
  const total = state ? state.moments.filter(m => m.kind === 'called' && m.flower).length : 0
  const chipLabel = chipWeather ? weathers[weatherIndex(weather)].label : total ? 'Your garden is blooming' : 'Plant your first flower'
 
- return <div className="stage" data-reduced-motion={state?.settings.reducedMotion} data-dragging={dragging}
+ return <div className="stage" data-reduced-motion={state?.settings.reducedMotion} data-dragging={dragging} data-camera={!!camera}
   style={{ ['--lift' as string]: lift }}>
-  <Meadow weather={weather} sheetLift={lift} freshBloomId={fresh} onOpenBloom={setMoment}/>
+  <Meadow weather={weather} sheetLift={lift} freshBloomId={fresh} onOpenBloom={setMoment}
+   onOpenPerson={id => navigate(`chat/${id}`)}/>
+  <div className="verge" aria-hidden="true"><Verge/></div>
 
   <header className="topbar">
    <a href="#home" className="brand" aria-label="Harbor, home">
@@ -124,15 +151,12 @@ export function HarborApp() {
    </div>
   </header>
 
-  <p className="script-note" aria-hidden="true">{greetingOfDay()}, {state?.name ?? 'friend'}</p>
-
-  <InstantsRail onOpenStory={i => setStory(i)} onOpenCamera={() => setCamera({})}/>
 
   <button type="button" className="meadow-chip"
    style={{ opacity: lift > 0.72 ? 0 : 1, pointerEvents: lift > 0.72 ? 'none' : 'auto' }}
    onClick={turnWeather} aria-label={`Weather in your meadow: ${weathers[weatherIndex(weather)].label}. Turn it over.`}>
-   <span className="weather-turn" aria-hidden="true"><Icon key={`${weather}-${chipWeather}`}/></span>
-   {chipLabel}
+   <span className="weather-turn" aria-hidden="true"><Icon key={weather}/></span>
+   <span className="chip-text" key={chipLabel}>{chipLabel}</span>
    <svg className="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
   </button>
 
@@ -148,7 +172,7 @@ export function HarborApp() {
     </div>
     : <>
      {page === 'home' && <Home navigate={navigate} onCall={person => setCall({ person })} onOpenMoment={setMoment}
-      onOpenCamera={() => setCamera({})} onWeatherShown={showWeather} onExpand={() => setLift(1)}/>}
+      onOpenCamera={() => setCamera({})} onOpenStory={() => setStory(0)} onWeatherShown={showWeather} onExpand={() => setLift(1)}/>}
      {page === 'schedule' && <Schedule navigate={navigate}/>}
      {page === 'share' && <ShareLoad navigate={navigate}/>}
      {page === 'notes' && <NotesScreen navigate={navigate} onOpenCamera={() => setCamera({})} onOpenStory={() => setStory(0)}/>}

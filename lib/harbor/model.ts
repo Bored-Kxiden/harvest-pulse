@@ -41,7 +41,7 @@ export type HarborState = {
  settings: { cuesEnabled: boolean; walkingMinutes: number; sessionMinutes: number; dailyCap: number; cooldownMinutes: number; sound: 'chime' | 'soft' | 'silent'; reducedMotion: boolean }
 }
 
-/* ---------- how life feels, read as weather — a scale, not a score ---------- */
+/* ---------- how life feels, read as weather: a scale, not a score ---------- */
 export const weathers: { id: Weather; label: string; caption: string }[] = [
  { id: 'clear', label: 'Clear', caption: 'Room to breathe. Nothing pressing.' },
  { id: 'bright', label: 'Bright', caption: 'Good and busy. The kind you chose.' },
@@ -51,7 +51,7 @@ export const weathers: { id: Weather; label: string; caption: string }[] = [
 ]
 export function weatherIndex(value: Weather) { const i = weathers.findIndex(w => w.id === value); return i < 0 ? 0 : i }
 
-/* ---------- the flower library — what a call becomes ---------- */
+/* ---------- the flower library: what a call becomes ---------- */
 export type FlowerSpec = { id: FlowerKind; name: string; note: string; petal: string; petalDeep: string; heart: string; petals: number; shape: 'round' | 'point' | 'cup' }
 export const flowerLibrary: FlowerSpec[] = [
  { id: 'daisy', name: 'Daisy', note: 'An ordinary, easy call.', petal: '#FFFFFF', petalDeep: '#F0F3E6', heart: '#F7C948', petals: 9, shape: 'round' },
@@ -72,7 +72,7 @@ export const feelings: { id: Feeling; label: string; caption: string; flower: Fl
  { id: 'tender', label: 'Tender', caption: 'A lot, but worth it.', flower: 'poppy' },
 ]
 
-/* ---------- topic shapes — the sender sets the shape before a call happens ---------- */
+/* ---------- topic shapes: the sender sets the shape before a call happens ---------- */
 export const topics = ['Catch up', 'Ask for help', 'Share news', 'Just because']
 
 export function localDay(date: Date = new Date()) { return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` }
@@ -135,7 +135,7 @@ export function overlaps(a: Interval[], b: Interval[]): Interval[] {
  return raw.reduce<Interval[]>((out, value) => { const last = out.at(-1); if (last && value.start <= last.end) last.end = last.end > value.end ? last.end : value.end; else out.push({ ...value }); return out }, [])
 }
 export function formatTime(value: string) { const m = minutes(value); return `${Math.floor(m / 60) % 12 || 12}:${String(m % 60).padStart(2, '0')} ${m >= 720 ? 'pm' : 'am'}` }
-/** The quiet ground between two busy days — only ever computed when both people opted in. */
+/** The quiet ground between two busy days: only ever computed when both people opted in. */
 export function sharedWindows(state: HarborState, day: string) {
  if (!state.sharing || !state.momConsent) return []
  const s = state.schedules[day]
@@ -175,7 +175,7 @@ export function formatDuration(m: number | undefined) {
 
 /* ---------- snap windows: only ever between two people who both said yes ---------- */
 export function activePacts(state: HarborState) { return state.pacts.filter(p => p.status === 'active' && state.people.some(x => x.id === p.personId)) }
-/** A genuinely random moment, rolled once a day — not a slot anyone can plan around. */
+/** A genuinely random moment, rolled once a day: not a slot anyone can plan around. */
 export function rollSnapWindow(now = new Date()) {
  const earliest = now.getTime() + 2 * 60000
  const close = new Date(now); close.setHours(22, 30, 0, 0)
