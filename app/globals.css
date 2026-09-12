@@ -81,6 +81,7 @@
  body { @apply bg-background text-foreground font-sans antialiased; margin: 0; }
  button:not(:disabled), [role='button']:not(:disabled), a, label.tap { cursor: pointer; touch-action: manipulation; }
  button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+ a { text-decoration: none; color: inherit; }
  button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible,
  textarea:focus-visible, [role='slider']:focus-visible, [tabindex]:focus-visible {
   outline: 2.5px solid var(--leaf); outline-offset: 3px; border-radius: 10px;
@@ -132,7 +133,7 @@
 
 /* ---------- the instants rail ---------- */
 .rail {
- position: absolute; z-index: 12; right: 12px; top: 27%;
+ position: absolute; z-index: 12; right: 12px; top: 22%;
  display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 9px 7px;
  border-radius: 34px; background: rgb(254 252 245 / .92); box-shadow: var(--shadow-card);
  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
@@ -348,7 +349,7 @@ textarea.input { min-height: 92px; resize: none; line-height: 1.5 }
 .row-body { flex: 1; min-width: 0 }
 .row-body b { display: block; font-family: var(--font-round), sans-serif; font-size: 14.5px; font-weight: 700; color: var(--ink-deep) }
 .row-body span { display: block; font-size: 12.5px; color: var(--ink-soft) }
-.row > .caret { width: 15px; height: 15px; flex-shrink: 0; color: var(--ink-faint); stroke-width: 2.2 }
+.caret { width: 15px; height: 15px; flex-shrink: 0; color: var(--ink-faint); stroke-width: 2.2 }
 .empty { padding: 18px 16px; border-radius: 20px; background: rgb(254 252 245 / .6); font-size: 13.5px; color: var(--ink-soft); text-align: center }
 
 /* ---------- the little-something tile row ---------- */
