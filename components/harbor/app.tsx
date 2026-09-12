@@ -213,8 +213,7 @@ export function HarborApp() {
  return <div className="stage" data-reduced-motion={state?.settings.reducedMotion} data-dragging={dragging} data-camera={!!camera}
   data-collapsed={lift < -0.5}
   style={{ ['--lift' as string]: lift }}>
-  <Meadow ref={meadowRef} weather={weather} sheetLift={lift} freshBloomId={fresh} bare={!!camera} night={night} onOpenBloom={setMoment}
-   onOpenPerson={id => navigate(`chat/${id}`)}/>
+  <Meadow ref={meadowRef} weather={weather} sheetLift={lift} freshBloomId={fresh} bare={!!camera} night={night} onOpenBloom={setMoment}/>
   <div className="verge" aria-hidden="true"><Verge/></div>
 
   {/* Zoom, made into buttons: a pinch is not something everyone reaches for first. */}

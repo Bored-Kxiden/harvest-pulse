@@ -1,8 +1,11 @@
 'use client'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 
-const REST = 0.52   /* the sheet sits here, leaving the meadow the top half */
-const UP = 0.11     /* pulled up, it leaves a ribbon of sky */
+/* Exported so the meadow can work out how much of itself is actually uncovered
+   right now, rather than only ever painting for the one position it used to be
+   allowed to sit at. */
+export const REST = 0.52   /* the sheet sits here, leaving the meadow the top half */
+export const UP = 0.11     /* pulled up, it leaves a ribbon of sky */
 const DOWN = -1.05  /* pulled down past rest, it all but leaves the stage: the whole field */
 const SLOP = 6      /* below this, a drag was really a tap */
 

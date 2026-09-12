@@ -663,9 +663,11 @@ textarea.input { min-height: 92px; resize: none; line-height: 1.5 }
 .cal-body::-webkit-scrollbar-thumb { background: var(--grab); border-radius: 99px }
 .cal-hours { display: flex; flex-direction: column }
 .cal-hour { height: 40px; line-height: 1; font-size: 10px; color: var(--ink-faint); text-align: right; padding: 1px 5px 0 0 }
-/* pan-y let the browser's own vertical scroll win the gesture before our pointer
-   handlers ever saw it, since marking a block is itself a vertical drag: touching
-   down and dragging just scrolled the page. none hands the whole gesture to us. */
+/* none, not pan-y: touch-action is decided the moment a touch first moves, before
+   any of our own code runs again, so a delayed hold-to-arm cannot hand a scroll
+   back once the browser has already claimed it. Owning the gesture outright and
+   scrolling the body by hand while a touch is undecided is what lets the same
+   surface offer both. */
 .cal-grid { position: relative; display: grid; grid-template-columns: repeat(7, 1fr); background: var(--float-soft); border-radius: 12px; overflow: hidden; touch-action: none }
 .cal-col { position: relative; border-left: 1px solid var(--hairline) }
 .cal-col:first-child { border-left: 0 }
@@ -1271,3 +1273,15 @@ html { touch-action: pan-x pan-y }
 
 /* Today's question, once everybody has answered. */
 .stack { display: flex; flex-direction: column; gap: 7px }
+
+/* ---------- Slack Tide's numbers, read as sentences ----------
+   A bare grid of labelled numeric fields ("Walking minutes", "Cooldown minutes")
+   said nothing about what any of them actually controlled. Each one now sits
+   inside the sentence it changes, so the number reads with its own meaning
+   attached rather than needing a separate line to explain it. */
+.pace-form { gap: 10px }
+.pace-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 7px; font-size: 14px; line-height: 1.6; color: var(--ink-mid) }
+.pace-line .input {
+ width: 60px; flex: 0 0 auto; min-height: 38px; padding: 5px 4px;
+ text-align: center; font-family: var(--font-round), sans-serif; font-weight: 700; color: var(--ink-deep);
+}

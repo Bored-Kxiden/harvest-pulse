@@ -11,6 +11,10 @@ import {
 import { Sprig } from './sprigs'
 
 const SLOT = 30, HOUR_PX = 40
+/* A touch that starts moving right away is read as a scroll, since the week is
+   taller than the card and needs one. Only a touch held still this long is read
+   as a deliberate ask to start marking instead; a mouse never waits. */
+const HOLD_MS = 320, HOLD_SLOP = 10
 const OPEN = minutes(DAY_OPEN), CLOSE = minutes(DAY_CLOSE)
 const HOURS = Array.from({ length: (CLOSE - OPEN) / 60 }, (_, i) => OPEN + i * 60)
 const LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
@@ -20,6 +24,10 @@ const hourLabel = (m: number) => { const h = Math.floor(m / 60); return `${h % 1
 const shiftDay = (day: string, by: number) => { const d = new Date(`${day}T12:00:00`); d.setDate(d.getDate() + by); return localDay(d) }
 
 type Draft = { column: number; from: number; to: number }
+/** One touch, undecided yet between two things it could turn into: `y`/`last` track
+    where it has been so a stray direction can still become a scroll, `timer` is the
+    hold that turns it into marking instead if nothing has decided that already. */
+type Touch = { pointerId: number; startY: number; last: number; timer: ReturnType<typeof setTimeout>; mode: 'pending' | 'scroll' | 'mark' }
 
 export function Schedule({ navigate }: { navigate: (page: string) => void }) {
  const { state, update } = useHarbor()
@@ -30,6 +38,8 @@ export function Schedule({ navigate }: { navigate: (page: string) => void }) {
  const [editing, setEditing] = useState<{ day: string; index: number; block: Interval } | null>(null)
  const [linkOpen, setLinkOpen] = useState(false)
  const grid = useRef<HTMLDivElement>(null)
+ const body = useRef<HTMLDivElement>(null)
+ const touch = useRef<Touch | null>(null)
  const week = useMemo(() => weekOf(anchor), [anchor])
  if (!state) return null
  const today = localDay()
@@ -47,19 +57,52 @@ export function Schedule({ navigate }: { navigate: (page: string) => void }) {
   const raw = OPEN + ((clientY - box.top) / HOUR_PX) * 60
   return { column, at: Math.min(CLOSE, Math.max(OPEN, Math.round(raw / SLOT) * SLOT)) }
  }
- const startDrag = (e: React.PointerEvent) => {
-  const hit = read(e.clientX, e.clientY)
+ const clearTouch = () => { if (touch.current) { clearTimeout(touch.current.timer); touch.current = null } }
+ const armDrag = (target: HTMLElement, pointerId: number, clientX: number, clientY: number) => {
+  const hit = read(clientX, clientY)
   if (!hit) return
-  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  target.setPointerCapture(pointerId)
   setDraft({ column: hit.column, from: hit.at, to: Math.min(CLOSE, hit.at + SLOT) })
  }
+ /* A mouse presses and drags immediately; there is no scroll gesture to protect
+    it from. A touch is undecided at first: this whole area sits inside a taller
+    week than fits on screen, so a swipe has to be free to scroll it. Chromium
+    (and every other engine) settles whether a touch is a scroll the moment it
+    first moves, on the compositor, before any of this code runs again, so once
+    that happens the browser will not hand the gesture back no matter what a
+    delayed setPointerCapture asks for. The only way to still offer both on the
+    same surface is to own every touch here outright (touch-action: none) and
+    decide for ourselves, scrolling the body by hand until a touch has been held
+    still long enough that it can only mean marking. */
+ const startDrag = (e: React.PointerEvent) => {
+  const target = e.currentTarget as HTMLElement
+  const { clientX, clientY, pointerId } = e
+  if (e.pointerType !== 'touch') { armDrag(target, pointerId, clientX, clientY); return }
+  clearTouch()
+  touch.current = {
+   pointerId, startY: clientY, last: clientY, mode: 'pending',
+   timer: setTimeout(() => { if (touch.current?.mode === 'pending') { touch.current.mode = 'mark'; armDrag(target, pointerId, clientX, clientY) } }, HOLD_MS),
+  }
+ }
  const moveDrag = (e: React.PointerEvent) => {
+  const t = touch.current
+  if (t) {
+   if (t.mode === 'pending') {
+    if (Math.abs(e.clientY - t.startY) > HOLD_SLOP) { clearTimeout(t.timer); t.mode = 'scroll' } else return
+   }
+   if (t.mode === 'scroll') {
+    if (body.current) body.current.scrollTop -= e.clientY - t.last
+    t.last = e.clientY
+    return
+   }
+  }
   if (!draft) return
   const hit = read(e.clientX, e.clientY)
   if (!hit) return
   setDraft({ ...draft, to: Math.max(draft.from + SLOT, Math.min(CLOSE, hit.at)) })
  }
  const endDrag = () => {
+  clearTouch()
   if (!draft) return
   const { column, from, to } = draft
   setDraft(null)
@@ -67,6 +110,7 @@ export function Schedule({ navigate }: { navigate: (page: string) => void }) {
   setLabel('')
   setNaming({ day: week[column], start: clockOf(from), end: clockOf(to) })
  }
+ const cancelDrag = () => { clearTouch(); setDraft(null) }
  const saveNamed = () => {
   if (!naming) return
   setBlocks(naming.day, [...blocksFor(state, naming.day, 'you'), { start: naming.start, end: naming.end, label: label.trim() || undefined }])
@@ -99,7 +143,7 @@ export function Schedule({ navigate }: { navigate: (page: string) => void }) {
   <div className="page-head">
    <span className="eyebrow">Schedule</span>
    <h1>When you are busy.</h1>
-   <p>Press and drag to lay down a block. Harbor stays quiet during these.</p>
+   <p>Press and hold, then drag to lay down a block. Harbor stays quiet during these.</p>
   </div>
 
   <div className="wrap flow stagger">
@@ -117,11 +161,11 @@ export function Schedule({ navigate }: { navigate: (page: string) => void }) {
      {week.map((day, i) => <span key={day} data-today={day === today}>{LETTERS[i]}<i>{Number(day.slice(-2))}</i></span>)}
     </div>
 
-    <div className="cal-body">
+    <div className="cal-body" ref={body}>
      <div className="cal-hours" aria-hidden="true">{HOURS.map(m => <span key={m} className="cal-hour">{hourLabel(m)}</span>)}</div>
      <div ref={grid} className="cal-grid" role="application"
-      aria-label="Your week. Press and drag down a column to mark time as busy."
-      onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={() => setDraft(null)}>
+      aria-label="Your week. Press and hold, then drag down a column to mark time as busy."
+      onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={cancelDrag}>
       {week.map((day, column) => <div key={day} className="cal-col" data-today={day === today}>
        {HOURS.map(m => <div key={m} className="cal-slot"/>)}
        {blocksFor(state, day, 'you').map((block, index) => <button key={`${block.start}-${index}`} type="button" className="cal-block"

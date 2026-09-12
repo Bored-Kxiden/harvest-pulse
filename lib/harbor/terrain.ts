@@ -71,9 +71,13 @@ const EYE = 300, SET_BACK = 2.4, ELEVATION = 168
 export const HORIZON = 0.3
 
 export type Camera = { x: number; y: number; zoom: number }
-/** `band` is the height that is actually seen: the sheet covers the rest, so the
-    plan centres on the band while the horizon stays where the landscape wants it. */
-export type View = { w: number; h: number; band: number; base: number }
+/** `band` is the height the plan is composed to fit: a fixed proportion the lens
+    is framed and zoomed against, chosen once so the layout never shifts as the card
+    moves. `reveal` is the separate, live question of how much of the canvas the
+    card is actually leaving uncovered right now; it only ever grows past band,
+    since band was already the safe default before the card could be pulled down
+    past where it used to rest. */
+export type View = { w: number; h: number; band: number; reveal: number; base: number }
 export type Lens = { tilt: number; focal: number; eye: number; back: number; camZ: number; cam: Camera; view: View }
 export type Point = { x: number; y: number; s: number }
 

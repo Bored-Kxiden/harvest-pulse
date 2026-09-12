@@ -9,8 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-css 82698
- families the app actually uses. The handwriting is gone. */
+/* The two families the app actually uses. The handwriting is gone. */
 :root {
  --font-body: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
  --font-round: 'Quicksand', ui-rounded, 'Nunito', sans-serif;
@@ -659,9 +658,11 @@ textarea.input { min-height: 92px; resize: none; line-height: 1.5 }
 .cal-body::-webkit-scrollbar-thumb { background: var(--grab); border-radius: 99px }
 .cal-hours { display: flex; flex-direction: column }
 .cal-hour { height: 40px; line-height: 1; font-size: 10px; color: var(--ink-faint); text-align: right; padding: 1px 5px 0 0 }
-/* pan-y let the browser's own vertical scroll win the gesture before our pointer
-   handlers ever saw it, since marking a block is itself a vertical drag: touching
-   down and dragging just scrolled the page. none hands the whole gesture to us. */
+/* none, not pan-y: touch-action is decided the moment a touch first moves, before
+   any of our own code runs again, so a delayed hold-to-arm cannot hand a scroll
+   back once the browser has already claimed it. Owning the gesture outright and
+   scrolling the body by hand while a touch is undecided is what lets the same
+   surface offer both. */
 .cal-grid { position: relative; display: grid; grid-template-columns: repeat(7, 1fr); background: var(--float-soft); border-radius: 12px; overflow: hidden; touch-action: none }
 .cal-col { position: relative; border-left: 1px solid var(--hairline) }
 .cal-col:first-child { border-left: 0 }
@@ -1265,6 +1266,18 @@ html { touch-action: pan-x pan-y }
 /* Today's question, once everybody has answered. */
 .stack { display: flex; flex-direction: column; gap: 7px }
 
+/* ---------- Slack Tide's numbers, read as sentences ----------
+   A bare grid of labelled numeric fields ("Walking minutes", "Cooldown minutes")
+   said nothing about what any of them actually controlled. Each one now sits
+   inside the sentence it changes, so the number reads with its own meaning
+   attached rather than needing a separate line to explain it. */
+.pace-form { gap: 10px }
+.pace-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 7px; font-size: 14px; line-height: 1.6; color: var(--ink-mid) }
+.pace-line .input {
+ width: 60px; flex: 0 0 auto; min-height: 38px; padding: 5px 4px;
+ text-align: center; font-family: var(--font-round), sans-serif; font-weight: 700; color: var(--ink-deep);
+}
+
 </style>
 </head>
 <body>
@@ -1412,6 +1425,7 @@ html { touch-action: pan-x pan-y }
 </div>
 <script>
 (function(){
+"use strict";
 const flowerLibrary = [
     { id: 'daisy', name: 'Daisy', note: 'An ordinary, easy call.', petal: '#FFFFFF', petalDeep: '#F0F3E6', heart: '#F7C948', petals: 9, shape: 'round' },
     { id: 'marigold', name: 'Marigold', note: 'Warm, a little loud, full of news.', petal: '#F9C46A', petalDeep: '#EDA63F', heart: '#9A6526', petals: 11, shape: 'round' },
@@ -1962,7 +1976,7 @@ function paintGround(ctx, lens, cells, weather, t) {
     const dabs = [[], [], [], [], [], []]; /* three greens, deep, water, wild */
     /* Below the sheet's lip nothing is seen, and that is exactly where the projection
        blows up, so the cull is what keeps the near rows from becoming a wall. */
-    const floor = view.band + 70;
+    const floor = view.reveal + 70;
     for (let i = 0; i < cells.length; i++) {
         const c = cells[i];
         project(lens, c.x, c.y, c.z, dot);
@@ -2398,12 +2412,18 @@ const fmtDuration = m => m < 60 ? m + ' min' : Math.floor(m / 60) + ' hr' + (m %
 /* ---------- the theme ----------
    One choice, three answers: follow the phone, or override it either way. The meadow
    needs the resolved answer too, so it knows to put the sun down. */
-/* The demo otherwise runs like any other web page, browser bars and all. This is
-   the one control that hands the phone's own chrome out of the way. Not every mobile
-   browser honours it (notably Safari on iPhone), so the row only renders where the
-   API is actually there to ask. */
+/* The demo otherwise runs like any other web page, browser bars and all. Where the
+   Fullscreen API genuinely works this is a live toggle; where it does not (every
+   browser on an iPhone, since that is a WebKit limitation and not a Safari one),
+   the row stays put and says the one thing that does work there instead, rather
+   than just disappearing as if the feature never existed. */
 function fullscreenElement() { return document.fullscreenElement || document.webkitFullscreenElement || null }
 const FULLSCREEN_SUPPORTED = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled || document.documentElement.webkitRequestFullscreen)
+/* Already running with no browser chrome at all, launched from a home screen icon
+   rather than a tab. Reached a different way on iPhone (Safari never gained the
+   Fullscreen API for anything but a video), so a page that got here already did
+   the thing this whole control is for. */
+function isStandalone() { return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true }
 async function toggleFullscreen() {
  try {
   if (fullscreenElement()) await (document.exitFullscreen ? document.exitFullscreen() : document.webkitExitFullscreen())
@@ -2459,7 +2479,7 @@ const REST_REL = 9.5, TAGS_FADE = 14
 const TONE_INK = { gold: '#E0AE39', green: '#4E9A5E', orange: '#D9813F', sky: '#5B8FC9' }
 const WEATHER_IDS = ['clear', 'bright', 'cloudy', 'rain', 'storm']
 
-let view = { w: 0, h: 0, band: 0, base: 0.2 }
+let view = { w: 0, h: 0, band: 0, reveal: 0, base: 0.2 }
 let dpr = 1, started = false, signature = ''
 let cam = { x: FIELD_W * 0.5, y: FIELD_H * 0.62, zoom: 0.2 }
 let goal = Object.assign({}, cam)
@@ -2528,7 +2548,7 @@ new ResizeObserver(entries => {
  if (!rect.width || !rect.height) return
  dpr = Math.min(window.devicePixelRatio || 1, 2)
  const band = rect.height * 0.54
- view = { w: rect.width, h: rect.height, band: band, base: overviewZoom(rect.width, band) }
+ view = { w: rect.width, h: rect.height, band: band, reveal: band, base: overviewZoom(rect.width, band) }
  canvas.width = Math.round(rect.width * dpr)
  canvas.height = Math.round(rect.height * dpr)
  if (!started) {
@@ -2558,6 +2578,10 @@ function render(now) {
  cam.zoom += (goal.zoom - cam.zoom) * ease
  const lens = buildLens(cam, view)
  const tilt = lens.tilt
+
+ /* How far down the ground is actually painted, live with the sheet's current
+    position, always at least the fixed band the camera frames around. */
+ view.reveal = Math.max(view.band, view.h * Math.min(1, Math.max(0, REST - (REST - UP) * S.lift)))
 
  /* The wheel turns the short way round, the way a dial would. */
  const index = Math.max(0, WEATHER_IDS.indexOf(sky))
@@ -2592,7 +2616,7 @@ function render(now) {
   project(lens, b.x, b.y, b.z, pt)
   if (pt.x < -60 || pt.x > w + 60 || pt.y < -60 || pt.y > h + 60) continue
   const size = b.size * 7.4 * pt.s
-  if (size < 0.7 || pt.y > view.band + 70) continue
+  if (size < 0.7 || pt.y > view.reveal + 70) continue
   paintBloom(ctx, pt.x, pt.y, size, b.kind, b.spin, windAt(b.x, b.y, t, strength), 1)
   if (size > 2.4) hits.push({ x: pt.x, y: pt.y - size * 2.2, r: Math.max(16, size), call: b.call })
  }
@@ -2686,7 +2710,7 @@ function camEnd(e) {
  if (!begun || !p || begun.moved >= 6) return
 
  for (const tag of tagHits) {
-  if (p.x >= tag.x && p.x <= tag.x + tag.w && p.y >= tag.y && p.y <= tag.y + tag.h) { toast('Conversations live in the full app.'); return }
+  if (p.x >= tag.x && p.x <= tag.x + tag.w && p.y >= tag.y && p.y <= tag.y + tag.h) { flyTo(tag.id); return }
  }
  let found = null, best = Infinity
  for (const hit of hits) {
@@ -3026,8 +3050,8 @@ SCREENS.schedule = () => {
    '<button class="cal-step" data-week="1" aria-label="Next week">' + I.caret + '</button></div>' +
    '<div class="cal-head" aria-hidden="true"><span></span>' + days.map((d, i) =>
     '<span data-today="' + (dayKey(d) === today) + '">' + LETTERS[i] + '<i>' + d.getDate() + '</i></span>').join('') + '</div>' +
-   '<div class="cal-body"><div class="cal-hours" aria-hidden="true">' + hours.map(m => '<span class="cal-hour">' + hourLabel(m) + '</span>').join('') + '</div>' +
-   '<div class="cal-grid" id="calGrid" role="application" aria-label="Your week. Press and drag down a column to mark time as busy.">' +
+   '<div class="cal-body" id="calBody"><div class="cal-hours" aria-hidden="true">' + hours.map(m => '<span class="cal-hour">' + hourLabel(m) + '</span>').join('') + '</div>' +
+   '<div class="cal-grid" id="calGrid" role="application" aria-label="Your week. Press and hold, then drag down a column to mark time as busy.">' +
     days.map(d => {
      const key = dayKey(d)
      return '<div class="cal-col" data-today="' + (key === today) + '">' + hours.map(() => '<div class="cal-slot"></div>').join('') +
@@ -3219,21 +3243,32 @@ SCREENS.account = () => '<div class="page-head"><span class="eyebrow">Your accou
   '</div>' +
   '<div class="switch-row"><div><b>A little less movement</b><p class="small">Reduce interface animations.</p></div>' +
    '<button class="toggle" id="motionToggle" aria-pressed="' + S.reduced + '" aria-label="Reduce motion"></button></div>' +
-  (FULLSCREEN_SUPPORTED ? '<div class="switch-row"><div><b><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;margin-right:5px"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>Full screen</b>' +
-   '<p class="small">Hide your browser&rsquo;s own bars, the way an installed app would.</p></div>' +
-   '<button class="toggle" id="fullscreenToggle" aria-pressed="' + String(!!fullscreenElement()) + '" aria-label="Full screen"></button></div>' : '') +
+  '<div class="switch-row" style="align-items:flex-start"><div><b><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;margin-right:5px"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>Full screen</b>' +
+   '<p class="small">' + (isStandalone()
+    ? 'You are already using Harbor full screen, opened from your home screen with none of the browser&rsquo;s own bars.'
+    : FULLSCREEN_SUPPORTED
+     ? 'Hide your browser&rsquo;s own bars, the way an installed app would.'
+     : 'This browser keeps its own bars on the web, an iPhone always does. Look for Add to Home Screen (or Install app) in its menu, then open Harbor from the icon it adds: that copy fills the whole screen with none.') +
+   '</p></div>' +
+   (!isStandalone() && FULLSCREEN_SUPPORTED ? '<button class="toggle" id="fullscreenToggle" aria-pressed="' + String(!!fullscreenElement()) + '" aria-label="Full screen"></button>' : '') +
+  '</div>' +
   '</section>' +
  '<section class="card card-pad flow" style="--i:3"><div class="switch-row"><h2 style="font-size:19px">Snap windows</h2>' +
   '<button class="toggle" aria-pressed="true" aria-label="Snap windows" data-toggle></button></div>' +
   '<p class="small">Once a day, at a moment nobody picks, you both get the same nudge to take one picture of whatever you&rsquo;re doing. It only exists between two people who each said yes, and either of you can end it.</p></section>' +
  '<section class="card card-pad flow" style="--i:3"><div class="switch-row"><h2 style="font-size:19px">Slack Tide</h2>' +
-  '<button class="toggle" aria-pressed="true" aria-label="Slack Tide cues" data-toggle></button></div>' +
-  '<p class="small">A gentle cue at the end of a walk. In this demo you stand in for the sensor; nothing runs in the background.</p>' +
-  '<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px">' +
-   '<div><label class="label" for="walkMin">Walking minutes</label><input class="input" id="walkMin" type="number" inputmode="numeric" value="10" min="1" max="120" autocomplete="off"></div>' +
-   '<div><label class="label" for="capMin">Daily cue limit</label><input class="input" id="capMin" type="number" inputmode="numeric" value="2" min="1" max="10" autocomplete="off"></div></div>' +
-  '<div><label class="label" for="ring">Your ringtone</label><select class="input" id="ring"><option>Little chime</option><option>Soft note</option><option>Silence</option></select></div>' +
-  '<p class="small">The cue rings this two or three times, then stops on its own.</p>' +
+  '<button class="toggle" aria-pressed="true" aria-label="Turn Slack Tide on or off" data-toggle></button></div>' +
+  '<p class="small">A nudge to call somebody, timed for right after you have been walking, the moment you are naturally free rather than mid-errand. Off until you turn it on; in this web demo you stand in for the motion sensor yourself, with the button near the bottom of this card.</p>' +
+  '<div class="flow pace-form">' +
+   '<p class="pace-line">Nudge me after<input class="input" id="walkMin" type="number" inputmode="numeric" value="10" min="1" max="120" autocomplete="off" aria-label="Minutes of walking before a cue can fire">minutes of walking, so a trip to the mailbox does not count.</p>' +
+   '<p class="pace-line">No more than<input class="input" id="capMin" type="number" inputmode="numeric" value="2" min="1" max="10" autocomplete="off" aria-label="The most cues allowed in one day">cues in one day, however many walks that takes.</p>' +
+   '<p class="pace-line">And at least<input class="input" id="cooldownMin" type="number" inputmode="numeric" value="90" min="1" max="1440" autocomplete="off" aria-label="The fewest minutes between two cues">minutes between two of them, so they never stack up.</p>' +
+   '<button type="button" class="btn btn-soft btn-block" data-act="pace">Save My Pace</button>' +
+  '</div>' +
+  '<div><label class="label" for="ring">Your ringtone</label>' +
+   '<p class="small" style="margin:0 0 8px">What plays when a cue arrives, two or three rings before it stops on its own.</p>' +
+   '<select class="input" id="ring"><option>Little chime</option><option>Soft note</option><option>Silence</option></select></div>' +
+  '<p class="small">See exactly what a cue looks like, without waiting for a real walk:</p>' +
   '<button class="btn btn-soft btn-block" data-act="cue">Try a Demo Moment</button></section>' +
  '<p class="fineprint" style="--i:5">Harbor · a little closer, every day.<br>Local demo. No real calls, messages, or calendar access.</p></div>'
 
@@ -3293,6 +3328,7 @@ function wire() {
  }
  host.querySelectorAll('[data-act="expand"]').forEach(b => b.onclick = () => setLift(1))
  host.querySelectorAll('[data-act="cue"]').forEach(b => b.onclick = fireCue)
+ host.querySelectorAll('[data-act="pace"]').forEach(b => b.onclick = () => toast('Your pace, saved.'))
  host.querySelectorAll('[data-act="camera"]').forEach(b => b.onclick = openCamera)
  host.querySelectorAll('[data-act="story"]').forEach(b => b.onclick = () => openStory(0))
  host.querySelectorAll('[data-act="window"]').forEach(b => b.onclick = openWindow)
@@ -3480,26 +3516,61 @@ function wireSchedule() {
   const raw = OPEN + ((y - box.top) / HOUR_PX) * 60
   return { column, at: Math.min(CLOSE, Math.max(OPEN, Math.round(raw / SLOT) * SLOT)) }
  }
- grid.addEventListener('pointerdown', e => {
-  const hit = read(e.clientX, e.clientY)
-  grid.setPointerCapture(e.pointerId)
+ const arm = (pointerId, x, y) => {
+  const hit = read(x, y)
+  grid.setPointerCapture(pointerId)
   calDraft = { column: hit.column, from: hit.at, to: Math.min(CLOSE, hit.at + SLOT) }
   calDraftEl = el('<span class="cal-draft"></span>')
   grid.children[hit.column].appendChild(calDraftEl)
   paintDraft()
+ }
+ /* A mouse drags immediately; there is no scroll gesture competing with it. A touch
+    is undecided at first, since this area sits inside a taller week than fits on
+    screen: touch-action is decided the moment a touch first moves, before any of
+    this code runs again, so a delayed setPointerCapture cannot hand a scroll back
+    once the browser has claimed it. Owning every touch here (touch-action: none)
+    and scrolling the body by hand until a touch has been held still long enough
+    to only mean marking is the only way to offer both on the same surface. */
+ const HOLD_MS = 320, HOLD_SLOP = 10
+ let calTouch = null
+ grid.addEventListener('pointerdown', e => {
+  if (e.pointerType !== 'touch') { arm(e.pointerId, e.clientX, e.clientY); return }
+  if (calTouch) clearTimeout(calTouch.timer)
+  calTouch = {
+   startY: e.clientY, last: e.clientY, mode: 'pending',
+   timer: setTimeout(() => { if (calTouch && calTouch.mode === 'pending') { calTouch.mode = 'mark'; arm(e.pointerId, e.clientX, e.clientY) } }, HOLD_MS),
+  }
  })
  grid.addEventListener('pointermove', e => {
+  if (calTouch) {
+   if (calTouch.mode === 'pending') {
+    if (Math.abs(e.clientY - calTouch.startY) > HOLD_SLOP) { clearTimeout(calTouch.timer); calTouch.mode = 'scroll' } else return
+   }
+   if (calTouch.mode === 'scroll') {
+    const body = $('calBody')
+    if (body) body.scrollTop -= e.clientY - calTouch.last
+    calTouch.last = e.clientY
+    return
+   }
+  }
   if (!calDraft) return
   const hit = read(e.clientX, e.clientY)
   calDraft.to = Math.max(calDraft.from + SLOT, Math.min(CLOSE, hit.at))
   paintDraft()
  })
- grid.addEventListener('pointerup', () => {
+ const release = () => {
+  if (calTouch) { clearTimeout(calTouch.timer); calTouch = null }
   if (!calDraft) return
   const { column, from, to } = calDraft
   if (calDraftEl) calDraftEl.remove()
   calDraft = null; calDraftEl = null
   nameBlock(dayKey(weekDays(anchor)[column]), from, to)
+ }
+ grid.addEventListener('pointerup', release)
+ grid.addEventListener('pointercancel', () => {
+  if (calTouch) { clearTimeout(calTouch.timer); calTouch = null }
+  if (calDraftEl) calDraftEl.remove()
+  calDraft = null; calDraftEl = null
  })
 }
 function paintDraft() {
