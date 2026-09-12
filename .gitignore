@@ -16,3 +16,5 @@ node_modules
 
 # TypeScript
 *.tsbuildinfo
+# the static export used to build the single-file standalone
+.next-export/

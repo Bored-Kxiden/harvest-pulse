@@ -1,8 +1,8 @@
 'use client'
 import useSWR from 'swr'
 import { toast } from 'sonner'
-import { addMoment, parseState, seedState, type HarborState, type Moment } from './model'
-const KEY = 'harbor-demo-v5'
+import { addMoment, parseState, seedState, type HarborState, type Mode, type Moment } from './model'
+const KEY = 'harbor-demo-v6'
 let current: HarborState | undefined
 let warned = false
 function persist(state: HarborState) {
@@ -20,7 +20,13 @@ export function useHarbor() {
  const update = (fn: (state: HarborState) => HarborState) => { current = fn(current ?? data ?? read()); persist(current); void mutate(current, false) }
  const log = (moment: Moment) => update(s => addMoment(s, moment))
  const reset = () => { current = seedState(); persist(current); void mutate(current, false) }
- return { state: data, update, log, reset }
+ /** Finishing setup lays down the sample household that matches the side of the
+     phone you said you are on, so the first screen already reads as yours. */
+ const start = (mode: Mode, name: string) => {
+  current = { ...seedState(new Date(), mode), name: name.trim() || (mode === 'parent' ? 'Asha' : 'Maya'), setupDone: true }
+  persist(current); void mutate(current, false)
+ }
+ return { state: data, update, log, reset, start }
 }
 export function makeId() { return crypto.randomUUID() }
 

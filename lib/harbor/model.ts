@@ -10,7 +10,10 @@ export type Moment = {
  minutes?: number; feeling?: Feeling; flower?: FlowerKind; topic?: string
 }
 
-export type ChatMessage = { id: string; text: string; mine: boolean; at: string; liked?: boolean }
+/** A message carries text. When it started as a voice note it carries the recording
+    too, and the text is the transcript the sender read back and kept or corrected. */
+export type ChatMessage = { id: string; text: string; mine: boolean; at: string; liked?: boolean; voice?: VoiceClip }
+export type VoiceClip = { mediaId?: string; seconds: number; edited?: boolean }
 /** A block of time somebody is busy. The label is what they are doing; only they ever see it. */
 export type Interval = { start: string; end: string; label?: string; linked?: boolean }
 export type CalendarLink = { provider: CalendarProvider; connectedAt: string }
@@ -43,8 +46,20 @@ export const themes: { id: Theme; label: string }[] = [
 ]
 export type FlowerKind = 'daisy' | 'tulip' | 'poppy' | 'cosmos' | 'marigold' | 'bluebell' | 'aster' | 'sunflower'
 
+/** Who is holding the phone. A parent gets a shorter app: the people they care about,
+    two ways to reach each one, and nothing else competing for the tap. A student gets
+    the full set, because they are the one juggling a timetable. */
+export type Mode = 'student' | 'parent'
+export type PuzzleId = 'sudoku' | 'zip' | 'tango'
+/** One solved puzzle. Only finished ones are recorded, so a row is always a win. */
+export type PuzzleResult = { day: string; puzzle: PuzzleId; seconds: number; at: string }
+
 export type HarborState = {
- version: 5; name: string
+ version: 6; name: string
+ mode: Mode; setupDone: boolean
+ puzzles: PuzzleResult[]
+ /** The code someone else types in to join you, and who has used it. */
+ invite: { code: string; joined: string[] }
  people: Person[]
  sharing: boolean; momConsent: boolean; sharingSetupDone: boolean
  schedules: Record<string, { you: Interval[]; mom: Interval[] }>; calendar: CalendarLink | null
@@ -197,25 +212,38 @@ export function sharedAlerts(state: HarborState): Alert[] {
  const out: Alert[] = []
  for (const note of personalNotes(state)) out.push({
   id: `seed-${note.id}`, at: note.at, person: note.person, kind: 'seed',
-  title: `${name(note.person)} planted a seed`,
-  body: `They left a note just for you, and you received a flower. "${note.text}"`,
+  title: `${name(note.person)} left you a note`,
+  body: note.text,
  })
  for (const plan of plansFor(state)) out.push({
   id: `plan-${plan.id}`, at: planAt(plan), person: plan.person, kind: 'plan',
-  title: `${name(plan.person)} shared their day`,
+  title: `${name(plan.person)} shared their plans`,
   body: `${plan.label}, ${formatTime(plan.start)} to ${formatTime(plan.end)}`,
  })
  for (const snap of state.snaps.filter(s => s.person !== 'you')) out.push({
   id: `instant-${snap.id}`, at: snap.at, person: snap.person, kind: 'instant',
-  title: `${name(snap.person)} caught an instant`,
+  title: `${name(snap.person)} sent a photo`,
   body: snap.caption ?? 'A picture of whatever they were doing.',
  })
  for (const note of sharedNotes(state).filter(n => n.person !== 'you')) out.push({
   id: `note-${note.id}`, at: note.at, person: note.person, kind: 'note',
-  title: `${name(note.person)} left a little something`,
+  title: `${name(note.person)} posted to everyone`,
   body: note.text,
  })
  return out.sort((a, b) => b.at.localeCompare(a.at))
+}
+
+/** Free or busy, right now, from what they chose to share. The one thing a parent
+    actually wants before dialling: is this a bad moment? */
+export function personStatus(state: HarborState, personId: string, now = new Date()) {
+ const day = localDay(now)
+ const clock = now.getHours() * 60 + now.getMinutes()
+ const today = state.plans.filter(p => p.person === personId && p.day === day)
+ const busy = today.find(p => minutes(p.start) <= clock && clock < minutes(p.end))
+ if (busy) return { busy: true, label: `Busy until ${formatTime(busy.end)}`, detail: busy.label }
+ const next = today.filter(p => minutes(p.start) > clock).sort((a, b) => minutes(a.start) - minutes(b.start))[0]
+ if (next) return { busy: false, label: `Free until ${formatTime(next.start)}`, detail: `then ${next.label.toLowerCase()}` }
+ return { busy: false, label: 'Free now', detail: 'Nothing shared for the rest of today' }
 }
 export function unseenAlerts(state: HarborState) {
  return sharedAlerts(state).filter(a => a.at > (state.seenAlerts || '')).length
@@ -357,15 +385,74 @@ export const gamePrompts: GamePrompt[] = [
 ]
 export function gameForDay(day: string): GamePrompt { let h = 0; for (const c of day) h = (h * 31 + c.charCodeAt(0)) >>> 0; return gamePrompts[h % gamePrompts.length] }
 
+/* ---------- keeping score, lightly ----------
+   Nothing here is stored twice. A streak, a goal's progress and a puzzle's state are
+   all read back out of what actually happened, so they cannot drift from the truth
+   and there is no counter to reset when the demo starts fresh. */
+
+/** Days you reached somebody, newest first, counted back from today. A day you
+    did nothing ends the run, except today: an untouched today is the run so far. */
+export function connectStreak(state: HarborState, now = new Date()): number {
+ const days = new Set(state.moments
+  .filter(m => ['called', 'message', 'reacted'].includes(m.kind))
+  .map(m => localDay(new Date(m.at))))
+ for (const p of state.puzzles) days.add(p.day)
+ let run = 0
+ const cursor = new Date(now)
+ if (!days.has(localDay(cursor))) cursor.setDate(cursor.getDate() - 1)
+ while (days.has(localDay(cursor))) { run++; cursor.setDate(cursor.getDate() - 1) }
+ return run
+}
+
+/** Monday's date, used as the key a week's goals are measured inside. */
+export function weekStart(day: string) { return weekOf(day)[0] }
+function withinWeek(at: string, week: string[]) { return week.includes(localDay(new Date(at))) }
+
+export type Goal = { id: string; label: string; hint: string; done: number; target: number }
+/** Three small things, measured off real activity. Deliberately reachable: the point
+    is to notice you already did them, not to set homework. */
+export function weeklyGoals(state: HarborState, now = new Date()): Goal[] {
+ const week = weekOf(localDay(now))
+ const spoke = new Set(state.moments.filter(m => m.kind === 'called' && withinWeek(m.at, week)).map(m => m.person))
+ const voices = Object.values(state.messages).flat().filter(m => m.mine && m.voice && withinWeek(m.at, week)).length
+ const puzzleDays = new Set(state.puzzles.filter(p => week.includes(p.day)).map(p => p.day))
+ return [
+  { id: 'reach', label: 'Talk to two people', hint: 'A two-minute call counts', done: Math.min(spoke.size, 2), target: 2 },
+  { id: 'voice', label: 'Send a voice note', hint: 'Faster than typing it out', done: Math.min(voices, 1), target: 1 },
+  { id: 'play', label: 'Play on three days', hint: 'Any puzzle, any day', done: Math.min(puzzleDays.size, 3), target: 3 },
+ ]
+}
+export function goalsWon(goals: Goal[]) { return goals.filter(g => g.done >= g.target).length }
+
+export function puzzleResult(state: HarborState, day: string, puzzle: PuzzleId) {
+ return state.puzzles.find(p => p.day === day && p.puzzle === puzzle)
+}
+/** A tidy code somebody can read down a phone line without spelling it out. */
+export function makeInviteCode(seed = Math.random()) {
+ const letters = 'ACDEFGHJKLMNPRTUVWXY'
+ let out = ''
+ let n = Math.floor(seed * 0xffffff)
+ for (let i = 0; i < 3; i++) { out += letters[n % letters.length]; n = Math.floor(n / letters.length) }
+ return `${out}-${String(Math.floor(seed * 9000) + 1000)}`
+}
+
 export const seedPeople: Person[] = [
  { id: 'mom', name: 'Mom', initials: 'M', tone: 'gold', note: 'Made your favorite today. Guess what it is?' },
  { id: 'dad', name: 'Dad', initials: 'D', tone: 'green', note: 'The tomatoes are finally growing!' },
  { id: 'aanya', name: 'Aanya', initials: 'A', tone: 'orange', note: 'Saving this story for our next call.' },
 ]
+/** The same household from the other side of the phone. A parent's people are their
+    kids, so the demo reads correctly the moment somebody picks parent at setup. */
+export const seedFamily: Person[] = [
+ { id: 'maya', name: 'Maya', initials: 'M', tone: 'orange', note: 'Studio ran late again. Calling after dinner!' },
+ { id: 'rohan', name: 'Rohan', initials: 'R', tone: 'sky', note: 'Hostel food update: still bad. Still eating it.' },
+]
 
-export function seedState(now = new Date()): HarborState {
+export function seedState(now = new Date(), mode: Mode = 'student'): HarborState {
+ const parent = mode === 'parent'
+ const people = (parent ? seedFamily : seedPeople).map(p => ({ ...p }))
  const today = localDay(now); const milestone = new Date(now); milestone.setDate(milestone.getDate() + 21)
- const seedCalls: [string, number, Feeling, FlowerKind, string, string][] = [
+ const studentCalls: [string, number, Feeling, FlowerKind, string, string][] = [
   ['mom', 14, 'warm', 'marigold', 'Catch up', 'A long chat about absolutely nothing.'],
   ['mom', 6, 'steady', 'daisy', 'Just because', 'A quick hello between classes.'],
   ['mom', 31, 'tender', 'poppy', 'Ask for help', 'The one where I finally said it out loud.'],
@@ -376,30 +463,51 @@ export function seedState(now = new Date()): HarborState {
   ['aanya', 26, 'tender', 'aster', 'Ask for help', 'Untangling the whole week together.'],
   ['aanya', 8, 'light', 'bluebell', 'Just because', 'Mostly listening. That was the point.'],
  ]
- const moments: Moment[] = seedCalls.map(([person, mins, feeling, flower, topic, text], i) => {
+ const parentCalls: [string, number, Feeling, FlowerKind, string, string][] = [
+  ['maya', 18, 'warm', 'marigold', 'Catch up', 'She talked the whole time. Good sign.'],
+  ['maya', 5, 'light', 'tulip', 'Just because', 'Between her classes. Short and sweet.'],
+  ['maya', 27, 'tender', 'poppy', 'Ask for help', 'The hostel food conversation, again.'],
+  ['rohan', 12, 'steady', 'daisy', 'Catch up', 'Exams start Monday. He sounded ready.'],
+  ['rohan', 31, 'warm', 'sunflower', 'Share news', 'He got the internship. He buried the lede.'],
+  ['rohan', 7, 'light', 'cosmos', 'Just because', 'Just to hear his voice before bed.'],
+ ]
+ const moments: Moment[] = (parent ? parentCalls : studentCalls).map(([person, mins, feeling, flower, topic, text], i) => {
   const at = new Date(now); at.setDate(at.getDate() - (i * 3 + 2)); at.setHours(17 + (i % 4), 20, 0, 0)
   return { id: `seed-call-${i}`, at: at.toISOString(), person, kind: 'called' as const, text, source: 'manual' as const, minutes: mins, feeling, flower, topic }
  })
  /* Personal notes are addressed to you alone; shared ones go to everybody you added. */
- const notes: Note[] = [
-  { id: 'seed-note-mom', at: new Date(now.getTime() - 3600000).toISOString(), person: 'mom', scope: 'personal', text: 'Made a little extra of your favorite, out of habit.' },
-  { id: 'seed-note-dad', at: new Date(now.getTime() - 5 * 3600000).toISOString(), person: 'dad', scope: 'personal', text: 'Proud of you this week. That is all, no reply needed.' },
-  { id: 'seed-note-aanya', at: new Date(now.getTime() - 26 * 3600000).toISOString(), person: 'aanya', scope: 'personal', text: 'saving a story for you' },
-  { id: 'seed-open-mom', at: new Date(now.getTime() - 2 * 3600000).toISOString(), person: 'mom', scope: 'shared', text: 'The jasmine finally opened this morning.' },
-  { id: 'seed-open-dad', at: new Date(now.getTime() - 9 * 3600000).toISOString(), person: 'dad', scope: 'shared', text: 'Radio still works. Unbelievable.' },
+ const ago = (hours: number) => new Date(now.getTime() - hours * 3600000).toISOString()
+ const notes: Note[] = parent ? [
+  { id: 'seed-note-maya', at: ago(1), person: 'maya', scope: 'personal', text: 'Got the studio space! Will send pictures tonight.' },
+  { id: 'seed-note-rohan', at: ago(5), person: 'rohan', scope: 'personal', text: 'Reached the hostel. Bus was late but fine.' },
+  { id: 'seed-open-maya', at: ago(2), person: 'maya', scope: 'shared', text: 'Finally slept eight hours. Reporting it as news.' },
+  { id: 'seed-open-rohan', at: ago(9), person: 'rohan', scope: 'shared', text: 'Exams Monday. Send snacks, not advice.' },
+ ] : [
+  { id: 'seed-note-mom', at: ago(1), person: 'mom', scope: 'personal', text: 'Made a little extra of your favorite, out of habit.' },
+  { id: 'seed-note-dad', at: ago(5), person: 'dad', scope: 'personal', text: 'Proud of you this week. That is all, no reply needed.' },
+  { id: 'seed-note-aanya', at: ago(26), person: 'aanya', scope: 'personal', text: 'saving a story for you' },
+  { id: 'seed-open-mom', at: ago(2), person: 'mom', scope: 'shared', text: 'The jasmine finally opened this morning.' },
+  { id: 'seed-open-dad', at: ago(9), person: 'dad', scope: 'shared', text: 'Radio still works. Unbelievable.' },
  ]
  /* A few things your people said they would be doing, so the bell has something in it. */
  const planWeek = weekOf(today)
- const plans: Plan[] = [
+ const plans: Plan[] = parent ? [
+  { id: 'seed-plan-maya-1', person: 'maya', day: today, start: '15:00', end: '17:30', label: 'Studio, then the library' },
+  { id: 'seed-plan-rohan-1', person: 'rohan', day: today, start: '09:00', end: '12:00', label: 'Exams revision' },
+  { id: 'seed-plan-maya-2', person: 'maya', day: planWeek[5], start: '11:00', end: '13:00', label: 'Free all morning' },
+ ] : [
   { id: 'seed-plan-mom-1', person: 'mom', day: today, start: '18:00', end: '19:30', label: 'Cooking, then a walk' },
   { id: 'seed-plan-dad-1', person: 'dad', day: today, start: '07:30', end: '09:00', label: 'The garden, as always' },
   { id: 'seed-plan-mom-2', person: 'mom', day: planWeek[5], start: '10:00', end: '12:00', label: 'Market with your aunt' },
   { id: 'seed-plan-aanya-1', person: 'aanya', day: planWeek[4], start: '20:00', end: '22:00', label: 'Free all evening' },
  ]
- const snaps: Snap[] = [
-  { id: 'seed-snap-mom', at: new Date(now.getTime() - 2 * 3600000).toISOString(), person: 'mom', caption: 'the jasmine, finally', simulated: true },
-  { id: 'seed-snap-dad', at: new Date(now.getTime() - 30 * 3600000).toISOString(), person: 'dad', caption: 'first tomato of the year', saved: true, simulated: true },
-  { id: 'seed-snap-aanya', at: new Date(now.getTime() - 52 * 3600000).toISOString(), person: 'aanya', caption: 'library, 1am, send help', simulated: true },
+ const snaps: Snap[] = parent ? [
+  { id: 'seed-snap-maya', at: ago(2), person: 'maya', caption: 'my desk, finally tidy', simulated: true },
+  { id: 'seed-snap-rohan', at: ago(30), person: 'rohan', caption: 'hostel chai. not yours, sorry', saved: true, simulated: true },
+ ] : [
+  { id: 'seed-snap-mom', at: ago(2), person: 'mom', caption: 'the jasmine, finally', simulated: true },
+  { id: 'seed-snap-dad', at: ago(30), person: 'dad', caption: 'first tomato of the year', saved: true, simulated: true },
+  { id: 'seed-snap-aanya', at: ago(52), person: 'aanya', caption: 'library, 1am, send help', simulated: true },
  ]
  /* A believable week of real life, so the calendar has something in it from the first run. */
  const week = weekOf(today)
@@ -421,14 +529,20 @@ export function seedState(now = new Date()): HarborState {
   [{ start: '10:00', end: '12:00', label: 'Market' }],
   [{ start: '12:00', end: '15:00', label: 'Family lunch' }],
  ]
+ /* A parent's own week is the working one; the student week is the one with a
+    cafe shift in it. Whichever side you are on, "yours" is the one you can edit. */
+ const mine = parent ? theirs : yours
+ const others = parent ? yours : theirs
  return {
-  version: 5, name: 'Maya', people: seedPeople.map(p => ({ ...p })),
+  version: 6, name: parent ? 'Asha' : 'Maya', mode, setupDone: false,
+  puzzles: [], invite: { code: makeInviteCode(), joined: [] },
+  people,
   sharing: false, momConsent: false, sharingSetupDone: false, calendar: null,
-  schedules: Object.fromEntries(week.map((key, i) => [key, { you: yours[i], mom: theirs[i] }])),
-  weather: 'bright', milestone: { title: 'Midterms', date: localDay(milestone) },
-  messages: Object.fromEntries(seedPeople.map(p => [p.id, [{ id: `hello-${p.id}`, text: p.note ?? 'Thinking of you.', mine: false, at: new Date(now.getTime() - 3600000).toISOString() }]])),
+  schedules: Object.fromEntries(week.map((key, i) => [key, { you: mine[i], mom: others[i] }])),
+  weather: 'bright', milestone: { title: parent ? 'Maya visits' : 'Midterms', date: localDay(milestone) },
+  messages: Object.fromEntries(people.map(p => [p.id, [{ id: `hello-${p.id}`, text: p.note ?? 'Thinking of you.', mine: false, at: ago(1) }]])),
   read: [], drafts: {}, moments, cues: [], notes, games: {}, snaps, pacts: [], snapWindows: {},
-  plans, starred: [`plan:seed-plan-mom-1`], seenAlerts: '',
+  plans, starred: [`plan:${plans[0].id}`], seenAlerts: '',
   settings: { cuesEnabled: true, walkingMinutes: 10, dailyCap: 2, cooldownMinutes: 120, sound: 'chime', reducedMotion: false, theme: 'light' },
  }
 }
@@ -436,13 +550,17 @@ export function seedState(now = new Date()): HarborState {
 export function parseState(raw: string): HarborState | null {
  try {
   const s = JSON.parse(raw) as HarborState
-  if (s.version !== 5 || typeof s.name !== 'string' || typeof s.sharing !== 'boolean' || typeof s.momConsent !== 'boolean' || typeof s.sharingSetupDone !== 'boolean') return null
+  if (s.version !== 6 || typeof s.name !== 'string' || typeof s.sharing !== 'boolean' || typeof s.momConsent !== 'boolean' || typeof s.sharingSetupDone !== 'boolean') return null
+  if (!['student', 'parent'].includes(s.mode) || typeof s.setupDone !== 'boolean') return null
+  if (!Array.isArray(s.puzzles) || !s.puzzles.every(p => p && /^\d{4}-\d{2}-\d{2}$/.test(p.day) && ['sudoku', 'zip', 'tango'].includes(p.puzzle) && Number.isFinite(p.seconds))) return null
+  if (!s.invite || typeof s.invite.code !== 'string' || !Array.isArray(s.invite.joined) || !s.invite.joined.every(x => typeof x === 'string')) return null
   if (!s.settings || !s.schedules || !s.milestone || !s.messages || !s.drafts) return null
   if (s.calendar !== null && !(s.calendar && calendarProviders.some(c => c.id === s.calendar!.provider))) return null
   if (!Array.isArray(s.people) || !s.people.length || !s.people.every(p => p && typeof p.id === 'string' && typeof p.name === 'string' && typeof p.initials === 'string' && ['green', 'gold', 'orange', 'sky'].includes(p.tone))) return null
   if (!weathers.some(w => w.id === s.weather) || typeof s.milestone.title !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s.milestone.date)) return null
   if (!Object.values(s.schedules).every(v => v && validIntervals(v.you) && validIntervals(v.mom))) return null
-  if (!Object.values(s.messages).every(ms => Array.isArray(ms) && ms.every(m => typeof m.text === 'string' && typeof m.mine === 'boolean' && typeof m.id === 'string'))) return null
+  if (!Object.values(s.messages).every(ms => Array.isArray(ms) && ms.every(m => typeof m.text === 'string' && typeof m.mine === 'boolean' && typeof m.id === 'string'
+   && (m.voice === undefined || (m.voice && Number.isFinite(m.voice.seconds)))))) return null
   if (!Array.isArray(s.moments) || !s.moments.every(m => m && typeof m.id === 'string' && typeof m.text === 'string' && typeof m.person === 'string' && Number.isFinite(Date.parse(m.at)) && ['called', 'reacted', 'proposed_later', 'message', 'dismissed', 'played'].includes(m.kind) && (m.flower === undefined || flowerLibrary.some(f => f.id === m.flower)))) return null
   if (!Array.isArray(s.notes) || !s.notes.every(n => n && typeof n.id === 'string' && typeof n.person === 'string' && typeof n.text === 'string' && Number.isFinite(Date.parse(n.at)) && ['personal', 'shared'].includes(n.scope))) return null
   if (!Array.isArray(s.plans) || !s.plans.every(p => p && typeof p.id === 'string' && typeof p.person === 'string' && typeof p.label === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(p.day) && /^([01]\d|2[0-3]):[0-5]\d$/.test(p.start) && /^([01]\d|2[0-3]):[0-5]\d$/.test(p.end))) return null

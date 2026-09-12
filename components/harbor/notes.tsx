@@ -30,11 +30,10 @@ export function NotesScreen({ navigate, onOpenCamera, onOpenStory }: {
 
  return <div className="entrance">
   <div className="page-head">
-   <span className="eyebrow">Saved</span>
-   <h1>{view === 'notes' ? 'Lines from home.' : 'Saved instants.'}</h1>
+   <h1>{view === 'notes' ? 'Notes' : 'Photos'}</h1>
    <p>{view === 'notes'
-    ? 'Small things, said out loud. Nobody owes a reply.'
-    : 'Pictures kept before they faded. Tap one to let it go again.'}</p>
+    ? 'Small things your people said out loud. Nobody owes a reply.'
+    : 'Pictures you kept before they faded. Tap one to let it go again.'}</p>
   </div>
 
   <div className="wrap flow stagger">

@@ -141,8 +141,7 @@ export function Schedule({ navigate }: { navigate: (page: string) => void }) {
 
  return <div className="entrance">
   <div className="page-head">
-   <span className="eyebrow">Schedule</span>
-   <h1>When you are busy.</h1>
+   <h1>Your week</h1>
    <p>Press and hold, then drag to lay down a block. Harbor stays quiet during these.</p>
   </div>
 
