@@ -54,7 +54,7 @@ export function CallFlow({ person, topic, onDone, onCancel }: { person: string; 
     <span className="halo"><Avatar person={who.id} size="xl"/></span>
     <h1 className="curtain-title">{who.name}</h1>
     <p className="call-timer" role="timer">{clock(seconds)}</p>
-    {topic && <p className="small-copy">about <b>{topic.toLowerCase()}</b></p>}
+    {topic && <p className="small">about <b>{topic.toLowerCase()}</b></p>}
     <p className="curtain-sub">Talk for as long or as little as suits you. Two minutes counts.</p>
     <button type="button" className="btn btn-block" onClick={endCall}><PhoneOff/>End call</button>
     <button type="button" className="btn btn-quiet" onClick={onCancel}>never mind, back out</button>
@@ -63,10 +63,10 @@ export function CallFlow({ person, topic, onDone, onCancel }: { person: string; 
    {step === 'reflect' && <div className="flow" style={{ width: '100%' }}>
     <p className="eyebrow">Just for you</p>
     <h1 className="curtain-title" style={{ textAlign: 'left' }}>How did that feel?</h1>
-    <div className="choice-row" role="radiogroup" aria-label="How the call felt">
-     {feelings.map(f => <button key={f.id} type="button" role="radio" aria-checked={feeling === f.id} className="choice" onClick={() => chooseFeeling(f.id)}>{f.label}</button>)}
+    <div className="chips" role="radiogroup" aria-label="How the call felt">
+     {feelings.map(f => <button key={f.id} type="button" role="radio" aria-checked={feeling === f.id} className="chip-choice" onClick={() => chooseFeeling(f.id)}>{f.label}</button>)}
     </div>
-    <p className="small-copy">{feelings.find(f => f.id === feeling)?.caption}</p>
+    <p className="small">{feelings.find(f => f.id === feeling)?.caption}</p>
     <div className="switch-row">
      <b>About how long?</b>
      <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -75,7 +75,7 @@ export function CallFlow({ person, topic, onDone, onCancel }: { person: string; 
       <button type="button" className="icon-button" aria-label="Longer" onClick={() => setMinutesLong(m => Math.min(180, m + (m >= 15 ? 5 : 1)))}><Plus/></button>
      </span>
     </div>
-    <div><label className="field-label" htmlFor="call-about">What was it about? (optional)</label>
+    <div><label className="label" htmlFor="call-about">What was it about? (optional)</label>
      <input className="input" id="call-about" maxLength={90} placeholder="the tomatoes, mostly" value={about} onChange={e => setAbout(e.target.value)}/></div>
     <button type="button" className="btn btn-block" onClick={() => setStep('flower')}>Choose a flower <Sparkles/></button>
    </div>}
@@ -83,7 +83,7 @@ export function CallFlow({ person, topic, onDone, onCancel }: { person: string; 
    {step === 'flower' && <div className="flow" style={{ width: '100%' }}>
     <p className="eyebrow">{who.name}&apos;s patch</p>
     <h1 className="curtain-title" style={{ textAlign: 'left' }}>Which flower was it?</h1>
-    <p className="small-copy">{library ? 'The whole library. Pick whatever fits.' : `Picked for a ${feelings.find(f => f.id === feeling)?.label.toLowerCase()} call — or open the library.`}</p>
+    <p className="small">{library ? 'The whole library. Pick whatever fits.' : `Picked for a ${feelings.find(f => f.id === feeling)?.label.toLowerCase()} call — or open the library.`}</p>
     <FlowerPicker value={flower} onChange={setFlower} suggested={library ? undefined : suggested}/>
     <button type="button" className="link" onClick={() => setLibrary(v => !v)}>{library ? 'Back to the suggestions' : 'Open the flower library'}</button>
     <button type="button" className="btn btn-block" onClick={plant}><Check/>Plant {flowerSpec(flower).name.toLowerCase()}</button>

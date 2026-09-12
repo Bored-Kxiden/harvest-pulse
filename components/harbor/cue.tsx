@@ -51,10 +51,10 @@ export function CueOverlay({ cue, onDismiss, onCall }: { cue: Cue; onDismiss: ()
    {step === 'cue' && <>
     <h1 className="curtain-title">Looks like you&apos;re free.</h1>
     <p className="curtain-sub">You just stopped walking — a good moment, if you want it.</p>
-    <p className="small-copy">calls with {person.name} usually run <b>~{usual ?? 12} min</b></p>
+    <p className="small">calls with {person.name} usually run <b>~{usual ?? 12} min</b></p>
 
-    <div className="choice-row" role="group" aria-label="Give the call a shape, before it starts">
-     {topics.map(t => <button key={t} type="button" className="choice" aria-pressed={topic === t} onClick={() => setTopic(topic === t ? undefined : t)}>{t}</button>)}
+    <div className="chips" role="group" aria-label="Give the call a shape, before it starts">
+     {topics.map(t => <button key={t} type="button" className="chip-choice" aria-pressed={topic === t} onClick={() => setTopic(topic === t ? undefined : t)}>{t}</button>)}
     </div>
 
     <div className="paths">
@@ -73,24 +73,24 @@ export function CueOverlay({ cue, onDismiss, onCall }: { cue: Cue; onDismiss: ()
     </div>
 
     <button type="button" className="btn btn-quiet" onClick={leave}>not now</button>
-    <p className="notice"><ShieldCheck/>Your walking stays on this phone. {person.name} never sees it.</p>
+    <p className="note-strip"><ShieldCheck/>Your walking stays on this phone. {person.name} never sees it.</p>
    </>}
 
    {step === 'react' && <div className="flow" style={{ width: '100%' }}>
-    <h1 className="curtain-title curtain-title-sm">A little love, then.</h1>
+    <h1 className="curtain-title">A little love, then.</h1>
     <p className="curtain-sub">One line is plenty. No call, no explanation.</p>
-    <div><label className="field-label" htmlFor="cue-line">Your line</label>
+    <div><label className="label" htmlFor="cue-line">Your line</label>
      <input className="input" id="cue-line" maxLength={120} placeholder="thinking of you, that's all" value={line} onChange={e => setLine(e.target.value)}/></div>
     <button type="button" className="btn btn-block" disabled={!line.trim()} onClick={() => { finish({ kind: 'reacted', text: line.trim(), topic }); toast.success('Sent. Nothing owed either way.'); onDismiss() }}><Check/>Send it</button>
     <button type="button" className="btn btn-quiet btn-block" onClick={() => setStep('cue')}>back</button>
    </div>}
 
    {step === 'later' && <div className="flow" style={{ width: '100%' }}>
-    <h1 className="curtain-title curtain-title-sm">When would suit you?</h1>
+    <h1 className="curtain-title">When would suit you?</h1>
     <p className="curtain-sub">A possibility, not a promise. It becomes today&apos;s next nudge and nothing more.</p>
-    <div><label className="field-label" htmlFor="cue-when">A better time</label>
+    <div><label className="label" htmlFor="cue-when">A better time</label>
      <input className="input" id="cue-when" type="datetime-local" value={when} onChange={e => { setWhen(e.target.value); setError('') }} aria-invalid={!!error}/></div>
-    {error && <p className="small-copy" style={{ color: 'var(--destructive)' }} role="alert">{error}</p>}
+    {error && <p className="small" style={{ color: 'var(--destructive)' }} role="alert">{error}</p>}
     <button type="button" className="btn btn-block" onClick={() => {
      if (!isFuture(when)) { setError('Choose a time still ahead of you.'); return }
      finish({ kind: 'proposed_later', text: 'Made a little room to talk later.', proposedTime: new Date(when).toISOString(), topic })
@@ -119,32 +119,32 @@ export function CueScreen({ navigate, onFire }: { navigate: (page: string) => vo
  }
 
  return <div className="entrance">
-  <div className="page-intro">
+  <div className="page-head">
    <p className="eyebrow">A pause, not a push</p>
    <h1>Find your slack tide.</h1>
    <p>Sometimes the right moment is just after you stop.</p>
   </div>
-  <div className="section section-first flow">
-   <div className="mint-card flow">
+  <div className="wrap flow">
+   <div className="tint-card flow">
     <Waves className="size-9" strokeWidth={1.2} style={{ color: 'var(--ink)' }}/>
     <h2 style={{ fontSize: 24, color: 'var(--ink)' }}>Nothing to catch up on.</h2>
-    <p className="small-copy">When a walk ends, your phone buzzes and rings the sound you chose, and the cue takes over the screen. A call, a little love, or a plan for later — all are welcome. So is doing nothing.</p>
+    <p className="small">When a walk ends, your phone buzzes and rings the sound you chose, and the cue takes over the screen. A call, a little love, or a plan for later — all are welcome. So is doing nothing.</p>
    </div>
    <section className="card card-pad flow">
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Footprints className="size-5" style={{ color: 'var(--ink)' }}/><h2 style={{ fontSize: 19 }}>Try a walking-stop moment</h2></div>
-    <p className="small-copy">Manual simulation only. No sensors are active in this web demo.</p>
-    <div><label className="field-label" htmlFor="walk-demo">Minutes walked</label>
+    <p className="small">Manual simulation only. No sensors are active in this web demo.</p>
+    <div><label className="label" htmlFor="walk-demo">Minutes walked</label>
      <input className="input" id="walk-demo" type="number" min={0} max={300} value={walked} onChange={e => setWalked(e.target.value)}/></div>
     <div className="switch-row">
      <label htmlFor="stopped" style={{ fontSize: 15 }}>I have fully stopped walking</label>
      <button type="button" id="stopped" className="toggle" aria-pressed={stopped} aria-label="I have fully stopped walking" onClick={() => setStopped(v => !v)}/>
     </div>
     <button type="button" className="btn btn-block" onClick={check}>Ring the cue</button>
-    {reason && <p className="small-copy" role="status">{reason}</p>}
+    {reason && <p className="small" role="status">{reason}</p>}
     {!state.settings.cuesEnabled && <button type="button" className="btn btn-soft btn-block" onClick={() => update(s => ({ ...s, settings: { ...s.settings, cuesEnabled: true } }))}>Turn cues on</button>}
     <button type="button" className="link" onClick={() => navigate('settings')}>Adjust my pace, sound and limits</button>
    </section>
-   <p className="notice"><ShieldCheck/>Your walking activity is never shared. Cues respect your daily limit, your cooldown, and any connection you have already made today.</p>
+   <p className="note-strip"><ShieldCheck/>Your walking activity is never shared. Cues respect your daily limit, your cooldown, and any connection you have already made today.</p>
   </div>
  </div>
 }

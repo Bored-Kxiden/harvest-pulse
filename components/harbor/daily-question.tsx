@@ -33,16 +33,16 @@ export function DailyQuestion({ open, onOpenChange }: { open: boolean; onOpenCha
 
   {mine ? <>
    <div className="stack">
-    {replies.map(r => <div key={r.person.id} className="line" style={{ boxShadow: 'none', background: '#F6F1E5' }}>
-     <Avatar person={r.person.id} size="sm"/><span className="line-body"><b>{r.person.name}</b><span>{r.text}</span></span>
+    {replies.map(r => <div key={r.person.id} className="row" style={{ boxShadow: 'none', background: '#F6F1E5' }}>
+     <Avatar person={r.person.id} size="sm"/><span className="row-body"><b>{r.person.name}</b><span>{r.text}</span></span>
     </div>)}
-    <div className="line" style={{ boxShadow: 'none', background: '#E4F0E2' }}>
-     <Avatar person="you" size="sm"/><span className="line-body"><b>You</b><span>{mine}</span></span>
+    <div className="row" style={{ boxShadow: 'none', background: '#E4F0E2' }}>
+     <Avatar person="you" size="sm"/><span className="row-body"><b>You</b><span>{mine}</span></span>
     </div>
    </div>
    <button type="button" className="btn btn-block" onClick={() => onOpenChange(false)}>Back to your garden</button>
   </> : <form className="flow" onSubmit={submit}>
-   <div><label className="field-label" htmlFor="question-answer">Your answer</label>
+   <div><label className="label" htmlFor="question-answer">Your answer</label>
     <textarea className="input" id="question-answer" rows={3} maxLength={200} required placeholder="Whatever comes to mind…" value={answer} onChange={e => setAnswer(e.target.value)}/></div>
    <button type="submit" className="btn btn-block">Share my answer</button>
    <button type="button" className="btn btn-quiet btn-block" onClick={() => onOpenChange(false)}>Not today</button>

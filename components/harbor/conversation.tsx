@@ -12,7 +12,7 @@ export function Conversation({ person, navigate, onCall }: { person: string; nav
  useEffect(() => { update(s => s.read.includes(person) ? s : { ...s, read: [...s.read, person] }) }, [person])
  if (!state) return null
  const p = state.people.find(x => x.id === person)
- if (!p) return <div className="section"><p className="small-copy">This conversation isn&apos;t in your circle.</p><button className="link" onClick={() => navigate('home')}>Back home</button></div>
+ if (!p) return <div className="wrap"><p className="small">This conversation isn&apos;t in your circle.</p><button className="link" onClick={() => navigate('home')}>Back home</button></div>
  const draft = state.drafts[person] ?? ''
  const messages = state.messages[person] ?? []
 
@@ -25,14 +25,14 @@ export function Conversation({ person, navigate, onCall }: { person: string; nav
  return <div className="entrance">
   <div className="chat-head">
    <Avatar person={person}/>
-   <div style={{ flex: 1 }}><h1>{p.name}</h1><p className="small-copy">A demo conversation · no read receipts</p></div>
+   <div style={{ flex: 1 }}><h1>{p.name}</h1><p className="small">A demo conversation · no read receipts</p></div>
    <button className="round-button" aria-label={`Call ${p.name}`} onClick={() => onCall(person)}><Phone/></button>
   </div>
 
-  <div className="section section-first flow">
-   <button type="button" className="line" onClick={() => setTogether(true)}>
-    <span className="line-icon tint-sky"><Users/></span>
-    <span className="line-body"><b>Work together, from wherever</b><span>No agenda, just company</span></span>
+  <div className="wrap flow">
+   <button type="button" className="row" onClick={() => setTogether(true)}>
+    <span className="row-icon tint-sky"><Users/></span>
+    <span className="row-body"><b>Work together, from wherever</b><span>No agenda, just company</span></span>
    </button>
 
    <div className="transcript">
@@ -53,7 +53,7 @@ export function Conversation({ person, navigate, onCall }: { person: string; nav
      onKeyDown={e => { if (e.nativeEvent.isComposing || e.keyCode === 229) return; if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}/>
     <button type="submit" className="btn" style={{ minWidth: 52, padding: 0 }} aria-label="Send message" disabled={!draft.trim()}><Send/></button>
    </form>
-   <p className="demo-footnote">Saved here, not delivered to a real person.</p>
+   <p className="fineprint">Saved here, not delivered to a real person.</p>
   </div>
 
   <Dialog open={together} onOpenChange={setTogether}><DialogContent>
