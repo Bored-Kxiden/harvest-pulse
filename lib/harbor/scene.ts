@@ -119,12 +119,25 @@ export function paintSky(ctx: CanvasRenderingContext2D, view: View, weather: Wea
 export const WHEEL_STEP = (Math.PI * 2) / 5
 export const wheelAngleFor = (index: number) => -index * WHEEL_STEP
 
+/** Where a wheel position lands on screen, and how far risen it is. Shared by the
+   wheel's own paint and by the weather effects, so the sun disc the shaft comes
+   from is the same sun disc drawn on the rim, not a second, uncoordinated one. */
+export function wheelPoint(view: View, angle: number, index: number) {
+ const horizon = view.h * HORIZON
+ const R = view.h * 0.64
+ const cx = view.w * 0.5, cy = horizon + R * 0.78
+ const r = view.band * 0.078
+ const a = -Math.PI / 2 + index * WHEEL_STEP + angle
+ const x = cx + Math.cos(a) * R, y = cy + Math.sin(a) * R
+ const rise = clamp01((horizon + 90 - y) / 130)
+ return { x, y, r, rise, visible: y <= horizon + 90 }
+}
+
 export function paintWheel(ctx: CanvasRenderingContext2D, view: View, angle: number, t: number, tilt: number) {
  if (tilt < 0.04) return
  const horizon = view.h * HORIZON
  const R = view.h * 0.64
  const cx = view.w * 0.5, cy = horizon + R * 0.78
- const r = view.band * 0.078
 
  ctx.save()
  /* The rim, barely there: enough to say the five skies are on one wheel and not
@@ -135,14 +148,11 @@ export function paintWheel(ctx: CanvasRenderingContext2D, view: View, angle: num
  ctx.beginPath(); ctx.arc(cx, cy, R, 0, 6.283185); ctx.stroke()
 
  WEATHER_ORDER.forEach((id, i) => {
+  const { x, y, r, rise, visible } = wheelPoint(view, angle, i)
+  if (!visible) return
   const a = -Math.PI / 2 + i * WHEEL_STEP + angle
-  const x = cx + Math.cos(a) * R, y = cy + Math.sin(a) * R
-  if (y > horizon + 90) return
-  /* Fading only over the last stretch keeps the travel honest: the emblem climbs
-     up out of the hills rather than materialising in the sky. */
-  const rise = clamp01((horizon + 90 - y) / 130)
-  ctx.globalAlpha = rise * tilt * 0.3
   /* A spoke, so the turn is legible even when the emblem is a cloud among clouds. */
+  ctx.globalAlpha = rise * tilt * 0.3
   ctx.strokeStyle = 'rgba(255,255,255,.5)'
   ctx.lineWidth = 1.2
   ctx.beginPath()
@@ -172,21 +182,6 @@ function paintEmblem(ctx: CanvasRenderingContext2D, id: Weather, x: number, y: n
   glow.addColorStop(0, p.sunGlow); glow.addColorStop(1, 'rgba(255,224,150,0)')
   ctx.fillStyle = glow
   ctx.beginPath(); ctx.arc(0, 0, r * 2.2, 0, 6.283185); ctx.fill()
-  if (id === 'bright') {
-   /* Rays turn with the wheel and a little on their own. */
-   ctx.save(); ctx.rotate(t * 0.00006)
-   ctx.strokeStyle = p.sun; ctx.lineWidth = r * 0.1; ctx.lineCap = 'round'
-   ctx.globalAlpha = 0.55
-   for (let i = 0; i < 10; i++) {
-    const a = (i / 10) * 6.283185
-    ctx.beginPath()
-    ctx.moveTo(Math.cos(a) * r * 1.24, Math.sin(a) * r * 1.24)
-    ctx.lineTo(Math.cos(a) * r * 1.44, Math.sin(a) * r * 1.44)
-    ctx.stroke()
-   }
-   ctx.globalAlpha = 1
-   ctx.restore()
-  }
   ctx.fillStyle = p.sun
   ctx.beginPath(); ctx.arc(0, 0, r, 0, 6.283185); ctx.fill()
   ctx.restore(); return
@@ -290,7 +285,7 @@ export function paintClouds(ctx: CanvasRenderingContext2D, view: View, weather: 
  for (let i = 0; i < p.cloudCount; i++) {
   const s = 0.55 + hash(i, 811) * 0.75
   const y = horizon * (0.16 + hash(i, 822) * 0.62)
-  const x = ((hash(i, 833) * (view.w + 340) + t * (0.006 + hash(i, 844) * 0.009) * 30) % (view.w + 340)) - 170
+  const x = ((hash(i, 833) * (view.w + 340) + t * (0.0022 + hash(i, 844) * 0.0032) * 30) % (view.w + 340)) - 170
   ctx.beginPath()
   for (let k = 0; k < 4; k++) {
    const dx = (k - 1.5) * 26 * s
@@ -528,12 +523,14 @@ export function paintBloom(
 }
 
 /* ---------- weather you can feel ---------- */
-export function paintWeather(ctx: CanvasRenderingContext2D, view: View, weather: Weather, t: number, tilt: number) {
+export function paintWeather(ctx: CanvasRenderingContext2D, view: View, weather: Weather, t: number, tilt: number, sun?: { x: number; y: number }) {
  const { w, h } = view
  if (weather === 'clear' || weather === 'bright') {
+  /* The shaft has to come from where the sun disc actually sits on the wheel, or
+     it reads as two suns that don't agree with each other. */
+  const sx = sun?.x ?? w * 0.6, sy = sun?.y ?? h * 0.12
   ctx.save()
   ctx.globalCompositeOperation = 'lighter'
-  const sx = w * 0.6, sy = h * 0.12
   ctx.beginPath(); ctx.rect(0, 0, w, h * HORIZON); ctx.clip()
   for (let i = 0; i < 2; i++) {
    const a = 2.05 + i * 0.5 + Math.sin(t * 0.00016 + i * 2) * 0.07

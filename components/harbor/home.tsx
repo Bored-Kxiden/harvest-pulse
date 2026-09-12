@@ -3,12 +3,13 @@ import { useState } from 'react'
 import { Bell, CalendarDays, ChevronRight, Clock3, Images, Phone, Sprout, Sun, Users, Waves } from 'lucide-react'
 import { useHarbor } from '@/lib/harbor/store'
 import {
- blocksFor, callsFor, dominantFlower, feelings, formatDuration, formatTime, freeWindows, localDay,
+ blocksFor, callingStage, callsFor, dominantFlower, feelings, formatDuration, formatTime, freeWindows, localDay,
  minutes, sharedWindows, weatherIndex, weathers, type Moment,
 } from '@/lib/harbor/model'
 import { Avatar } from './avatar'
 import { FlowerGlyph } from './flowers'
 import { NotesRail } from './notes-rail'
+import { GrowthFlower } from './growth-flower'
 import { Sprig } from './sprigs'
 
 const TINTS = ['gold', 'green', 'orange', 'sky'] as const
@@ -208,8 +209,9 @@ function Feelings({ onWeatherShown }: { onWeatherShown: () => void }) {
   setIndex(Math.round(((clientX - rect.left - 24) / (rect.width - 48)) * last))
  }
 
+ const stage = callingStage(state)
  return <section className="card feelings" aria-labelledby="feelings-heading" style={{ ['--i' as string]: 0 }}>
-  <Sprig kind="tulip" className="feelings-sprig"/>
+  <GrowthFlower stage={stage} className="feelings-sprig"/>
   <span className="eyebrow" id="feelings-heading">Your feelings right now</span>
   <h2>{current.label}</h2>
   <p>{current.caption}</p>

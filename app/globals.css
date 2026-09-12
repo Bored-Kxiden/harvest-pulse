@@ -294,16 +294,20 @@
 
 /* ---------- the instants rail ---------- */
 
-/* ---------- the meadow chip ---------- */
+/* ---------- the meadow chip ----------
+   One pill, two taps: the glyph on the left turns the weather over on its own; the
+   label is a button in its own right that opens the garden's map, so tapping "your
+   garden is blooming" does something a pinch cannot: takes you straight to a person. */
 .meadow-chip {
- position: absolute; z-index: 11; left: 18px; bottom: calc(48dvh + 16px); display: flex; align-items: center; gap: 9px;
+ position: absolute; z-index: 11; left: 18px; bottom: calc(48dvh + 16px); display: flex; align-items: center;
  transform: translate3d(0, calc(-41dvh * var(--lift, 0)), 0);
- padding: 11px 17px; border-radius: 99px; background: var(--float);
- font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 14.5px; color: var(--ink-deep);
- box-shadow: var(--shadow-card); white-space: nowrap;
+ border-radius: 99px; background: var(--float); box-shadow: var(--shadow-card);
  transition: transform .42s cubic-bezier(.22, .9, .28, 1), opacity .3s;
 }
-.meadow-chip:active { transform: translate3d(0, calc(-41dvh * var(--lift, 0)), 0) scale(.96) }
+.meadow-chip-icon, .meadow-chip-label { display: flex; align-items: center; gap: 9px; min-height: 44px }
+.meadow-chip-icon { padding: 0 6px 0 13px }
+.meadow-chip-label { padding: 0 15px 0 3px; font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 14.5px; color: var(--ink-deep); white-space: nowrap }
+.meadow-chip-icon:active, .meadow-chip-label:active { transform: scale(.96) }
 .meadow-chip svg { width: 18px; height: 18px; flex-shrink: 0 }
 .meadow-chip .caret { width: 14px; height: 14px; stroke-width: 2.4; color: var(--ink-faint) }
 /* The weather glyph turns over as the sky does. */
@@ -324,6 +328,22 @@
 .stage[data-dragging='true'] .sheet,
 .stage[data-dragging='true'] .meadow-chip { transition: none }
 .meadow-chip[data-away='true'] { opacity: 0; pointer-events: none }
+
+/* ---------- zoom, as buttons ----------
+   Sitting at the edge of a thumb's reach on the right, the way a map app's own
+   zoom rocker does, since pinch and double tap are easy to miss on a first visit. */
+.meadow-zoom {
+ position: absolute; z-index: 11; right: 14px; top: 23dvh; display: flex; flex-direction: column;
+ border-radius: 20px; overflow: hidden; background: var(--float); box-shadow: var(--shadow-card);
+ transform: translate3d(0, calc(-41dvh * var(--lift, 0)), 0);
+ transition: transform .42s cubic-bezier(.22, .9, .28, 1), opacity .3s;
+}
+.meadow-zoom button { display: grid; place-items: center; width: 44px; height: 44px; color: var(--ink-deep) }
+.meadow-zoom button:active { background: var(--wash) }
+.meadow-zoom button:first-child { border-bottom: 1px solid var(--hairline) }
+.meadow-zoom svg { width: 19px; height: 19px; stroke-width: 2.2 }
+.meadow-zoom[data-away='true'] { opacity: 0; pointer-events: none }
+.stage[data-dragging='true'] .meadow-zoom { transition: none }
 .sheet::before {
  content: ''; position: absolute; inset: 0 0 auto; height: 30px; border-radius: 30px 30px 0 0;
  box-shadow: inset 0 1.5px 0 var(--glass); pointer-events: none; z-index: 2;
@@ -742,6 +762,11 @@ img.camera-feed { transform: none }
 [data-slot='dialog-description'] { font-size: 14px !important; color: var(--ink-soft) !important; line-height: 1.5 }
 
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0 }
+
+/* ---------- the garden, listed ---------- */
+.sections-panel { max-height: 82dvh; overflow-y: auto }
+.sections-list { display: flex; flex-direction: column; gap: 8px; margin-top: 6px }
+.sections-list .row { text-align: left }
 .entrance { animation: rise .45s cubic-bezier(.22,.9,.28,1) both }
 [data-reduced-motion='true'] *, [data-reduced-motion='true'] *::before, [data-reduced-motion='true'] *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important } }
@@ -853,6 +878,7 @@ img.camera-feed { transform: none }
 .stage[data-camera='true'] .nav,
 .stage[data-camera='true'] .topbar,
 .stage[data-camera='true'] .verge,
+.stage[data-camera='true'] .meadow-zoom,
 .stage[data-camera='true'] .meadow-chip { opacity: 0; pointer-events: none; transition: opacity .34s ease }
 .stage[data-camera='true'] .meadow-canvas { pointer-events: none }
 .camera { background: linear-gradient(180deg, rgb(16 38 25 / .42) 0%, rgb(16 38 25 / .56) 55%, rgb(12 30 20 / .78) 100%) }
@@ -966,3 +992,19 @@ img.camera-feed { transform: none }
 .stage[data-reduced-motion='true'] *, .stage[data-reduced-motion='true'] *::before, .stage[data-reduced-motion='true'] *::after {
  animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important;
 }
+
+/* ---------- the calling-vitality flower ----------
+   Alive stages breathe a little; wilted ones mostly don't, which is itself the
+   point, stillness reads as neglect without a word of copy needed. */
+.growth-bud, .growth-blooming, .growth-full {
+ transform-box: fill-box; transform-origin: 50% 100%;
+ animation: growth-breathe 5.2s var(--ease-soft, ease-in-out) infinite;
+}
+.growth-blooming { animation-duration: 6.4s }
+.growth-full { animation-duration: 4.6s }
+@keyframes growth-breathe { 0%, 100% { transform: scale(1) } 50% { transform: scale(1.035) } }
+.growth-withering { transform-box: fill-box; transform-origin: 50% 100%; animation: growth-sag 7.5s ease-in-out infinite }
+@keyframes growth-sag { 0%, 100% { transform: rotate(0deg) } 50% { transform: rotate(2.2deg) } }
+.growth-fallen { transform-box: fill-box; transform-origin: 50% 50%; animation: growth-drift 4.4s ease-in-out infinite }
+.growth-fallen-b { animation-duration: 5.6s; animation-delay: -1.8s }
+@keyframes growth-drift { 0%, 100% { transform: translateY(0) rotate(0deg) } 50% { transform: translateY(1.4px) rotate(-4deg) } }
