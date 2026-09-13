@@ -6,16 +6,19 @@ import { useHarbor } from '@/lib/harbor/store'
 import { connectStreak, goalsWon, localDay, puzzleResult, weeklyGoals, type PuzzleId } from '@/lib/harbor/model'
 import { makeSudoku, makeTango, makeZip, puzzleMeta, seedRandom, tangoFaults } from '@/lib/harbor/puzzles'
 import { Avatar } from './avatar'
-import { BackBar } from './back'
 
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
 
 /** Three puzzles a day, the same three for everyone in the house. Short on purpose:
-    the point is a reason to open the app on a day nobody has news, not a time sink. */
-export function GamesScreen({ navigate }: { navigate: (page: string) => void }) {
+    the point is a reason to open the app on a day nobody has news, not a time sink.
+    This is a panel rather than a page: it lives as one section of Activity, next to
+    what your people shared and what you starred. While a puzzle is open it wants the
+    whole screen, so it says so and Activity folds its own heading away. */
+export function GamesPanel({ onPlaying }: { onPlaying?: (open: boolean) => void }) {
  const { state, update } = useHarbor()
  const [playing, setPlaying] = useState<PuzzleId | null>(null)
  const day = localDay()
+ useEffect(() => { onPlaying?.(!!playing) }, [playing, onPlaying])
  if (!state) return null
 
  const finish = (puzzle: PuzzleId, seconds: number) => {
@@ -29,14 +32,8 @@ export function GamesScreen({ navigate }: { navigate: (page: string) => void }) 
 
  const done = state.puzzles.filter(p => p.day === day)
  const streak = connectStreak(state)
- return <div className="entrance">
-  <BackBar onBack={() => navigate('home')}/>
-  <div className="page-head">
-   <h1>Play</h1>
-   <p>Three puzzles a day, the same three for everybody at home.</p>
-  </div>
-
-  <div className="wrap flow stagger">
+ return <>
+  <div className="flow stagger" style={{ gap: 14 }}>
    <div className="score-row" style={{ ['--i' as string]: 0 }}>
     <div className="score">
      <b>{done.length}<span>/3</span></b>
@@ -97,7 +94,7 @@ export function GamesScreen({ navigate }: { navigate: (page: string) => void }) 
 
    <Invite/>
   </div>
- </div>
+ </>
 }
 
 /** The one growth loop here that is not a game: a code somebody reads down the phone,

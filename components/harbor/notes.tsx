@@ -11,11 +11,12 @@ import { Sprig } from './sprigs'
 /** Saved: everything worth keeping, in the two shapes it comes in.
     Lines people left, split by who was allowed to read them, and the pictures somebody
     chose to hold on to before they faded. */
-export function NotesScreen({ navigate, onOpenCamera, onOpenStory }: {
+export function NotesScreen({ navigate, onOpenCamera, onOpenStory, initial = 'notes' }: {
  navigate: (page: string) => void; onOpenCamera: () => void; onOpenStory: () => void
+ initial?: 'notes' | 'instants'
 }) {
  const { state, update } = useHarbor()
- const [view, setView] = useState<'notes' | 'instants'>('notes')
+ const [view, setView] = useState<'notes' | 'instants'>(initial)
  if (!state) return null
 
  const personal = personalNotes(state)
@@ -38,7 +39,7 @@ export function NotesScreen({ navigate, onOpenCamera, onOpenStory }: {
 
   <div className="wrap flow stagger">
    <div className="segment" role="tablist" aria-label="What to look at" style={{ ['--i' as string]: 0 }}>
-    <span className="segment-slide" style={{ ['--i' as string]: view === 'notes' ? 0 : 1, width: 'calc((100% - 10px) / 2)' }} aria-hidden="true"/>
+    <span className="segment-slide" style={{ ['--i' as string]: view === 'notes' ? 0 : 1 }} aria-hidden="true"/>
     {(['notes', 'instants'] as const).map(id => <button key={id} type="button" role="tab" className="segment-tab"
      aria-selected={view === id} onClick={() => setView(id)}>
      {id === 'notes' ? <><NotebookPen aria-hidden="true"/>Notes</> : <><Images aria-hidden="true"/>Saved instants</>}

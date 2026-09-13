@@ -1,12 +1,14 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronRight, Flame, Image as ImageIcon, MessageCircleQuestion, Mic, Phone, Puzzle, X } from 'lucide-react'
+import { ChevronRight, Flame, Image as ImageIcon, MessageCircleQuestion, Mic, Phone, Puzzle, Sprout, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { makeId, useHarbor } from '@/lib/harbor/store'
-import { connectStreak, localDay, personStatus, sharedAlerts, type Person } from '@/lib/harbor/model'
+import { connectStreak, growingSeeds, localDay, personOf, personStatus, seedPhase, sharedAlerts, type Person } from '@/lib/harbor/model'
 import { Avatar } from './avatar'
 import { VoiceNote } from './voice'
+import { DayArc } from './day-arc'
+import { PlantSeed, SeedGrowing } from './seed'
 
 /** Relative time in the reader's own language, rather than English glued together
     by hand. "yesterday" and "2 days ago" both come out of the same call. */
@@ -34,11 +36,15 @@ export function ParentHome({ navigate, onCall, onOpenStory, onQuestion }: {
 }) {
  const { state } = useHarbor()
  const [recording, setRecording] = useState<Person | null>(null)
+ const [planting, setPlanting] = useState<Person | null>(null)
+ const [check, setCheck] = useState<string | null>(null)
  if (!state) return null
  const feed = sharedAlerts(state).slice(0, 3)
  const streak = connectStreak(state)
  const day = localDay()
  const playedToday = state.puzzles.filter(p => p.day === day).length
+ const growing = growingSeeds(state)
+ const checking = growing.find(s => s.id === check)
  const answered = !!state.games[day]
 
  return <div className="entrance">
@@ -72,14 +78,38 @@ export function ParentHome({ navigate, onCall, onOpenStory, onQuestion }: {
         <Mic aria-hidden="true"/>Voice note
        </button>
       </div>
+      <button type="button" className="plant-link" onClick={() => setPlanting(person)}>
+       <Sprout aria-hidden="true"/>Plant a seed for {person.name}
+      </button>
      </article>
     })}
    </section>
 
-   <section aria-labelledby="today-feed" style={{ ['--i' as string]: 2 }}>
+   <div style={{ ['--i' as string]: 2 }}><DayArc/></div>
+
+   {!!growing.length && <section aria-labelledby="growing-heading" style={{ ['--i' as string]: 3 }}>
+    <div className="row-head"><h2 id="growing-heading">On its way</h2></div>
+    <ul className="growing">
+     {growing.map(seed => {
+      const to = personOf(state, seed.person)
+      return <li key={seed.id}>
+       <button type="button" className="growing-row" onClick={() => setCheck(seed.id)}>
+        <span className="growing-mark" data-phase={seedPhase(seed)} aria-hidden="true"><Sprout/></span>
+        <span className="row-body">
+         <b>A seed for {to?.name ?? 'them'}</b>
+         <span>{seedPhase(seed) === 'seed' ? 'Just planted' : seedPhase(seed) === 'sprout' ? 'Sprouting' : 'Nearly open'}</span>
+        </span>
+        <ChevronRight className="caret" aria-hidden="true"/>
+       </button>
+      </li>
+     })}
+    </ul>
+   </section>}
+
+   <section aria-labelledby="today-feed" style={{ ['--i' as string]: 4 }}>
     <div className="row-head">
      <h2 id="today-feed">Lately</h2>
-     <button type="button" className="text-link" onClick={() => navigate('alerts')}>
+     <button type="button" className="text-link" onClick={() => navigate('activity')}>
       See all <ChevronRight aria-hidden="true"/>
      </button>
     </div>
@@ -95,7 +125,7 @@ export function ParentHome({ navigate, onCall, onOpenStory, onQuestion }: {
     </ul> : <p className="empty">Nothing new yet. When they share something it lands here.</p>}
    </section>
 
-   <button type="button" className="row" style={{ ['--i' as string]: 3 }} onClick={onQuestion}>
+   <button type="button" className="row" style={{ ['--i' as string]: 5 }} onClick={onQuestion}>
     <span className="row-icon" style={{ background: 'var(--tint-lilac)' }}><MessageCircleQuestion aria-hidden="true"/></span>
     <span className="row-body">
      <b>Today&rsquo;s question</b>
@@ -104,13 +134,13 @@ export function ParentHome({ navigate, onCall, onOpenStory, onQuestion }: {
     <ChevronRight className="caret" aria-hidden="true"/>
    </button>
 
-   <div className="two-up" style={{ ['--i' as string]: 4 }}>
+   <div className="two-up" style={{ ['--i' as string]: 6 }}>
     <button type="button" className="tile" onClick={onOpenStory}>
      <span className="tile-icon" style={{ background: 'var(--tint-blue)' }}><ImageIcon aria-hidden="true"/></span>
      <b>Photos</b>
      <span>{state.snaps.length} from this week</span>
     </button>
-    <button type="button" className="tile" onClick={() => navigate('play')}>
+    <button type="button" className="tile" onClick={() => navigate('activity/play')}>
      <span className="tile-icon" style={{ background: 'var(--tint-yellow)' }}><Puzzle aria-hidden="true"/></span>
      <b>Puzzles</b>
      <span>{playedToday ? `${playedToday} of 3 done today` : 'Three small ones today'}</span>
@@ -119,7 +149,33 @@ export function ParentHome({ navigate, onCall, onOpenStory, onQuestion }: {
   </div>
 
   {recording && <VoiceSheet person={recording} onClose={() => setRecording(null)}/>}
+  {planting && <PlantSeed person={planting} onClose={() => setPlanting(null)}/>}
+  {checking && <CheckSeed seedId={checking.id} onClose={() => setCheck(null)}/>}
  </div>
+}
+
+/** Checking on something already in the ground: the same four stages, read-only. */
+function CheckSeed({ seedId, onClose }: { seedId: string; onClose: () => void }) {
+ const { state } = useHarbor()
+ const [host, setHost] = useState<HTMLElement | null>(null)
+ useEffect(() => { setHost(document.body) }, [])
+ useEffect(() => {
+  const key = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+  document.addEventListener('keydown', key)
+  return () => document.removeEventListener('keydown', key)
+ }, [onClose])
+ const seed = state?.seeds.find(x => x.id === seedId)
+ if (!state || !host || !seed) return null
+ return createPortal(<div className="curtain seed-curtain" role="dialog" aria-modal="true" aria-label="A seed you planted">
+  <div className="curtain-sheet seed-sheet">
+   <div className="voice-to">
+    <Avatar person={seed.person} size="sm"/>
+    <span>Growing for <b>{personOf(state, seed.person)?.name ?? 'them'}</b></span>
+    <button type="button" className="ghost-btn" onClick={onClose} aria-label="Close"><X aria-hidden="true"/></button>
+   </div>
+   <SeedGrowing seed={seed} person={personOf(state, seed.person)} onDone={onClose}/>
+  </div>
+ </div>, host)
 }
 
 /** Recording takes over the screen, because talking into a phone while a list scrolls

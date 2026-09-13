@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { CalendarDays, ChevronRight, Clock3, Images, Lock, MessageCircleQuestion, Phone, Sprout, Users, Waves } from 'lucide-react'
+import { CalendarDays, ChevronRight, Clock3, Images, Lock, MessageCircleQuestion, Phone, Puzzle, Sprout, Users, Waves } from 'lucide-react'
 import { useHarbor } from '@/lib/harbor/store'
 import {
  blocksFor, callingStage, callsFor, dominantFlower, formatTime, freeWindows, latestPersonalNote, localDay,
@@ -41,6 +41,7 @@ export function Home({ navigate, onCall, onOpenCamera, onOpenStory, onWeatherSho
   setTab(next)
  }
  if (!state) return null
+ const played = state.puzzles.filter(p => p.day === localDay()).length
 
  return <div className="entrance">
   <div className="wrap flow stagger">
@@ -61,7 +62,7 @@ export function Home({ navigate, onCall, onOpenCamera, onOpenStory, onWeatherSho
       choose(next.id)
       requestAnimationFrame(() => document.getElementById(`tab-${next.id}`)?.focus())
      }}>
-     <span className="segment-slide" style={{ ['--i' as string]: index, width: `calc((100% - 10px) / ${TABS.length})` }} aria-hidden="true"/>
+     <span className="segment-slide" style={{ ['--i' as string]: index }} aria-hidden="true"/>
      {TABS.map(({ id, label, icon: Icon }) => <button key={id} type="button" role="tab" id={`tab-${id}`}
       className="segment-tab" aria-selected={tab === id} aria-controls="people-panel"
       tabIndex={tab === id ? 0 : -1} onClick={() => choose(id)}>
@@ -142,6 +143,14 @@ export function Home({ navigate, onCall, onOpenCamera, onOpenStory, onWeatherSho
     <button type="button" className="row" onClick={() => navigate('cue')}>
      <span className="row-icon" style={{ background: 'var(--tint-blue)' }}><Waves aria-hidden="true"/></span>
      <span className="row-body"><b>Good time to call</b><span>A nudge when you stop walking, never a demand</span></span>
+     <ChevronRight className="caret" aria-hidden="true"/>
+    </button>
+    <button type="button" className="row" onClick={() => navigate('activity/play')}>
+     <span className="row-icon" style={{ background: 'var(--tint-yellow)' }}><Puzzle aria-hidden="true"/></span>
+     <span className="row-body">
+      <b>Today&rsquo;s puzzles</b>
+      <span>{played ? `${played} of 3 done` : 'Three small ones, the same three at home'}</span>
+     </span>
      <ChevronRight className="caret" aria-hidden="true"/>
     </button>
    </div>

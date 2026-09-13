@@ -26,7 +26,37 @@ export const calendarProviders: { id: CalendarProvider; name: string }[] = [
     in Your people. A shared note goes out to everyone you have added, and lives on the
     rail under A little something. Nothing turns one into the other. */
 export type NoteScope = 'personal' | 'shared'
-export type Note = { id: string; at: string; person: string; text: string; scope: NoteScope }
+export type Note = { id: string; at: string; person: string; text: string; scope: NoteScope; flower?: FlowerKind }
+
+/** A seed: a note a parent plants now for a flower that opens later. The child is
+    never told when it will open, which is the whole point of it being a seed rather
+    than a message. Once it blooms it reads as a personal note from that person,
+    which is the only shape the other side ever needs to understand. */
+export type Seed = {
+ id: string; person: string; from: string
+ at: string; bloomAt: string
+ flower: FlowerKind; text: string
+}
+export type GrowthPhase = 'seed' | 'sprout' | 'growing' | 'bloom'
+export const growthPhases: { id: GrowthPhase; label: string }[] = [
+ { id: 'seed', label: 'Seed' }, { id: 'sprout', label: 'Sprout' },
+ { id: 'growing', label: 'Growing' }, { id: 'bloom', label: 'Bloom' },
+]
+/** How far along a seed is, from the time it was planted to the time it opens. */
+export function seedProgress(seed: Seed, now = Date.now()) {
+ const from = Date.parse(seed.at), to = Date.parse(seed.bloomAt)
+ if (!Number.isFinite(from) || !Number.isFinite(to) || to <= from) return 1
+ return Math.min(1, Math.max(0, (now - from) / (to - from)))
+}
+export function seedPhase(seed: Seed, now = Date.now()): GrowthPhase {
+ const p = seedProgress(seed, now)
+ return p >= 1 ? 'bloom' : p >= 0.66 ? 'growing' : p >= 0.33 ? 'sprout' : 'seed'
+}
+export function hasBloomed(seed: Seed, now = Date.now()) { return seedProgress(seed, now) >= 1 }
+/** Seeds you planted that are still on their way. */
+export function growingSeeds(state: HarborState, now = Date.now()) {
+ return state.seeds.filter(s => s.from === 'you' && !hasBloomed(s, now)).sort((a, b) => a.bloomAt.localeCompare(b.bloomAt))
+}
 
 /** Something one of your people told you they are doing. Not your calendar, theirs:
     it arrives in your notifications and you can star it to keep it. */
@@ -67,6 +97,8 @@ export type HarborState = {
  messages: Record<string, ChatMessage[]>; read: string[]; drafts: Record<string, string>
  moments: Moment[]; cues: { id: string; at: string }[]
  notes: Note[]; games: Record<string, string>
+ /** Notes planted to open later. A bloomed one reads as a personal note. */
+ seeds: Seed[]
  /** Their plans, and the handful of things you chose to keep an eye on. */
  plans: Plan[]; starred: string[]; seenAlerts: string
  snaps: Snap[]; pacts: SnapPact[]; snapWindows: Record<string, string>
@@ -185,10 +217,16 @@ export function initialsOf(name: string) { return name.trim().split(/\s+/).slice
 export function sharedNotes(state: HarborState) {
  return state.notes.filter(n => n.scope === 'shared').slice().sort((a, b) => b.at.localeCompare(a.at))
 }
-export function personalNotes(state: HarborState, personId?: string) {
- return state.notes
-  .filter(n => n.scope === 'personal' && (!personId || n.person === personId))
-  .slice().sort((a, b) => b.at.localeCompare(a.at))
+export function personalNotes(state: HarborState, personId?: string, now = Date.now()) {
+ /* A seed somebody planted for you is a personal note that simply had not arrived
+    yet. Once it opens it joins the list, dated by the moment it opened rather than
+    the moment it was planted, and carrying the flower that came with it. Nothing
+    else in the app has to know seeds exist. */
+ const bloomed: Note[] = state.seeds
+  .filter(seed => seed.from !== 'you' && hasBloomed(seed, now) && (!personId || seed.person === personId))
+  .map(seed => ({ id: `seed-${seed.id}`, at: seed.bloomAt, person: seed.person, text: seed.text, scope: 'personal' as const, flower: seed.flower }))
+ return [...state.notes.filter(n => n.scope === 'personal' && (!personId || n.person === personId)), ...bloomed]
+  .sort((a, b) => b.at.localeCompare(a.at))
 }
 /** The most recent thing this person left for you alone. What their card shows. */
 export function latestPersonalNote(state: HarborState, personId: string) { return personalNotes(state, personId)[0] }
@@ -489,6 +527,11 @@ export function seedState(now = new Date(), mode: Mode = 'student'): HarborState
   { id: 'seed-open-mom', at: ago(2), person: 'mom', scope: 'shared', text: 'The jasmine finally opened this morning.' },
   { id: 'seed-open-dad', at: ago(9), person: 'dad', scope: 'shared', text: 'Radio still works. Unbelievable.' },
  ]
+ /* One seed already on its way, so the idea is visible the first time a parent
+    opens the app rather than only after they plant one. */
+ const seeds: Seed[] = parent
+  ? [{ id: 'seed-demo', person: people[0].id, from: 'you', at: ago(2), bloomAt: new Date(now.getTime() + 3 * 3600000).toISOString(), flower: 'poppy', text: 'Proud of you this week. No reply needed.' }]
+  : [{ id: 'seed-demo', person: 'mom', from: 'mom', at: ago(6), bloomAt: new Date(now.getTime() + 2 * 3600000).toISOString(), flower: 'marigold', text: 'Something is on its way to you.' }]
  /* A few things your people said they would be doing, so the bell has something in it. */
  const planWeek = weekOf(today)
  const plans: Plan[] = parent ? [
@@ -541,7 +584,7 @@ export function seedState(now = new Date(), mode: Mode = 'student'): HarborState
   schedules: Object.fromEntries(week.map((key, i) => [key, { you: mine[i], mom: others[i] }])),
   weather: 'bright', milestone: { title: parent ? 'Maya visits' : 'Midterms', date: localDay(milestone) },
   messages: Object.fromEntries(people.map(p => [p.id, [{ id: `hello-${p.id}`, text: p.note ?? 'Thinking of you.', mine: false, at: ago(1) }]])),
-  read: [], drafts: {}, moments, cues: [], notes, games: {}, snaps, pacts: [], snapWindows: {},
+  read: [], drafts: {}, moments, cues: [], notes, games: {}, seeds, snaps, pacts: [], snapWindows: {},
   plans, starred: [`plan:${plans[0].id}`], seenAlerts: '',
   settings: { cuesEnabled: true, walkingMinutes: 10, dailyCap: 2, cooldownMinutes: 120, sound: 'chime', reducedMotion: false, theme: 'light' },
  }
@@ -562,6 +605,8 @@ export function parseState(raw: string): HarborState | null {
   if (!Object.values(s.messages).every(ms => Array.isArray(ms) && ms.every(m => typeof m.text === 'string' && typeof m.mine === 'boolean' && typeof m.id === 'string'
    && (m.voice === undefined || (m.voice && Number.isFinite(m.voice.seconds)))))) return null
   if (!Array.isArray(s.moments) || !s.moments.every(m => m && typeof m.id === 'string' && typeof m.text === 'string' && typeof m.person === 'string' && Number.isFinite(Date.parse(m.at)) && ['called', 'reacted', 'proposed_later', 'message', 'dismissed', 'played'].includes(m.kind) && (m.flower === undefined || flowerLibrary.some(f => f.id === m.flower)))) return null
+  if (!Array.isArray(s.seeds) || !s.seeds.every(x => x && typeof x.id === 'string' && typeof x.person === 'string' && typeof x.from === 'string'
+   && typeof x.text === 'string' && flowerLibrary.some(f => f.id === x.flower) && Number.isFinite(Date.parse(x.at)) && Number.isFinite(Date.parse(x.bloomAt)))) return null
   if (!Array.isArray(s.notes) || !s.notes.every(n => n && typeof n.id === 'string' && typeof n.person === 'string' && typeof n.text === 'string' && Number.isFinite(Date.parse(n.at)) && ['personal', 'shared'].includes(n.scope))) return null
   if (!Array.isArray(s.plans) || !s.plans.every(p => p && typeof p.id === 'string' && typeof p.person === 'string' && typeof p.label === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(p.day) && /^([01]\d|2[0-3]):[0-5]\d$/.test(p.start) && /^([01]\d|2[0-3]):[0-5]\d$/.test(p.end))) return null
   if (!Array.isArray(s.starred) || !s.starred.every(k => typeof k === 'string') || typeof s.seenAlerts !== 'string') return null
