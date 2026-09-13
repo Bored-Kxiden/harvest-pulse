@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { Moon, Plus, Sunrise, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useHarbor } from '@/lib/harbor/store'
-import { blocksFor, DAY_CLOSE, DAY_OPEN, formatTime, freeWindows, localDay, minutes, type Interval } from '@/lib/harbor/model'
+import { blocksFor, DAY_CLOSE, DAY_OPEN, formatTime, freeWindows, localDay, minutes, setBlocks, type Interval } from '@/lib/harbor/model'
 
 const OPEN = minutes(DAY_OPEN), CLOSE = minutes(DAY_CLOSE)
 const CX = 150, CY = 132, R = 116
@@ -45,10 +45,7 @@ export function DayArc({ compact }: { compact?: boolean }) {
  const marker = point(Math.min(CLOSE, Math.max(OPEN, clock)))
 
  const remove = (block: Interval) => {
-  update(s => ({
-   ...s,
-   schedules: { ...s.schedules, [day]: { you: (s.schedules[day]?.you ?? []).filter(b => !(b.start === block.start && b.end === block.end)), mom: s.schedules[day]?.mom ?? [] } },
-  }))
+  update(s => setBlocks(s, day, 'you', blocksFor(s, day, 'you').filter(b => !(b.start === block.start && b.end === block.end))))
   toast.success('That time is yours again.')
  }
 

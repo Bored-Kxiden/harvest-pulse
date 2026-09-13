@@ -1,8 +1,8 @@
 'use client'
 import useSWR from 'swr'
 import { toast } from 'sonner'
-import { addMoment, parseState, seedState, type HarborState, type Mode, type Moment } from './model'
-const KEY = 'harbor-demo-v6'
+import { addMoment, handOver, parseState, seedState, type HarborState, type Mode, type Moment } from './model'
+const KEY = 'harbor-demo-v7'
 let current: HarborState | undefined
 let warned = false
 function persist(state: HarborState) {
@@ -26,7 +26,15 @@ export function useHarbor() {
   current = { ...seedState(new Date(), mode), name: name.trim() || (mode === 'parent' ? 'Asha' : 'Maya'), setupDone: true }
   persist(current); void mutate(current, false)
  }
- return { state: data, update, log, reset, start }
+ /** Crossing to the other side of the phone. The household is laid out again from
+     there, but the day you marked and the seeds you planted come with you, so what
+     a parent did is visible on their child's screen rather than only described. */
+ const swap = (mode: Mode) => {
+  const before = current ?? data ?? read()
+  current = handOver(before, { ...seedState(new Date(), mode), name: before.name, setupDone: true })
+  persist(current); void mutate(current, false)
+ }
+ return { state: data, update, log, reset, start, swap }
 }
 export function makeId() { return crypto.randomUUID() }
 

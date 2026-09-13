@@ -14,9 +14,21 @@ const WHEN = [
  { id: 'soon', label: 'In a few hours', hours: 3 },
  { id: 'evening', label: 'This evening', hours: 8 },
  { id: 'tomorrow', label: 'Tomorrow morning', hours: 16 },
+ { id: 'custom', label: 'Pick a time', hours: 0 },
 ] as const
 
 function bloomTime(hours: number, now = new Date()) { return new Date(now.getTime() + hours * 3600000).toISOString() }
+/** A time of day, turned into the next moment it happens. Ask for eight in the
+    morning at lunchtime and you mean tomorrow morning, so that is what it means. */
+function bloomAtClock(clock: string, now = new Date()) {
+ const [h, m] = clock.split(':').map(Number)
+ const at = new Date(now)
+ at.setHours(h ?? 0, m ?? 0, 0, 0)
+ if (at.getTime() <= now.getTime() + 60000) at.setDate(at.getDate() + 1)
+ return at
+}
+const dayWord = (at: Date, now = new Date()) => at.getDate() === now.getDate() ? 'today' : 'tomorrow'
+const clockWord = (at: Date) => at.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
 
 /** Plant a seed: pick a flower, write the line that comes with it, choose roughly when
     it opens. The point is that the other person cannot watch the clock for it. */
@@ -25,6 +37,7 @@ export function PlantSeed({ person, onClose }: { person: Person; onClose: () => 
  const [flower, setFlower] = useState<FlowerKind>('poppy')
  const [text, setText] = useState('')
  const [when, setWhen] = useState<typeof WHEN[number]['id']>('soon')
+ const [clock, setClock] = useState('19:30')
  const [planted, setPlanted] = useState<Seed | null>(null)
  const [host, setHost] = useState<HTMLElement | null>(null)
  useEffect(() => { setHost(document.body) }, [])
@@ -35,11 +48,12 @@ export function PlantSeed({ person, onClose }: { person: Person; onClose: () => 
  }, [onClose])
  if (!host) return null
 
+ const opensAt = when === 'custom' ? bloomAtClock(clock) : null
  const plant = () => {
   const hours = WHEN.find(w => w.id === when)!.hours
   const seed: Seed = {
    id: makeId(), person: person.id, from: 'you',
-   at: new Date().toISOString(), bloomAt: bloomTime(hours),
+   at: new Date().toISOString(), bloomAt: opensAt ? opensAt.toISOString() : bloomTime(hours),
    flower, text: text.trim() || 'Thinking of you.',
   }
   update(s => ({ ...s, seeds: [...s.seeds, seed] }))
@@ -82,6 +96,14 @@ export function PlantSeed({ person, onClose }: { person: Person; onClose: () => 
        {WHEN.map(w => <button key={w.id} type="button" role="radio" className="chip-choice"
         aria-checked={when === w.id} onClick={() => setWhen(w.id)}>{w.label}</button>)}
       </div>
+      {/* An exact hour, for the parent who knows when their kid finishes class.
+          The other side still learns nothing about it. */}
+      {when === 'custom' && <div className="seed-clock">
+       <label className="label" htmlFor="seed-time" style={{ margin: 0 }}>Open it at</label>
+       <input className="input" id="seed-time" type="time" step={300} value={clock}
+        onChange={e => setClock(e.target.value || '19:30')}/>
+       {opensAt && <p className="small">{clockWord(opensAt)} {dayWord(opensAt)}</p>}
+      </div>}
      </div>
      <p className="note-strip"><Clock3 aria-hidden="true"/>{person.name} is not told when it will open. They just find it already grown.</p>
 

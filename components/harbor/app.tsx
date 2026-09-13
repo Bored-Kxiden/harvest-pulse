@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Bell, Bookmark, CalendarDays, Cloud, CloudLightning, CloudRain, CloudSun, House, Images, Leaf, Minus, Moon, Plus, Sparkles, Sun, UserRound } from 'lucide-react'
 import { Toaster } from '@/components/ui/sonner'
 import { makeId, useHarbor } from '@/lib/harbor/store'
-import { activePacts, localDay, rollSnapWindow, snapWindowDue, unseenAlerts, weatherIndex, weathers, type Moment, type Weather } from '@/lib/harbor/model'
+import { activePacts, fieldWeather, localDay, rollSnapWindow, snapWindowDue, unseenAlerts, weatherIndex, weathers, type Moment, type Weather } from '@/lib/harbor/model'
 import { Home } from './home'
 import { ParentHome } from './parent-home'
 import { Setup } from './setup'
@@ -138,7 +138,9 @@ export function HarborApp() {
  /* Activity opens on whichever of its three sections the link asked for. */
  const sub = route.split('/')[1]
  const activityTab = sub === 'play' || sub === 'starred' ? sub : undefined
- const weather = state?.weather ?? 'clear'
+ /* A parent has no weather of their own here. The sky over their field is the one
+    their child set, which is what they opened the app to find out. */
+ const weather = state ? fieldWeather(state) : 'clear'
  const Icon = weatherIcon[weather]
  const waiting = state ? unseenAlerts(state) : 0
 
@@ -146,7 +148,9 @@ export function HarborApp() {
     anyone who wants the phone to decide; this just flips between the two looks. */
  const flipTheme = () => update(s => ({ ...s, settings: { ...s.settings, theme: night ? 'light' : 'dark' } }))
 
- /* Tapping the chip turns the weather over: the sky crossfades behind, the glyph rotates in front. */
+ /* Tapping the chip turns the weather over: the sky crossfades behind, the glyph
+    rotates in front. The chip belongs to the student side; parent mode keeps the
+    field as a horizon and says how everybody is in words, on their card. */
  const turnWeather = () => {
   const next = weathers[(weatherIndex(weather) + 1) % weathers.length].id
   update(s => ({ ...s, weather: next }))

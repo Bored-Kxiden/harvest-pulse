@@ -1,10 +1,13 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronRight, Flame, Image as ImageIcon, MessageCircleQuestion, Mic, Phone, Puzzle, Sprout, X } from 'lucide-react'
+import { ChevronRight, Cloud, CloudLightning, CloudRain, CloudSun, Flame, Image as ImageIcon, MessageCircleQuestion, Mic, Phone, Puzzle, Sprout, Sun, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { makeId, useHarbor } from '@/lib/harbor/store'
-import { connectStreak, growingSeeds, localDay, personOf, personStatus, seedPhase, sharedAlerts, type Person } from '@/lib/harbor/model'
+import {
+ connectStreak, growingSeeds, localDay, personOf, personStatus, seedPhase, sharedAlerts,
+ watchedPerson, weatherIndex, weatherOf, weathers, type Person, type Weather,
+} from '@/lib/harbor/model'
 import { Avatar } from './avatar'
 import { VoiceNote } from './voice'
 import { DayArc } from './day-arc'
@@ -26,6 +29,12 @@ function greeting(now = new Date()) {
  return h < 5 ? 'Still up' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
 }
 
+/** The same five skies the other side sets, drawn small. */
+function WeatherMark({ weather }: { weather: Weather }) {
+ const Icon = { clear: Sun, bright: CloudSun, cloudy: Cloud, rain: CloudRain, storm: CloudLightning }[weather]
+ return <span className="who-weather-mark" data-weather={weather} aria-hidden="true"><Icon/></span>
+}
+
 /** The whole of parent mode: who you care about, how they are right now, and the two
     ways to reach them. Everything else in Harbor is one tap further away, deliberately. */
 export function ParentHome({ navigate, onCall, onOpenStory, onQuestion }: {
@@ -34,7 +43,7 @@ export function ParentHome({ navigate, onCall, onOpenStory, onQuestion }: {
  onOpenStory: () => void
  onQuestion: () => void
 }) {
- const { state } = useHarbor()
+ const { state, update } = useHarbor()
  const [recording, setRecording] = useState<Person | null>(null)
  const [planting, setPlanting] = useState<Person | null>(null)
  const [check, setCheck] = useState<string | null>(null)
@@ -44,6 +53,7 @@ export function ParentHome({ navigate, onCall, onOpenStory, onQuestion }: {
  const day = localDay()
  const playedToday = state.puzzles.filter(p => p.day === day).length
  const growing = growingSeeds(state)
+ const watched = watchedPerson(state)
  const checking = growing.find(s => s.id === check)
  const answered = !!state.games[day]
 
@@ -68,6 +78,14 @@ export function ParentHome({ navigate, onCall, onOpenStory, onQuestion }: {
         </span>
        </span>
        <ChevronRight className="caret" aria-hidden="true"/>
+      </button>
+      {/* What they said their week is like. It is their word, not a reading taken
+          off them, and the field behind this card is their sky rather than ours. */}
+      <button type="button" className="who-weather" aria-pressed={watched === person.id}
+       onClick={() => update(s => ({ ...s, watching: person.id }))}>
+       <WeatherMark weather={weatherOf(state, person.id)}/>
+       <span className="who-weather-said"><b>{weathers[weatherIndex(weatherOf(state, person.id))].label}</b> {weathers[weatherIndex(weatherOf(state, person.id))].caption}</span>
+       {watched === person.id && <i>in your field</i>}
       </button>
       {last && <p className="who-line">{last.mine ? 'You: ' : ''}{last.text}</p>}
       <div className="who-acts">

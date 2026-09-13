@@ -4,7 +4,7 @@ import { CalendarDays, ChevronRight, Clock3, Images, Lock, MessageCircleQuestion
 import { useHarbor } from '@/lib/harbor/store'
 import {
  blocksFor, callingStage, callsFor, dominantFlower, formatTime, freeWindows, latestPersonalNote, localDay,
- minutes, weatherIndex, weathers,
+ minutes, personDay, personStatus, weatherIndex, weathers,
 } from '@/lib/harbor/model'
 import { Avatar } from './avatar'
 import { FlowerGlyph } from './flowers'
@@ -84,6 +84,7 @@ export function Home({ navigate, onCall, onOpenCamera, onOpenStory, onWeatherSho
       /* Their card carries what they said to you alone. Anything they said to
          everyone lives on the rail under A little something, never here. */
       const personal = latestPersonalNote(state, person.id)
+      const status = personStatus(state, person.id)
       return <div key={person.id} className={`person tint-${TINTS[i % TINTS.length]}`}>
        <Sprig kind={SPRIGS[i % SPRIGS.length]} className="person-sprig"/>
        <button type="button" className="person-top" onClick={() => navigate(`chat/${person.id}`)}
@@ -95,6 +96,11 @@ export function Home({ navigate, onCall, onOpenCamera, onOpenStory, onWeatherSho
         <ChevronRight style={{ width: 15, height: 15, color: 'var(--ink-faint)' }} aria-hidden="true"/>
        </button>
        <h3>{person.name}</h3>
+       {/* What they marked on their own day, read from here. A parent marking an
+           afternoon busy at home is this line changing on their kid's phone. */}
+       <span className="who-status person-status" data-busy={status.busy}>
+        <i aria-hidden="true"/>{status.label}
+       </span>
        {personal
         ? <><span className="person-tag"><Lock aria-hidden="true"/>just for you</span>
          <p className="person-note">{personal.text}</p></>
@@ -234,5 +240,27 @@ function TodayAtAGlance({ navigate }: { navigate: (page: string) => void }) {
     <span className="row-body"><b>{formatTime(free[0].start)} – {formatTime(free[0].end)}</b><span>Your longest open stretch</span></span>
    </div>}
   </div>
+
+  {/* Their day, from their side of the phone. The hours a parent marked busy on
+      their own screen are these, which is the point of them marking anything. */}
+  <div className="row-head" style={{ marginTop: 16 }}>
+   <h2 style={{ fontSize: 20 }}>Them today</h2>
+  </div>
+  <ul className="their-day">
+   {state.people.map(person => {
+    const theirs = personDay(state, person.id, day)
+    const status = personStatus(state, person.id)
+    return <li key={person.id}>
+     <Avatar person={person.id} size="sm"/>
+     <span className="row-body">
+      <b>{person.name}</b>
+      <span>{theirs.length
+       ? theirs.slice(0, 2).map(b => `${b.label || 'Busy'} ${formatTime(b.start)}`).join(' · ')
+       : 'Nothing marked today'}</span>
+     </span>
+     <span className="who-status" data-busy={status.busy}><i aria-hidden="true"/>{status.busy ? 'Busy' : 'Free'}</span>
+    </li>
+   })}
+  </ul>
  </section>
 }

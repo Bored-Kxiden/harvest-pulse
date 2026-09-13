@@ -1340,11 +1340,43 @@ html { touch-action: pan-x pan-y }
 .who-status i { width: 7px; height: 7px; border-radius: 50%; background: var(--leaf) }
 .who-status[data-busy='true'] { color: var(--blush) }
 .who-status[data-busy='true'] i { background: var(--blush) }
+/* On a person's card in the grid, where the type is smaller and the room tighter. */
+.person-status { font-size: 12.5px; margin: 2px 0 6px }
+
+/* Their day, read off their own side of the phone. */
+.their-day { list-style: none; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px }
+/* A grid item sizes to its content unless told otherwise, which ran the whole row
+   off the side of the screen the moment somebody had a long label. */
+.their-day li { min-width: 0; display: flex; align-items: center; gap: 11px; padding: 10px 2px; border-bottom: 1px solid var(--hairline) }
+.their-day li:last-child { border-bottom: 0 }
+.their-day .row-body { flex: 1; min-width: 0 }
+.their-day .row-body b { display: block; font-size: 14.5px }
+.their-day .row-body span { display: block; font-size: 12.5px; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.their-day .who-status { font-size: 12.5px; flex: none }
 .who-line {
  margin: 11px 0 13px; padding-left: 13px; border-left: 2.5px solid var(--edge);
  font-size: 14.5px; line-height: 1.5; color: var(--ink-mid);
  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
+/* How they said their week is going. Tapping it puts their sky over the field. */
+.who-weather {
+ width: 100%; display: flex; align-items: center; gap: 10px; margin-top: 11px;
+ padding: 9px 11px; border-radius: 14px; border: 1px solid transparent; background: var(--tint-mint);
+ font: inherit; font-size: 13px; line-height: 1.4; color: var(--ink-mid); text-align: left;
+ transition: border-color .16s ease, transform .12s ease;
+}
+.who-weather b { color: var(--ink); font-weight: 700 }
+.who-weather-said { flex: 1; min-width: 0 }
+.who-weather i {
+ flex: none; font-style: normal; font-size: 11px; font-weight: 700; letter-spacing: .02em;
+ color: var(--leaf); text-transform: lowercase;
+}
+.who-weather[aria-pressed='true'] { border-color: var(--edge-strong) }
+.who-weather:active { transform: scale(.99) }
+.who-weather-mark { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; background: rgb(254 252 245 / .75) }
+.who-weather-mark svg { width: 17px; height: 17px; color: var(--gold-deep, var(--leaf)) }
+.who-weather-mark[data-weather='cloudy'] svg, .who-weather-mark[data-weather='rain'] svg, .who-weather-mark[data-weather='storm'] svg { color: var(--ink-soft) }
+
 .who-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 9px }
 .who-acts .btn { min-height: 50px; font-size: 15px }
 
@@ -1626,6 +1658,10 @@ html { touch-action: pan-x pan-y }
 }
 .seed-name { text-align: center; font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 17px; color: var(--ink-deep); margin-top: -4px }
 .seed-picks { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px }
+/* The exact hour, once somebody asks for one. */
+.seed-clock { display: flex; align-items: center; gap: 10px; margin-top: 10px }
+.seed-clock .input { flex: none; width: auto; min-width: 116px }
+.seed-clock .small { margin: 0 }
 .seed-pick {
  aspect-ratio: 1; display: grid; place-items: center; border-radius: 13px; background: var(--float-soft);
  box-shadow: inset 0 0 0 1.5px transparent; transition: box-shadow .16s, background .16s, transform .12s;

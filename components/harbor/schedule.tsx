@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useHarbor } from '@/lib/harbor/store'
 import {
  blockStar, blocksFor, calendarProviders, clockOf, DAY_CLOSE, DAY_OPEN, formatTime, linkedWeek, localDay,
- minutes, weekOf, type CalendarProvider, type Interval,
+ minutes, setBlocks as writeBlocks, weekOf, type CalendarProvider, type Interval,
 } from '@/lib/harbor/model'
 import { Sprig } from './sprigs'
 
@@ -44,10 +44,7 @@ export function Schedule({ navigate }: { navigate: (page: string) => void }) {
  if (!state) return null
  const today = localDay()
 
- const setBlocks = (day: string, next: Interval[]) => update(s => {
-  const existing = s.schedules[day] ?? { you: [], mom: [] }
-  return { ...s, schedules: { ...s.schedules, [day]: { ...existing, you: next.slice().sort((a, b) => minutes(a.start) - minutes(b.start)) } } }
- })
+ const setBlocks = (day: string, next: Interval[]) => update(s => writeBlocks(s, day, 'you', next))
 
  /* Press and drag down a column: the draft follows the finger, snapped to the half hour. */
  const read = (clientX: number, clientY: number) => {
@@ -123,8 +120,8 @@ export function Schedule({ navigate }: { navigate: (page: string) => void }) {
   update(s => {
    const schedules = { ...s.schedules }
    for (const [day, blocks] of Object.entries(filled)) {
-    const existing = schedules[day] ?? { you: [], mom: [] }
-    schedules[day] = { ...existing, you: [...existing.you.filter(v => !v.linked), ...blocks].sort((a, b) => minutes(a.start) - minutes(b.start)) }
+    const existing = schedules[day] ?? {}
+    schedules[day] = { ...existing, you: [...(existing.you ?? []).filter(v => !v.linked), ...blocks].sort((a, b) => minutes(a.start) - minutes(b.start)) }
    }
    return { ...s, schedules, calendar: { provider, connectedAt: new Date().toISOString() } }
   })
@@ -134,7 +131,7 @@ export function Schedule({ navigate }: { navigate: (page: string) => void }) {
  const disconnect = () => {
   update(s => ({
    ...s, calendar: null,
-   schedules: Object.fromEntries(Object.entries(s.schedules).map(([day, v]) => [day, { ...v, you: v.you.filter(b => !b.linked) }])),
+   schedules: Object.fromEntries(Object.entries(s.schedules).map(([day, v]) => [day, { ...v, you: (v.you ?? []).filter(b => !b.linked) }])),
   }))
   toast.success('Unlinked. Your own blocks are untouched.')
  }
