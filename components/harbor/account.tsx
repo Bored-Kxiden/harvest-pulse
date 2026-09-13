@@ -26,7 +26,7 @@ function isStandalone(): boolean {
 }
 
 export function AccountScreen({ navigate }: { navigate: (page: string) => void }) {
- const { state, update, reset, start } = useHarbor()
+ const { state, update, reset, swap } = useHarbor()
  const [privacy, setPrivacy] = useState(false)
  const [fullscreen, setFullscreen] = useState(false)
  const [fullscreenSupported, setFullscreenSupported] = useState(false)
@@ -312,8 +312,8 @@ export function AccountScreen({ navigate }: { navigate: (page: string) => void }
 
   <Dialog open={!!switchTo} onOpenChange={value => !value && setSwitchTo(null)}><DialogContent>
    <DialogHeader><DialogTitle>Switch to {switchTo === 'parent' ? 'parent mode' : 'student mode'}?</DialogTitle>
-    <DialogDescription>The sample household is laid out again from the other side of the phone, so the names and the week make sense. Anything you added in this demo is replaced.</DialogDescription></DialogHeader>
-   <button type="button" className="btn btn-block" onClick={() => { if (switchTo) { start(switchTo, state.name); setSwitchTo(null); navigate('home') } }}>Switch and start fresh</button>
+    <DialogDescription>The household is laid out again from the other side of the phone, so the names and the week make sense. The time you marked as busy and any seed you planted cross over with you: you see them from the other end, on your own card. Messages and photos start fresh.</DialogDescription></DialogHeader>
+   <button type="button" className="btn btn-block" onClick={() => { if (switchTo) { swap(switchTo); setSwitchTo(null); navigate('home') } }}>Switch sides</button>
    <button type="button" className="btn btn-quiet btn-block" onClick={() => setSwitchTo(null)}>Stay here</button>
   </DialogContent></Dialog>
 

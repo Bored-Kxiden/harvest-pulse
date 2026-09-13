@@ -1,12 +1,11 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import { Bell, CalendarDays, Cloud, CloudLightning, CloudRain, CloudSun, House, Images, Leaf, Minus, Moon, Plus, Puzzle, Sun, UserRound } from 'lucide-react'
+import { Bell, Bookmark, CalendarDays, Cloud, CloudLightning, CloudRain, CloudSun, House, Images, Leaf, Minus, Moon, Plus, Sparkles, Sun, UserRound } from 'lucide-react'
 import { Toaster } from '@/components/ui/sonner'
 import { makeId, useHarbor } from '@/lib/harbor/store'
-import { activePacts, localDay, rollSnapWindow, snapWindowDue, unseenAlerts, weatherIndex, weathers, type Moment, type Weather } from '@/lib/harbor/model'
+import { activePacts, fieldWeather, localDay, rollSnapWindow, snapWindowDue, unseenAlerts, weatherIndex, weathers, type Moment, type Weather } from '@/lib/harbor/model'
 import { Home } from './home'
 import { ParentHome } from './parent-home'
-import { GamesScreen } from './games'
 import { Setup } from './setup'
 import { Schedule } from './schedule'
 import { AccountScreen } from './account'
@@ -31,16 +30,18 @@ const weatherIcon: Record<Weather, typeof Sun> = { clear: Sun, bright: CloudSun,
    each wide enough to hit without looking. */
 const studentTabs = {
  left: [{ id: 'home', label: 'Home', icon: House }, { id: 'schedule', label: 'Week', icon: CalendarDays }],
- right: [{ id: 'play', label: 'Play', icon: Puzzle }, { id: 'account', label: 'You', icon: UserRound }],
+ right: [{ id: 'saved', label: 'Saved', icon: Bookmark }, { id: 'account', label: 'You', icon: UserRound }],
 }
+/* Photos rather than Saved, and it opens on the pictures: a parent looking for a
+   photo of their kid should not land on a list of notes first. */
 const parentTabs = [
  { id: 'home', label: 'Home', icon: House },
- { id: 'saved', label: 'Photos', icon: Images },
- { id: 'play', label: 'Play', icon: Puzzle },
+ { id: 'saved/photos', label: 'Photos', icon: Images },
+ { id: 'activity', label: 'Activity', icon: Sparkles },
  { id: 'account', label: 'You', icon: UserRound },
 ]
 /** Everything the nav bar does not reach. Each of these opens with a way back out. */
-const PAGES = ['home', 'schedule', 'share', 'saved', 'account', 'chat', 'cue', 'alerts', 'play']
+const PAGES = ['home', 'schedule', 'share', 'saved', 'account', 'chat', 'cue', 'activity']
 
 
 /* The verge, a painted strip of grass and flowers pinned to the bottom of the screen,
@@ -134,7 +135,12 @@ export function HarborApp() {
  const navigate = (next: string) => { location.hash = next }
  const page = route.split('/')[0]
  const parentMode = state?.mode === 'parent'
- const weather = state?.weather ?? 'clear'
+ /* Activity opens on whichever of its three sections the link asked for. */
+ const sub = route.split('/')[1]
+ const activityTab = sub === 'play' || sub === 'starred' ? sub : undefined
+ /* A parent has no weather of their own here. The sky over their field is the one
+    their child set, which is what they opened the app to find out. */
+ const weather = state ? fieldWeather(state) : 'clear'
  const Icon = weatherIcon[weather]
  const waiting = state ? unseenAlerts(state) : 0
 
@@ -142,7 +148,9 @@ export function HarborApp() {
     anyone who wants the phone to decide; this just flips between the two looks. */
  const flipTheme = () => update(s => ({ ...s, settings: { ...s.settings, theme: night ? 'light' : 'dark' } }))
 
- /* Tapping the chip turns the weather over: the sky crossfades behind, the glyph rotates in front. */
+ /* Tapping the chip turns the weather over: the sky crossfades behind, the glyph
+    rotates in front. The chip belongs to the student side; parent mode keeps the
+    field as a horizon and says how everybody is in words, on their card. */
  const turnWeather = () => {
   const next = weathers[(weatherIndex(weather) + 1) % weathers.length].id
   update(s => ({ ...s, weather: next }))
@@ -191,8 +199,8 @@ export function HarborApp() {
     <span className="brand-word">harbor</span>
    </a>
    <div className="top-acts">
-    <button type="button" className="disc" onClick={() => navigate('alerts')}
-     aria-label={waiting ? `Notifications, ${waiting} new` : 'Notifications'}>
+    <button type="button" className="disc" onClick={() => navigate('activity')}
+     aria-label={waiting ? `Activity, ${waiting} new` : 'Activity'}>
      <Bell aria-hidden="true"/>{!!waiting && <i/>}
     </button>
     <button type="button" className="disc" data-tint="leaf" onClick={flipTheme}
@@ -233,11 +241,11 @@ export function HarborApp() {
       ? <ParentHome navigate={navigate} onCall={person => setCall({ person })} onOpenStory={() => setStory(0)} onQuestion={() => setQuestion(true)}/>
       : <Home navigate={navigate} onCall={person => setCall({ person })}
        onOpenCamera={() => setCamera({})} onOpenStory={() => setStory(0)} onWeatherShown={showWeather} onExpand={() => setLift(1)} onQuestion={() => setQuestion(true)}/>)}
-     {page === 'play' && <GamesScreen navigate={navigate}/>}
      {page === 'schedule' && <Schedule navigate={navigate}/>}
      {page === 'share' && <ShareLoad navigate={navigate}/>}
-     {page === 'saved' && <NotesScreen navigate={navigate} onOpenCamera={() => setCamera({})} onOpenStory={() => setStory(0)}/>}
-     {page === 'alerts' && <AlertsScreen navigate={navigate}/>}
+     {page === 'saved' && <NotesScreen key={route} navigate={navigate} initial={route.split('/')[1] === 'photos' ? 'instants' : 'notes'}
+      onOpenCamera={() => setCamera({})} onOpenStory={() => setStory(0)}/>}
+     {page === 'activity' && <AlertsScreen key={route} navigate={navigate} initial={activityTab}/>}
      {page === 'account' && <AccountScreen navigate={navigate}/>}
      {page === 'chat' && <Conversation key={route} person={route.split('/')[1] || state.people[0]?.id} navigate={navigate} onCall={person => setCall({ person })}/>}
      {page === 'cue' && <CueScreen navigate={navigate} onFire={fireCue}/>}
@@ -250,7 +258,8 @@ export function HarborApp() {
 
   <nav className="nav" aria-label="Main" data-wide={parentMode}>
    {parentMode
-    ? parentTabs.map(({ id, label, icon: Icon }) => <a key={id} href={`#${id}`} className="nav-item" aria-current={page === id ? 'page' : undefined}>
+    ? parentTabs.map(({ id, label, icon: Icon }) => <a key={id} href={`#${id}`} className="nav-item"
+      aria-current={page === id.split('/')[0] ? 'page' : undefined}>
      <Icon aria-hidden="true"/><b>{label}</b><i aria-hidden="true"/>
     </a>)
     : <>

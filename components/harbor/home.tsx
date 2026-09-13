@@ -1,10 +1,10 @@
 'use client'
 import { useState } from 'react'
-import { CalendarDays, ChevronRight, Clock3, Images, Lock, MessageCircleQuestion, Phone, Sprout, Users, Waves } from 'lucide-react'
+import { CalendarDays, ChevronRight, Clock3, Images, Lock, MessageCircleQuestion, Phone, Puzzle, Sprout, Users, Waves } from 'lucide-react'
 import { useHarbor } from '@/lib/harbor/store'
 import {
  blocksFor, callingStage, callsFor, dominantFlower, formatTime, freeWindows, latestPersonalNote, localDay,
- minutes, weatherIndex, weathers,
+ minutes, personDay, personStatus, weatherIndex, weathers,
 } from '@/lib/harbor/model'
 import { Avatar } from './avatar'
 import { FlowerGlyph } from './flowers'
@@ -41,6 +41,7 @@ export function Home({ navigate, onCall, onOpenCamera, onOpenStory, onWeatherSho
   setTab(next)
  }
  if (!state) return null
+ const played = state.puzzles.filter(p => p.day === localDay()).length
 
  return <div className="entrance">
   <div className="wrap flow stagger">
@@ -61,7 +62,7 @@ export function Home({ navigate, onCall, onOpenCamera, onOpenStory, onWeatherSho
       choose(next.id)
       requestAnimationFrame(() => document.getElementById(`tab-${next.id}`)?.focus())
      }}>
-     <span className="segment-slide" style={{ ['--i' as string]: index, width: `calc((100% - 10px) / ${TABS.length})` }} aria-hidden="true"/>
+     <span className="segment-slide" style={{ ['--i' as string]: index }} aria-hidden="true"/>
      {TABS.map(({ id, label, icon: Icon }) => <button key={id} type="button" role="tab" id={`tab-${id}`}
       className="segment-tab" aria-selected={tab === id} aria-controls="people-panel"
       tabIndex={tab === id ? 0 : -1} onClick={() => choose(id)}>
@@ -83,6 +84,7 @@ export function Home({ navigate, onCall, onOpenCamera, onOpenStory, onWeatherSho
       /* Their card carries what they said to you alone. Anything they said to
          everyone lives on the rail under A little something, never here. */
       const personal = latestPersonalNote(state, person.id)
+      const status = personStatus(state, person.id)
       return <div key={person.id} className={`person tint-${TINTS[i % TINTS.length]}`}>
        <Sprig kind={SPRIGS[i % SPRIGS.length]} className="person-sprig"/>
        <button type="button" className="person-top" onClick={() => navigate(`chat/${person.id}`)}
@@ -94,6 +96,11 @@ export function Home({ navigate, onCall, onOpenCamera, onOpenStory, onWeatherSho
         <ChevronRight style={{ width: 15, height: 15, color: 'var(--ink-faint)' }} aria-hidden="true"/>
        </button>
        <h3>{person.name}</h3>
+       {/* What they marked on their own day, read from here. A parent marking an
+           afternoon busy at home is this line changing on their kid's phone. */}
+       <span className="who-status person-status" data-busy={status.busy}>
+        <i aria-hidden="true"/>{status.label}
+       </span>
        {personal
         ? <><span className="person-tag"><Lock aria-hidden="true"/>just for you</span>
          <p className="person-note">{personal.text}</p></>
@@ -142,6 +149,14 @@ export function Home({ navigate, onCall, onOpenCamera, onOpenStory, onWeatherSho
     <button type="button" className="row" onClick={() => navigate('cue')}>
      <span className="row-icon" style={{ background: 'var(--tint-blue)' }}><Waves aria-hidden="true"/></span>
      <span className="row-body"><b>Good time to call</b><span>A nudge when you stop walking, never a demand</span></span>
+     <ChevronRight className="caret" aria-hidden="true"/>
+    </button>
+    <button type="button" className="row" onClick={() => navigate('activity/play')}>
+     <span className="row-icon" style={{ background: 'var(--tint-yellow)' }}><Puzzle aria-hidden="true"/></span>
+     <span className="row-body">
+      <b>Today&rsquo;s puzzles</b>
+      <span>{played ? `${played} of 3 done` : 'Three small ones, the same three at home'}</span>
+     </span>
      <ChevronRight className="caret" aria-hidden="true"/>
     </button>
    </div>
@@ -225,5 +240,27 @@ function TodayAtAGlance({ navigate }: { navigate: (page: string) => void }) {
     <span className="row-body"><b>{formatTime(free[0].start)} – {formatTime(free[0].end)}</b><span>Your longest open stretch</span></span>
    </div>}
   </div>
+
+  {/* Their day, from their side of the phone. The hours a parent marked busy on
+      their own screen are these, which is the point of them marking anything. */}
+  <div className="row-head" style={{ marginTop: 16 }}>
+   <h2 style={{ fontSize: 20 }}>Them today</h2>
+  </div>
+  <ul className="their-day">
+   {state.people.map(person => {
+    const theirs = personDay(state, person.id, day)
+    const status = personStatus(state, person.id)
+    return <li key={person.id}>
+     <Avatar person={person.id} size="sm"/>
+     <span className="row-body">
+      <b>{person.name}</b>
+      <span>{theirs.length
+       ? theirs.slice(0, 2).map(b => `${b.label || 'Busy'} ${formatTime(b.start)}`).join(' · ')
+       : 'Nothing marked today'}</span>
+     </span>
+     <span className="who-status" data-busy={status.busy}><i aria-hidden="true"/>{status.busy ? 'Busy' : 'Free'}</span>
+    </li>
+   })}
+  </ul>
  </section>
 }

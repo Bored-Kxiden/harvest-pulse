@@ -1,30 +1,33 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { CalendarClock, Camera, Inbox, MessageCircle, Sparkles, Star, Sprout } from 'lucide-react'
+import { CalendarClock, Camera, Inbox, MessageCircle, Puzzle, Sparkles, Star, Sprout } from 'lucide-react'
 import { toast } from 'sonner'
 import { useHarbor } from '@/lib/harbor/store'
 import { formatTime, localDay, planStar, plansFor, sharedAlerts, starredItems, type Alert } from '@/lib/harbor/model'
 import { Avatar } from './avatar'
 import { BackBar } from './back'
+import { GamesPanel } from './games'
 
 const VIEWS = [
- { id: 'shared', label: 'Shared with you', icon: Inbox },
+ { id: 'shared', label: 'Shared', icon: Inbox },
  { id: 'starred', label: 'Starred', icon: Star },
+ { id: 'play', label: 'Play', icon: Puzzle },
 ] as const
 type View = typeof VIEWS[number]['id']
 
 const KIND_ICON = { seed: Sprout, plan: CalendarClock, instant: Camera, note: MessageCircle }
 const KIND_TINT = { seed: 'var(--tint-mint)', plan: 'var(--tint-blue)', instant: 'var(--tint-peach)', note: 'var(--tint-yellow)' }
 
-/** Everything addressed to you, in one place behind the bell.
-    Two feeds, and the difference between them is who decided it mattered. Shared with
-    you is theirs: what they are doing, what they left, what they caught. Starred is
-    yours: the handful of things, from their week or your own, you chose to keep an eye
-    on. Neither is a count of anything and neither expects a reply. */
-export function AlertsScreen({ navigate }: { navigate: (page: string) => void }) {
+/** Activity: everything that happened while you were not looking, in one place.
+    Shared is theirs, what they are doing and what they left. Starred is yours, the
+    handful of things you chose to keep an eye on. Play is the day's puzzles, which
+    belong here for the same reason as the rest: it is a thing to come back for, not
+    a place in the app you navigate to on purpose. Nothing here expects a reply. */
+export function AlertsScreen({ navigate, initial }: { navigate: (page: string) => void; initial?: View }) {
  const { state, update } = useHarbor()
- const [view, setView] = useState<View>('shared')
+ const [view, setView] = useState<View>(initial ?? 'shared')
  const [from, setFrom] = useState(0)
+ const [fullscreenPlay, setFullscreenPlay] = useState(false)
 
  /* Opening the screen is what marks it read, so the dot on the bell means unseen
     rather than unanswered. */
@@ -44,14 +47,18 @@ export function AlertsScreen({ navigate }: { navigate: (page: string) => void })
  }
 
  return <div className="entrance">
-  <BackBar onBack={() => navigate('home')}/>
-  <div className="page-head">
-   <h1>Notifications</h1>
-   <p>What your people shared, and the things you kept. Nothing here needs a reply.</p>
-  </div>
+  {/* A puzzle wants the whole screen. Everything above it folds away while one is
+      open, and comes back when it closes. */}
+  {!fullscreenPlay && <>
+   <BackBar onBack={() => navigate('home')}/>
+   <div className="page-head">
+    <h1>Activity</h1>
+    <p>What your people shared, what you kept, and today&rsquo;s puzzles.</p>
+   </div>
+  </>}
 
   <div className="wrap flow stagger">
-   <div className="segment" role="tablist" aria-label="Which notifications" style={{ ['--i' as string]: 0 }}
+   {!fullscreenPlay && <div className="segment" role="tablist" aria-label="Which activity" style={{ ['--i' as string]: 0 }}
     onKeyDown={e => {
      const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
      if (!step) return
@@ -60,20 +67,22 @@ export function AlertsScreen({ navigate }: { navigate: (page: string) => void })
      choose(next.id)
      requestAnimationFrame(() => document.getElementById(`alert-tab-${next.id}`)?.focus())
     }}>
-    <span className="segment-slide" style={{ ['--i' as string]: index, width: 'calc((100% - 10px) / 2)' }} aria-hidden="true"/>
+    <span className="segment-slide" style={{ ['--i' as string]: index }} aria-hidden="true"/>
     {VIEWS.map(({ id, label, icon: Icon }) => <button key={id} type="button" role="tab" id={`alert-tab-${id}`}
      className="segment-tab" aria-selected={view === id} aria-controls="alert-panel"
      tabIndex={view === id ? 0 : -1} onClick={() => choose(id)}>
      <Icon aria-hidden="true"/>{label}
     </button>)}
-   </div>
+   </div>}
 
    <div className="panel-swap" key={view} id="alert-panel" role="tabpanel" aria-labelledby={`alert-tab-${view}`}
     style={{ ['--from' as string]: from, ['--i' as string]: 1 }}>
-    {view === 'shared' ? <SharedFeed navigate={navigate}/> : <StarredFeed/>}
+    {view === 'shared' && <SharedFeed navigate={navigate}/>}
+    {view === 'starred' && <StarredFeed/>}
+    {view === 'play' && <GamesPanel onPlaying={setFullscreenPlay}/>}
    </div>
 
-   <p className="fineprint" style={{ ['--i' as string]: 2 }}>A demo inbox · nothing is sent or received for real</p>
+   {!fullscreenPlay && <p className="fineprint" style={{ ['--i' as string]: 2 }}>A demo · nothing is sent or received for real</p>}
   </div>
  </div>
 }
