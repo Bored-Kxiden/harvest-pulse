@@ -271,6 +271,10 @@ export function AccountScreen({ navigate }: { navigate: (page: string) => void }
       <GraduationCap aria-hidden="true"/>Away from home
      </button>
     </div>
+    <button type="button" className="text-link" style={{ alignSelf: 'start' }}
+     onClick={() => { update(s => ({ ...s, toursSeen: s.toursSeen.filter(m => m !== s.mode) })); navigate('home') }}>
+     Walk me through it again <ChevronRight aria-hidden="true"/>
+    </button>
    </section>
 
    <button type="button" className="row" style={{ ['--i' as string]: 6 }} onClick={() => navigate('share')}>

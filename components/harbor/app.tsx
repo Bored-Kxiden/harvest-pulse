@@ -22,6 +22,7 @@ import { Sheet } from './sheet'
 import { CameraScreen, StoryViewer } from './instants'
 import { SnapPrompt } from './snap'
 import { SectionsOverlay } from './sections'
+import { Tour } from './tour'
 
 const weatherIcon: Record<Weather, typeof Sun> = { clear: Sun, bright: CloudSun, cloudy: Cloud, rain: CloudRain, storm: CloudLightning }
 /* Two bars, because the two people holding this phone are not doing the same job.
@@ -288,6 +289,10 @@ export function HarborApp() {
   {windowDue && !camera && !cue && !call && !question && story === null && <SnapPrompt
    onTake={() => { setWindowDue(false); setCamera({ promptDay: day }) }}
    onSkip={() => { setWindowDue(false); try { sessionStorage.setItem('harbor-window', day) } catch { /* nothing to remember if storage is blocked */ } }}/>}
+  {/* The first run, once for each side of the phone. It waits for the home screen
+      rather than opening over the setup flow, and it never returns on its own. */}
+  {state?.setupDone && page === 'home' && !state.toursSeen.includes(state.mode) && !camera && !cue && !call && !question
+   && <Tour mode={state.mode} onDone={() => update(s => ({ ...s, toursSeen: [...s.toursSeen, s.mode] }))}/>}
   <DailyQuestion open={question} onOpenChange={setQuestion}/>
   <Toaster theme={night ? 'dark' : 'light'} position="top-center"/>
  </div>

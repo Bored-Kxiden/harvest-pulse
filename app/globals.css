@@ -97,7 +97,7 @@
  --btn-hover: #1A5E3B;
  --grab: #CFD8C9; --grab-hover: #B9C6B2;
  --curtain: linear-gradient(172deg, #FBF5E9 0%, #F3E9D6 55%, #E7DCC7 100%);
- --scrim-bg: rgb(24 52 38 / .5);
+ --scrim-bg: rgb(24 52 38 / .5); --tour-scrim: rgb(16 40 26 / .62);
  --tape-a: rgb(226 239 220 / .82); --tape-b: rgb(251 242 212 / .85);
  --skeleton-a: #F1EADB; --skeleton-b: #F8F2E6;
  --bloom-halo: radial-gradient(circle, #FBF0D4, #F3E7CE);
@@ -105,6 +105,15 @@
  --star: #E8A83C;
  --outside: #E9DFCC;
  --glass-sheen: linear-gradient(118deg, rgb(255 255 255 / .66) 0 20%, rgb(255 255 255 / .06) 40%, rgb(255 255 255 / 0) 56%);
+
+ /* ---------- the day scene ----------
+    The arc card paints a small landscape, so it carries its own handful of tokens:
+    a sky, three ridges, and the three colours the day itself passes through. */
+ --arc-sky: linear-gradient(180deg, #E6EFF7 0%, #EEF4EC 58%, #E7F1E1 100%);
+ --arc-ridge-1: #D6E4D2; --arc-ridge-2: #C4DAC0; --arc-ridge-3: #B1CFAE; --arc-foot-ink: #35523E;
+ --arc-dawn-c: #EBA93D; --arc-noon-c: #86C495; --arc-dusk-c: #7B93CF;
+ --arc-sun-c: #F5C95E;
+ --arc-busy: rgb(236 243 238 / .82); --arc-tick: rgb(31 107 67 / .2); --arc-edge: rgb(31 107 67 / .1);
 }
 
 /* ---------- dusk ----------
@@ -192,7 +201,7 @@
  --btn-hover: #A5DCAF;
  --grab: #3B4B39; --grab-hover: #4E614B;
  --curtain: linear-gradient(172deg, #161D17 0%, #111711 55%, #0B100C 100%);
- --scrim-bg: rgb(5 10 7 / .68);
+ --scrim-bg: rgb(5 10 7 / .68); --tour-scrim: rgb(3 8 6 / .7);
  --tape-a: rgb(140 180 146 / .18); --tape-b: rgb(214 182 104 / .16);
  --skeleton-a: #1F2921; --skeleton-b: #2A362C;
  --bloom-halo: radial-gradient(circle, #3E3418, #262010);
@@ -200,6 +209,14 @@
  --star: #F2C75C;
  --outside: #070A07;
  --glass-sheen: linear-gradient(118deg, rgb(200 232 205 / .16) 0 20%, rgb(200 232 205 / .03) 40%, rgb(200 232 205 / 0) 56%);
+
+ /* The same scene after sunset: the sky keeps a little blue at the top, the ridges
+    go to silhouettes, and the arc still runs gold to indigo so the shape reads. */
+ --arc-sky: linear-gradient(180deg, #111F2C 0%, #0D1A1A 56%, #0A1411 100%);
+ --arc-ridge-1: #1B2C25; --arc-ridge-2: #15241E; --arc-ridge-3: #101B17; --arc-foot-ink: #93AC97;
+ --arc-dawn-c: #E5B54B; --arc-noon-c: #EDE3C6; --arc-dusk-c: #7D91CE;
+ --arc-sun-c: #F3C85F;
+ --arc-busy: rgb(11 20 26 / .66); --arc-tick: rgb(160 200 165 / .18); --arc-edge: rgb(160 200 165 / .13);
  }
 }
 :root[data-theme='dark'] {
@@ -282,7 +299,7 @@
  --btn-hover: #A5DCAF;
  --grab: #3B4B39; --grab-hover: #4E614B;
  --curtain: linear-gradient(172deg, #161D17 0%, #111711 55%, #0B100C 100%);
- --scrim-bg: rgb(5 10 7 / .68);
+ --scrim-bg: rgb(5 10 7 / .68); --tour-scrim: rgb(3 8 6 / .7);
  --tape-a: rgb(140 180 146 / .18); --tape-b: rgb(214 182 104 / .16);
  --skeleton-a: #1F2921; --skeleton-b: #2A362C;
  --bloom-halo: radial-gradient(circle, #3E3418, #262010);
@@ -290,6 +307,14 @@
  --star: #F2C75C;
  --outside: #070A07;
  --glass-sheen: linear-gradient(118deg, rgb(200 232 205 / .16) 0 20%, rgb(200 232 205 / .03) 40%, rgb(200 232 205 / 0) 56%);
+
+ /* The same scene after sunset: the sky keeps a little blue at the top, the ridges
+    go to silhouettes, and the arc still runs gold to indigo so the shape reads. */
+ --arc-sky: linear-gradient(180deg, #111F2C 0%, #0D1A1A 56%, #0A1411 100%);
+ --arc-ridge-1: #1B2C25; --arc-ridge-2: #15241E; --arc-ridge-3: #101B17; --arc-foot-ink: #93AC97;
+ --arc-dawn-c: #E5B54B; --arc-noon-c: #EDE3C6; --arc-dusk-c: #7D91CE;
+ --arc-sun-c: #F3C85F;
+ --arc-busy: rgb(11 20 26 / .66); --arc-tick: rgb(160 200 165 / .18); --arc-edge: rgb(160 200 165 / .13);
  }
 @theme inline {
  --font-sans: var(--font-body);
@@ -1458,8 +1483,11 @@ html { touch-action: pan-x pan-y }
 .voice-heard-empty { font-style: italic; color: var(--ink-faint) }
 .voice-acts { display: grid; grid-template-columns: auto 1fr; gap: 9px }
 .voice-acts .btn { min-height: 50px }
-.voice-to { display: flex; align-items: center; gap: 9px; font-size: 14.5px; color: var(--ink-mid); width: 100%; margin-bottom: 2px }
-.voice-to b { color: var(--ink-deep); font-family: var(--font-round), sans-serif }
+/* The header row every small sheet opens with: who it is for, or what it does, and
+   the one way out. Shared so two sheets never disagree about the shape of a title. */
+.voice-to, .sheet-head { display: flex; align-items: center; gap: 9px; font-size: 14.5px; color: var(--ink-mid); width: 100%; margin-bottom: 2px }
+.voice-to b, .sheet-head b { color: var(--ink-deep); font-family: var(--font-round), sans-serif }
+.sheet-head > span:first-child { font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 16px; color: var(--ink-deep) }
 .field-error { font-size: 13px; line-height: 1.45; color: var(--destructive); padding: 10px 12px; border-radius: 14px; background: var(--tint-rose) }
 .say-box { display: flex; flex-direction: column; gap: 11px }
 .say-box[data-locked='true'] { opacity: .45; pointer-events: none }
@@ -1573,7 +1601,10 @@ html { touch-action: pan-x pan-y }
 .stage[data-mode='parent'] .sheet::before { opacity: .35 }
 /* A section label should not outrank the name of a person. Headings here step down
    to a label, and the names above them carry the weight. */
-.stage[data-mode='parent'] .row-head h2 { font-size: 16px; color: var(--ink-soft) }
+.stage[data-mode='parent'] .row-head h2 {
+ font-family: var(--font-round), sans-serif; font-size: 11.5px; font-weight: 700;
+ letter-spacing: 2.4px; text-transform: uppercase; color: var(--ink-soft);
+}
 .stage[data-mode='parent'] .row-head { margin-bottom: 8px }
 
 /* ---------- the week's three small goals ---------- */
@@ -1610,37 +1641,85 @@ html { touch-action: pan-x pan-y }
 /* Inside a sheet these are already on paper, so their own card shadow would be a
    card drawn on top of a card. */
 .voice-curtain .voice-start, .voice-curtain .voice-live { box-shadow: inset 0 0 0 1.5px var(--edge); padding: 14px }
-.voice-to .ghost-btn { margin-left: auto }
+.voice-to .ghost-btn, .sheet-head .ghost-btn { margin-left: auto }
 
-/* ---------- a parent's own day, drawn as an arc ----------
+/* ---------- a parent's own day, drawn as a day ----------
    A week grid you drag across is a tool for somebody managing a timetable. A parent
    answering "when are you free" needs to see one day at a glance and mark an hour
-   without learning a gesture, so the day is a sunrise-to-evening arc and the hours
-   already spoken for are simply drawn back over it. */
-.day-arc { gap: 12px }
-.arc-wrap { position: relative; padding: 4px 0 2px }
-.arc { width: 100%; height: auto; display: block; overflow: visible }
-.arc-end {
- position: absolute; bottom: 2px; display: inline-flex; align-items: center; gap: 5px;
- font-size: 12px; color: var(--ink-soft);
+   without learning a gesture.
+   So: a sky with a sun on it. Morning on the left, evening on the right, the hours
+   already spoken for painted back over the arc, and a mark on the longest gap that
+   is left. Everything scales off one 320 by 196 drawing, so the scene keeps its
+   proportions at any width. */
+.day-arc { gap: 13px }
+.arc-head { display: flex; flex-direction: column; gap: 3px }
+.arc-head h2 { font-size: 25px; line-height: 1.12; letter-spacing: -.6px; color: var(--ink-deep) }
+.arc-head p { font-size: 13.5px; line-height: 1.5; color: var(--ink-soft); max-width: 34ch }
+
+.arc-card {
+ position: relative; overflow: hidden; border-radius: 22px;
+ background: var(--arc-sky); box-shadow: inset 0 0 0 1px var(--arc-edge);
+ padding-bottom: 12px;
 }
-.arc-end svg { width: 15px; height: 15px; stroke-width: 1.8 }
-.arc-dawn { left: 0; color: var(--blush) }
-.arc-dusk { right: 0; color: #6E86BE }
-.arc-now {
- position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%);
- font-size: 12.5px; font-family: var(--font-round), sans-serif; font-weight: 700; color: var(--ink-mid); white-space: nowrap;
+.arc { display: block; width: 100%; height: auto }
+
+.arc-ticks line { stroke: var(--arc-tick); stroke-width: 1.4; stroke-linecap: round; stroke-dasharray: 0.5 6 }
+.arc-halo { fill: none; stroke: url(#arc-day); stroke-width: 11; stroke-linecap: round; opacity: .17 }
+.arc-line { fill: none; stroke: url(#arc-day); stroke-width: 3.4; stroke-linecap: round }
+/* Hours already spoken for are dimmed rather than cut out: a scrim in the colour of
+   the sky, so the day still runs unbroken underneath it. */
+.arc-busy { fill: none; stroke: var(--arc-busy); stroke-width: 13; stroke-linecap: butt }
+.arc-ridge-1 { fill: var(--arc-ridge-1) }
+.arc-ridge-2 { fill: var(--arc-ridge-2) }
+.arc-ridge-3 { fill: var(--arc-ridge-3) }
+
+.arc-sun-disc { fill: var(--arc-sun-c) }
+.arc-ray { stroke: var(--arc-sun-c); stroke-width: 2; stroke-linecap: round; opacity: .85 }
+.arc-mark-dot { fill: var(--leaf-bright) }
+.arc-mark-halo { fill: var(--leaf); opacity: .2 }
+
+/* The arc draws itself once, the sun and the mark arrive after it. Nothing loops
+   except the mark, which breathes slowly enough to notice only if you look. */
+.arc-line, .arc-halo { stroke-dasharray: var(--sweep); stroke-dashoffset: var(--sweep); animation: arc-draw 1.05s cubic-bezier(.25, .9, .3, 1) forwards }
+.arc-halo { animation-duration: 1.25s }
+@keyframes arc-draw { to { stroke-dashoffset: 0 } }
+.arc-sun, .arc-mark, .arc-busy { animation: fade .5s ease both .55s }
+.arc-mark-halo { transform-box: fill-box; transform-origin: center; animation: arc-breathe 3.6s ease-in-out 1.4s infinite }
+@keyframes arc-breathe { 0%, 100% { transform: scale(1); opacity: .2 } 50% { transform: scale(1.22); opacity: .34 } }
+
+.arc-foot { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; padding: 0 14px; margin-top: -30px }
+.arc-end { display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--arc-foot-ink) }
+.arc-end svg { width: 17px; height: 17px }
+.arc-glyph-line { stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; fill: none; opacity: .7 }
+.arc-glyph-fill { fill: currentColor; opacity: .62 }
+.arc-glyph-spark { fill: currentColor; opacity: .42 }
+.arc-caption { text-align: center; font-size: 12.5px; font-weight: 600; color: var(--arc-foot-ink) }
+.arc-moon { fill: var(--arc-sun-c) }
+.arc-moon-spark { fill: var(--arc-sun-c); opacity: .6 }
+
+/* An outlined action, because marking your own time is a quieter job than calling
+   somebody: it should not carry the same weight as the green buttons above it. */
+.arc-add-btn {
+ display: flex; align-items: center; justify-content: center; gap: 10px;
+ width: 100%; min-height: 54px; padding: 0 18px; border-radius: 17px;
+ border: 1.5px solid var(--edge); background: transparent;
+ font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 15px; color: var(--ink);
+ transition: background .16s ease, border-color .16s ease, transform .12s ease;
 }
-.arc-list { display: flex; flex-direction: column }
-.arc-list li { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1.5px solid var(--hairline) }
+.arc-add-btn:hover { background: var(--wash); border-color: var(--edge-strong) }
+.arc-add-btn:active { transform: scale(.985) }
+.arc-add-ring { display: grid; place-items: center; width: 25px; height: 25px; border-radius: 50%; border: 1.5px solid var(--leaf); color: var(--leaf) }
+.arc-add-ring svg { width: 14px; height: 14px; stroke-width: 2.4 }
+
+.arc-list { list-style: none; display: flex; flex-direction: column }
+.arc-list li { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-top: 1.5px solid var(--hairline) }
 .arc-list li:first-child { border-top: 0 }
-.arc-list b { font-family: var(--font-round), sans-serif; font-size: 14px; font-weight: 700; color: var(--ink-deep) }
-.arc-list span { flex: 1; font-family: var(--mono); font-size: 12px; color: var(--ink-soft) }
-.arc-add { display: flex; flex-direction: column; gap: 11px; padding-top: 4px; border-top: 1.5px solid var(--hairline); animation: rise .3s cubic-bezier(.2,.8,.3,1) both }
-.arc-times { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
+.arc-list-bar { flex: none; width: 3px; height: 20px; border-radius: 2px; background: var(--track) }
+.arc-list-bar[data-on='true'] { background: var(--leaf) }
+.arc-list b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-round), sans-serif; font-size: 14.5px; font-weight: 700; color: var(--ink-deep) }
+.arc-time { flex: 1; font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; color: var(--ink-soft); text-align: right; white-space: nowrap }
+.arc-times { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100% }
 .arc-times .input { min-height: 50px; font-size: 16px; font-family: var(--mono) }
-.arc-acts { display: grid; grid-template-columns: auto 1fr; gap: 9px }
-.arc-acts .btn { min-height: 48px }
 
 /* ---------- a seed, and the wait ----------
    A parent's note does not arrive, it grows. The child never sees a timer, only a
@@ -1702,3 +1781,35 @@ html { touch-action: pan-x pan-y }
 .growing-mark svg { width: 18px; height: 18px; stroke-width: 1.9; color: var(--on-tint); transition: transform .4s }
 .growing-mark[data-phase='sprout'] svg { transform: scale(1.1) }
 .growing-mark[data-phase='growing'] svg { transform: scale(1.22) }
+
+/* ---------- the first run ----------
+   A hole in a dimmed screen, moved from one real thing to the next. Nothing here is
+   a picture of the app: every step points at the control it is talking about, which
+   is the only kind of tour anybody remembers ten seconds after it ends. */
+.tour { position: fixed; inset: 0; z-index: 78; animation: fade .3s ease both }
+.tour-scrim { position: absolute; inset: 0; width: 100%; height: 100% }
+.tour-scrim rect[mask] { fill: var(--tour-scrim) }
+.tour-scrim > rect { fill: var(--tour-scrim) }
+.tour-ring {
+ position: absolute; border-radius: 18px; pointer-events: none;
+ box-shadow: 0 0 0 2px var(--leaf-bright), 0 0 0 7px rgb(89 164 104 / .18);
+ animation: tour-pop .34s cubic-bezier(.22, 1.1, .36, 1) both;
+}
+@keyframes tour-pop { from { opacity: 0; transform: scale(.97) } }
+
+.tour-card {
+ position: absolute; display: flex; flex-direction: column; gap: 7px;
+ padding: 17px 18px 15px; border-radius: 20px; background: var(--paper);
+ box-shadow: 0 24px 60px -28px rgb(12 40 24 / .8), inset 0 0 0 1px var(--card-edge);
+ animation: tour-card-in .32s cubic-bezier(.22, .9, .28, 1) both;
+}
+@keyframes tour-card-in { from { opacity: 0; transform: translateY(8px) } }
+.tour-card h2 { font-family: var(--font-round), sans-serif; font-size: 18px; font-weight: 700; letter-spacing: -.2px; color: var(--ink-deep) }
+.tour-card p { font-size: 14px; line-height: 1.5; color: var(--ink-mid) }
+.tour-acts { display: flex; align-items: center; gap: 10px; margin-top: 6px }
+.tour-dots { display: flex; align-items: center; gap: 5px; flex: 1 }
+.tour-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--edge-strong); opacity: .45; transition: opacity .2s ease, background .2s ease }
+.tour-dots i[data-on='true'] { background: var(--leaf); opacity: 1 }
+.tour-skip { font-size: 14px; font-weight: 600; color: var(--ink-soft); padding: 8px 6px; transition: color .16s ease }
+.tour-skip:hover { color: var(--ink) }
+.tour-next { min-height: 42px; padding: 0 20px; font-size: 14.5px }
