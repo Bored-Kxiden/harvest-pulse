@@ -94,6 +94,9 @@ export type DaySchedule = Record<string, Interval[]>
 export type HarborState = {
  version: 7; name: string
  mode: Mode; setupDone: boolean
+ /** Which sides of the phone have already been walked through once. The two modes
+     are different enough to be different apps, so each gets its own first run. */
+ toursSeen: Mode[]
  puzzles: PuzzleResult[]
  /** The code someone else types in to join you, and who has used it. */
  invite: { code: string; joined: string[] }
@@ -628,7 +631,7 @@ export function seedState(now = new Date(), mode: Mode = 'student'): HarborState
     over the field is this, not a weather they set for themselves. */
  const moods: Weather[] = ['cloudy', 'bright', 'clear']
  return {
-  version: 7, name: parent ? 'Asha' : 'Maya', mode, setupDone: false,
+  version: 7, name: parent ? 'Asha' : 'Maya', mode, setupDone: false, toursSeen: [],
   puzzles: [], invite: { code: makeInviteCode(), joined: [] },
   people,
   sharing: false, momConsent: false, sharingSetupDone: false, calendar: null,
@@ -700,6 +703,8 @@ export function parseState(raw: string): HarborState | null {
   if (!Array.isArray(s.read) || !s.read.every(d => typeof d === 'string')) return null
   const v = s.settings
   if (typeof v.cuesEnabled !== 'boolean' || typeof v.reducedMotion !== 'boolean' || !['chime', 'soft', 'silent'].includes(v.sound)) return null
+  /* Saved before the tour existed: carry it forward rather than throwing the demo away. */
+  if (!Array.isArray(s.toursSeen) || !s.toursSeen.every(m => m === 'parent' || m === 'student')) s.toursSeen = []
   /* Saved before the theme existed: carry it forward rather than throwing the demo away. */
   if (!['system', 'light', 'dark'].includes(v.theme)) v.theme = 'system'
   if (![v.walkingMinutes, v.dailyCap, v.cooldownMinutes].every(n => Number.isFinite(n) && n >= 1) || v.dailyCap > 10) return null
