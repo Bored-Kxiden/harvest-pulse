@@ -124,7 +124,42 @@ function Invite() {
     ? `${state.invite.joined.length} ${state.invite.joined.length === 1 ? 'person has' : 'people have'} joined with it.`
     : 'Nobody has used it yet.'}
   </p>
+  <JoinWithACode/>
  </section>
+}
+
+/** The other direction: somebody hands you a code instead. A real backend
+ *  would look this up and link two accounts together; a demo has only the
+ *  one household in this browser, so there is nothing behind any code to
+ *  actually connect to. Rather than fake a join that silently does nothing
+ *  to your list -- or worse, invent a stranger and add them to it -- this
+ *  says plainly what would happen in the real app and stops there. The
+ *  interaction is real; what it leads to is honestly labelled as a preview.
+ */
+function JoinWithACode() {
+ const [code, setCode] = useState('')
+ const [joined, setJoined] = useState(false)
+ const submit = () => {
+  const typed = code.trim()
+  if (!/^[A-Za-z]{2,4}-?\d{3,4}$/.test(typed)) {
+   toast.error('That does not look like a code -- three letters, a dash, four digits.')
+   return
+  }
+  setJoined(true)
+  toast.success('In the real app, you and whoever gave you that code would now be in each other’s list.')
+ }
+ return <div className="join-row">
+  <label className="label" htmlFor="join-code">Somebody gave you a code?</label>
+  <div className="join-row-fields">
+   <input className="input" id="join-code" maxLength={9} value={code} placeholder="TAC-7143"
+    autoComplete="off" spellCheck={false} disabled={joined}
+    onChange={e => setCode(e.target.value.toUpperCase())}
+    onKeyDown={e => { if (e.key === 'Enter') submit() }}/>
+   <button type="button" className="btn btn-soft" disabled={joined} onClick={submit}>
+    {joined ? <><Check aria-hidden="true"/>Joined</> : 'Join'}
+   </button>
+  </div>
+ </div>
 }
 
 /** A small square mark per puzzle, so the row is recognisable before it is read. */

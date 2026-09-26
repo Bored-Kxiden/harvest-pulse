@@ -1,11 +1,12 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Camera, ChevronRight, GraduationCap, House, ImageUp, LockKeyhole, Maximize, Minimize, Moon, Play, ShieldCheck, Sprout, Sun, SunMoon, Trash2, UserRoundPlus, Waves } from 'lucide-react'
+import { Camera, ChevronRight, GraduationCap, House, ImageUp, LockKeyhole, LogOut, Maximize, Minimize, Moon, Play, ShieldCheck, Sprout, Sun, SunMoon, Trash2, UserRoundPlus, Waves } from 'lucide-react'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { chime, makeId, useHarbor } from '@/lib/harbor/store'
 import { clearMedia, saveMedia } from '@/lib/harbor/media'
 import { activePacts, callsFor, initialsOf, localDay, rollSnapWindow, themes, type Mode, type Person, type Tone } from '@/lib/harbor/model'
+import { signOutAndReload } from './auth-gate'
 import { Avatar } from './avatar'
 import { Sprig } from './sprigs'
 
@@ -126,7 +127,12 @@ export function AccountScreen({ navigate }: { navigate: (page: string) => void }
       onChange={e => update(s => ({ ...s, name: e.target.value }))}
       onBlur={() => { if (!state.name.trim()) update(s => ({ ...s, name: 'Maya' })) }}/>
     </div>
-    <p className="note-strip"><LockKeyhole aria-hidden="true"/>No account, no tracking. This sample family lives only in your browser.</p>
+    {/* This said "no account" for as long as that was true. Signing in is
+        real now, in the only sense a demo can offer it -- kept in this
+        browser, checked again on the way back in -- so the claim worth
+        making is that neither the account nor the household it opens onto
+        goes anywhere else. */}
+    <p className="note-strip"><LockKeyhole aria-hidden="true"/>Your account and this sample family live only in your browser. Nothing here is sent anywhere.</p>
    </section>
 
    <section className="card card-pad flow" style={{ ['--i' as string]: 1 }}>
@@ -283,6 +289,9 @@ export function AccountScreen({ navigate }: { navigate: (page: string) => void }
     <ChevronRight className="caret" aria-hidden="true"/>
    </button>
    <button type="button" className="btn btn-soft btn-block" style={{ ['--i' as string]: 7 }} onClick={() => setResetOpen(true)}>Start the Demo Fresh</button>
+   <button type="button" className="btn btn-quiet btn-block" style={{ ['--i' as string]: 7 }} onClick={signOutAndReload}>
+    <LogOut aria-hidden="true"/>Sign Out
+   </button>
    <p className="fineprint" style={{ ['--i' as string]: 8 }}>Harbor · a little closer, every day.<br/>Local demo. No real calls, messages, or calendar access.</p>
   </div>
 

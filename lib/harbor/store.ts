@@ -2,6 +2,7 @@
 import useSWR from 'swr'
 import { toast } from 'sonner'
 import { addMoment, handOver, parseState, seedState, type HarborState, type Mode, type Moment } from './model'
+import { accountName } from './demo-auth'
 const KEY = 'harbor-demo-v7'
 let current: HarborState | undefined
 let warned = false
@@ -21,9 +22,11 @@ export function useHarbor() {
  const log = (moment: Moment) => update(s => addMoment(s, moment))
  const reset = () => { current = seedState(); persist(current); void mutate(current, false) }
  /** Finishing setup lays down the sample household that matches the side of the
-     phone you said you are on, so the first screen already reads as yours. */
- const start = (mode: Mode, name: string) => {
-  current = { ...seedState(new Date(), mode), name: name.trim() || (mode === 'parent' ? 'Asha' : 'Maya'), setupDone: true }
+     phone you said you are on, so the first screen already reads as yours. The
+     name is not asked here any more: it came from AuthGate when the account
+     was made, which is the only place it should have to be typed. */
+ const start = (mode: Mode) => {
+  current = { ...seedState(new Date(), mode), name: accountName() ?? (mode === 'parent' ? 'Asha' : 'Maya'), setupDone: true }
   persist(current); void mutate(current, false)
  }
  /** Crossing to the other side of the phone. The household is laid out again from
