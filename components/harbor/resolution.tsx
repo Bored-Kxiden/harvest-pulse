@@ -1,0 +1,18 @@
+'use client'
+import { useState } from 'react'
+import { CalendarClock, Check, Heart, Phone, Sprout } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Field, FieldLabel } from '@/components/ui/field'
+import { isFuture, type Moment } from '@/lib/harbor/model'
+import { makeId, useHarbor } from '@/lib/harbor/store'
+
+export function ResolutionChoices({person='mom',source='manual',onDone,cueId}:{person?:string;source?:Moment['source'];onDone?:()=>void;cueId?:string}) {
+ const {state,update,log}=useHarbor(); const [choice,setChoice]=useState<'call'|'later'|null>(null); const [time,setTime]=useState('');const [error,setError]=useState('');const [saved,setSaved]=useState<string|null>(null);const [feedback,setFeedback]=useState(false)
+ const finish=(kind:Moment['kind'],text:string)=>{if(saved)return;const id=makeId();log({id,at:new Date().toISOString(),person,kind,text,source,cueId,...(kind==='proposed_later'?{proposedTime:new Date(time).toISOString()}: {})});setSaved(id);onDone?.()}
+ if(saved) return <div className="soft-surface flow" role="status"><div className="flex items-center gap-2"><Sprout className="size-5"/><h3 className="font-serif text-xl">A little connection, planted.</h3></div><p className="small-copy">{state?.settings.minimum?'Your moment is saved in your garden. Enough looks different for everyone.':'Your moment is saved. Choose what “enough” means to you in Garden to start filling your jar.'}</p>{!feedback&&<div><p className="small-copy mb-2">Was this a good moment? (Optional)</p><div className="flex gap-2">{(['good','bad'] as const).map(value=><Button key={value} variant="outline" onClick={()=>{update(s=>({...s,moments:s.moments.map(m=>m.id===saved?{...m,feedback:value}:m)}));setFeedback(true)}}>{value==='good'?'Good time':'Not this time'}</Button>)}</div></div>}{feedback&&<p className="small-copy">Thanks. Your feedback is saved.</p>}</div>
+ return <div className="flow"><div className="grid grid-cols-3 gap-2">{[{id:'call',icon:Phone,label:'Call now'},{id:'react',icon:Heart,label:'Send love'},{id:'later',icon:CalendarClock,label:'Plan later'}].map(({id,icon:Icon,label})=><Button key={id} variant="outline" className="h-auto min-h-20 flex-col gap-2 !px-2" onClick={()=>id==='react'?finish('reacted','Sent a little love, just because.'):setChoice(id as 'call'|'later')}><Icon data-icon="inline-start"/>{label}</Button>)}</div>
+ {choice==='call'&&<div className="surface flow"><h3 className="font-serif text-xl">A little time to catch up.</h3><p className="small-copy">Demo call preview. No real call is placed. Only confirm below after trying your imagined conversation.</p><div className="flex gap-2"><Button onClick={()=>finish('called','A little time together on a demo call.')}><Check data-icon="inline-start"/>Mark call completed</Button><Button variant="ghost" onClick={()=>setChoice(null)}>Cancel</Button></div></div>}
+ {choice==='later'&&<form className="surface flow" onSubmit={e=>{e.preventDefault();if(!isFuture(time)){setError('Choose a time in the future.');return}finish('proposed_later','Made a little room to connect later.')}}><Field><FieldLabel htmlFor="later-time">A better time for you</FieldLabel><Input id="later-time" type="datetime-local" value={time} required onChange={e=>{setTime(e.target.value);setError('')}} aria-invalid={!!error}/></Field>{error&&<p className="text-sm text-destructive" role="alert">{error}</p>}<p className="small-copy">An in-app reminder, not a confirmed call. It appears when you next open Harbor after this time.</p><Button type="submit">Save a gentle reminder</Button></form>}
+ </div>
+}
