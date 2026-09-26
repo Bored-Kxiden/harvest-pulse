@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronRight, Cloud, CloudLightning, CloudRain, CloudSun, Flame, Image as ImageIcon, MessageCircleQuestion, Mic, Phone, Puzzle, Sprout, Sun, X } from 'lucide-react'
+import { ChevronRight, Cloud, CloudLightning, CloudRain, CloudSun, Flame, Image as ImageIcon, MessageCircleQuestion, Mic, Phone, Puzzle, Sprout, Sun, UserRoundPlus, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { makeId, useHarbor } from '@/lib/harbor/store'
 import {
@@ -12,6 +12,7 @@ import { Avatar } from './avatar'
 import { VoiceNote } from './voice'
 import { DayArc } from './day-arc'
 import { PlantSeed, SeedGrowing } from './seed'
+import { AddPersonDialog } from './add-person-dialog'
 
 /** Relative time in the reader's own language, rather than English glued together
     by hand. "yesterday" and "2 days ago" both come out of the same call. */
@@ -47,6 +48,7 @@ export function ParentHome({ navigate, onCall, onOpenStory, onQuestion }: {
  const [recording, setRecording] = useState<Person | null>(null)
  const [planting, setPlanting] = useState<Person | null>(null)
  const [check, setCheck] = useState<string | null>(null)
+ const [adding, setAdding] = useState(false)
  if (!state) return null
  const feed = sharedAlerts(state).slice(0, 3)
  const streak = connectStreak(state)
@@ -101,6 +103,13 @@ export function ParentHome({ navigate, onCall, onOpenStory, onQuestion }: {
       </button>
      </article>
     })}
+    {/* Same offer the student side got: the sample family is here so the app
+        already makes sense, but the moment it is clear these are not who you
+        actually meant, adding somebody real should not mean leaving Home. */}
+    <button type="button" className="add-person-row" onClick={() => setAdding(true)}>
+     <span className="add-person-row-icon" aria-hidden="true"><UserRoundPlus/></span>
+     Add someone to your home
+    </button>
    </section>
 
    <div style={{ ['--i' as string]: 2 }}><DayArc/></div>
@@ -169,6 +178,7 @@ export function ParentHome({ navigate, onCall, onOpenStory, onQuestion }: {
   {recording && <VoiceSheet person={recording} onClose={() => setRecording(null)}/>}
   {planting && <PlantSeed person={planting} onClose={() => setPlanting(null)}/>}
   {checking && <CheckSeed seedId={checking.id} onClose={() => setCheck(null)}/>}
+  <AddPersonDialog open={adding} onOpenChange={setAdding}/>
  </div>
 }
 

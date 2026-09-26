@@ -578,6 +578,21 @@ textarea.input { min-height: 92px; resize: none; line-height: 1.5 }
 }
 .call-now:hover { background: var(--float-hover) }
 .call-now:active { transform: scale(.96) }
+
+/* The tile at the end of the grid, matched in proportion to a person card so
+   the row stays even, but plainly a different kind of thing -- a dashed edge
+   and a wash instead of a tint, the way an empty state elsewhere in this app
+   (.scrap-note) already reads as "add to this" rather than "a real entry". */
+.person-add {
+ display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center;
+ min-height: 178px; padding: 13px; border-radius: 22px; border: 1.5px dashed var(--edge-strong); background: var(--wash);
+ transition: transform .2s cubic-bezier(.22,.9,.28,1), background .2s;
+}
+.person-add:active { transform: scale(.97); background: var(--float-hover) }
+.person-add-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--float); color: var(--leaf) }
+.person-add-icon svg { width: 19px; height: 19px; stroke-width: 1.9 }
+.person-add b { font-size: 14.5px; font-weight: 700; color: var(--ink-deep) }
+.person-add > span:not(.person-add-icon) { font-size: 12px; color: var(--ink-soft) }
 .call-now svg { width: 14px; height: 14px; stroke-width: 2 }
 .unread { position: absolute; top: -1px; right: -1px; width: 12px; height: 12px; border-radius: 50%; background: var(--blush); box-shadow: 0 0 0 2.5px var(--paper) }
 
@@ -1389,6 +1404,19 @@ html { touch-action: pan-x pan-y }
 .people-list { display: flex; flex-direction: column }
 .who-block { padding: 18px 0; border-top: 1.5px solid var(--hairline) }
 .who-block:first-child { border-top: 0; padding-top: 4px }
+/* Named .add-person-row rather than reusing .who-add, which already names a
+   small round "+" badge over on Share load -- a collision would have put
+   this whole row inside that badge's fixed 42px circle. */
+.add-person-row {
+ display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%;
+ padding: 18px 0; margin-top: 2px; border-top: 1.5px solid var(--hairline);
+ border-radius: 16px; color: var(--ink-soft);
+ font-family: var(--font-round), sans-serif; font-weight: 700; font-size: 15px;
+ transition: color .16s ease, background .16s ease;
+}
+.add-person-row:active { color: var(--leaf); background: var(--wash) }
+.add-person-row-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; border: 1.5px dashed var(--edge-strong); color: var(--leaf) }
+.add-person-row-icon svg { width: 16px; height: 16px; stroke-width: 2 }
 .who-head { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; padding: 2px 0; transition: transform .12s }
 .who-head:active { transform: scale(.99) }
 .who-name { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px }

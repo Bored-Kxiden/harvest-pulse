@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { CalendarDays, ChevronRight, Clock3, Images, Lock, MessageCircleQuestion, Phone, Puzzle, Sprout, Users, Waves } from 'lucide-react'
+import { CalendarDays, ChevronRight, Clock3, Images, Lock, MessageCircleQuestion, Phone, Puzzle, Sprout, UserRoundPlus, Users, Waves } from 'lucide-react'
 import { useHarbor } from '@/lib/harbor/store'
 import {
  blocksFor, callingStage, callsFor, dominantFlower, formatTime, freeWindows, latestPersonalNote, localDay,
@@ -11,6 +11,7 @@ import { FlowerGlyph } from './flowers'
 import { NotesRail } from './notes-rail'
 import { GrowthFlower } from './growth-flower'
 import { Sprig } from './sprigs'
+import { AddPersonDialog } from './add-person-dialog'
 
 const TINTS = ['gold', 'green', 'orange', 'sky'] as const
 const SPRIGS = ['tulip', 'leaf', 'cosmos', 'bell'] as const
@@ -31,6 +32,7 @@ export function Home({ navigate, onCall, onOpenCamera, onOpenStory, onWeatherSho
 }) {
  const { state } = useHarbor()
  const [tab, setTab] = useState<Tab>('people')
+ const [adding, setAdding] = useState(false)
  /* Which way the panel should arrive: tabs are a row, so the new view comes in
     from the side it lives on and the old one leaves the other way. */
  const [from, setFrom] = useState(0)
@@ -115,6 +117,15 @@ export function Home({ navigate, onCall, onOpenCamera, onOpenStory, onWeatherSho
        </button>
       </div>
      })}
+     {/* The sample family fills this grid by itself, so adding somebody has
+         never had a reason to live here before. It does now: the moment it
+         is clear the people already shown are not who you meant, this is
+         where that thought happens, not three taps away in Account. */}
+     <button type="button" className="person-add" onClick={() => setAdding(true)}>
+      <span className="person-add-icon" aria-hidden="true"><UserRoundPlus/></span>
+      <b>Add Someone</b>
+      <span>Give them their own patch</span>
+     </button>
     </div>}
 
     {tab === 'schedule' && <TodayAtAGlance navigate={navigate}/>}
@@ -167,6 +178,7 @@ export function Home({ navigate, onCall, onOpenCamera, onOpenStory, onWeatherSho
 
    <p className="fineprint" style={{ ['--i' as string]: 4 }}>An interactive demo · saved only on this device</p>
   </div>
+  <AddPersonDialog open={adding} onOpenChange={setAdding}/>
  </div>
 }
 

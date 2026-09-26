@@ -5,7 +5,8 @@ import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { chime, makeId, useHarbor } from '@/lib/harbor/store'
 import { clearMedia, saveMedia } from '@/lib/harbor/media'
-import { activePacts, callsFor, localDay, makePerson, rollSnapWindow, themes, type Mode, type Person } from '@/lib/harbor/model'
+import { activePacts, callsFor, localDay, rollSnapWindow, themes, type Mode, type Person } from '@/lib/harbor/model'
+import { AddPersonDialog } from './add-person-dialog'
 import { signOutAndReload } from './auth-gate'
 import { Avatar } from './avatar'
 import { Sprig } from './sprigs'
@@ -33,7 +34,6 @@ export function AccountScreen({ navigate }: { navigate: (page: string) => void }
  const [resetOpen, setResetOpen] = useState(false)
  const [switchTo, setSwitchTo] = useState<Mode | null>(null)
  const [adding, setAdding] = useState(false)
- const [newName, setNewName] = useState('')
  const [removing, setRemoving] = useState<Person | null>(null)
  const [pactFor, setPactFor] = useState<Person | null>(null)
  if (!state) return null
@@ -68,14 +68,6 @@ export function AccountScreen({ navigate }: { navigate: (page: string) => void }
   pacts: status ? [...s.pacts.filter(p => p.personId !== id), { personId: id, status, since: new Date().toISOString() }] : s.pacts.filter(p => p.personId !== id),
  }))
 
- const addPerson = () => {
-  const name = newName.trim()
-  if (!name) return
-  const id = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'friend'}-${makeId().slice(0, 4)}`
-  update(s => ({ ...s, people: [...s.people, makePerson(id, name, s.people.length)], messages: { ...s.messages, [id]: [] } }))
-  setNewName(''); setAdding(false)
-  toast.success(`${name} is in your list now.`)
- }
  const removePerson = (person: Person) => {
   update(s => ({
    ...s,
@@ -293,13 +285,7 @@ export function AccountScreen({ navigate }: { navigate: (page: string) => void }
    <p className="fineprint" style={{ ['--i' as string]: 8 }}>Harbor · a little closer, every day.<br/>Local demo. No real calls, messages, or calendar access.</p>
   </div>
 
-  <Dialog open={adding} onOpenChange={value => { setAdding(value); if (!value) setNewName('') }}><DialogContent>
-   <DialogHeader><DialogTitle>Who else belongs here?</DialogTitle><DialogDescription>They get their own patch of the meadow. Every call you have with them grows a flower in it.</DialogDescription></DialogHeader>
-   <div><label className="label" htmlFor="new-person">Their name</label>
-    <input className="input" id="new-person" maxLength={40} value={newName} placeholder="Nani…" autoComplete="off" spellCheck={false}
-     onChange={e => setNewName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addPerson() } }}/></div>
-   <button type="button" className="btn btn-block" disabled={!newName.trim()} onClick={addPerson}><UserRoundPlus aria-hidden="true"/>Give Them a Patch</button>
-  </DialogContent></Dialog>
+  <AddPersonDialog open={adding} onOpenChange={setAdding}/>
 
   <Dialog open={!!pactFor} onOpenChange={value => !value && setPactFor(null)}><DialogContent>
    <DialogHeader><DialogTitle>A snap window with {pactFor?.name}?</DialogTitle><DialogDescription>Once a day, at a random moment, you both get the same nudge to take one picture of whatever you happen to be doing. Nothing is scheduled and nothing is scored.</DialogDescription></DialogHeader>
