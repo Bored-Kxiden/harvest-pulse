@@ -1,7 +1,7 @@
 'use client'
 import useSWR from 'swr'
 import { toast } from 'sonner'
-import { addMoment, handOver, parseState, seedState, type HarborState, type Mode, type Moment } from './model'
+import { addMoment, handOver, makePerson, parseState, seedState, type HarborState, type Mode, type Moment } from './model'
 import { accountName } from './demo-auth'
 const KEY = 'harbor-demo-v7'
 let current: HarborState | undefined
@@ -24,9 +24,20 @@ export function useHarbor() {
  /** Finishing setup lays down the sample household that matches the side of the
      phone you said you are on, so the first screen already reads as yours. The
      name is not asked here any more: it came from AuthGate when the account
-     was made, which is the only place it should have to be typed. */
- const start = (mode: Mode) => {
-  current = { ...seedState(new Date(), mode), name: accountName() ?? (mode === 'parent' ? 'Asha' : 'Maya'), setupDone: true }
+     was made, which is the only place it should have to be typed.
+     `firstPerson`, when given, is added alongside the sample family rather
+     than instead of it -- the sample family is what makes the very first
+     screen legible (it already has history to look at); the person just
+     added is real and starts with none, exactly as anybody added later from
+     Account does. */
+ const start = (mode: Mode, firstPerson?: string) => {
+  let seeded: HarborState = { ...seedState(new Date(), mode), name: accountName() ?? (mode === 'parent' ? 'Asha' : 'Maya'), setupDone: true }
+  const name = firstPerson?.trim()
+  if (name) {
+   const id = makeId()
+   seeded = { ...seeded, people: [...seeded.people, makePerson(id, name, seeded.people.length)], messages: { ...seeded.messages, [id]: [] } }
+  }
+  current = seeded
   persist(current); void mutate(current, false)
  }
  /** Crossing to the other side of the phone. The household is laid out again from

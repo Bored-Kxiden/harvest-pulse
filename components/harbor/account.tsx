@@ -5,12 +5,10 @@ import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { chime, makeId, useHarbor } from '@/lib/harbor/store'
 import { clearMedia, saveMedia } from '@/lib/harbor/media'
-import { activePacts, callsFor, initialsOf, localDay, rollSnapWindow, themes, type Mode, type Person, type Tone } from '@/lib/harbor/model'
+import { activePacts, callsFor, localDay, makePerson, rollSnapWindow, themes, type Mode, type Person } from '@/lib/harbor/model'
 import { signOutAndReload } from './auth-gate'
 import { Avatar } from './avatar'
 import { Sprig } from './sprigs'
-
-const tones: Tone[] = ['green', 'gold', 'orange', 'sky']
 
 /** Whether the whole document element is any browser's idea of fullscreen right now.
     Safari on the desktop still answers only to its own -webkit- prefixed reading. */
@@ -74,7 +72,7 @@ export function AccountScreen({ navigate }: { navigate: (page: string) => void }
   const name = newName.trim()
   if (!name) return
   const id = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'friend'}-${makeId().slice(0, 4)}`
-  update(s => ({ ...s, people: [...s.people, { id, name, initials: initialsOf(name), tone: tones[s.people.length % tones.length] }], messages: { ...s.messages, [id]: [] } }))
+  update(s => ({ ...s, people: [...s.people, makePerson(id, name, s.people.length)], messages: { ...s.messages, [id]: [] } }))
   setNewName(''); setAdding(false)
   toast.success(`${name} is in your list now.`)
  }

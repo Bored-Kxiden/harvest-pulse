@@ -230,6 +230,19 @@ export function isFuture(value: string, now = new Date()) { const t = new Date(v
 export function personOf(state: HarborState, id: string) { return state.people.find(p => p.id === id) }
 export function initialsOf(name: string) { return name.trim().split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('') || '·' }
 
+/** The colours a newly added person cycles through, so two people you add in
+    a row do not both land on green. One list, so Account and the first-run
+    step that also adds a person cannot drift into cycling differently. */
+export const personTones: Tone[] = ['green', 'gold', 'orange', 'sky']
+/** Everything a freshly added person needs to be a real entry in the list --
+    the id is passed in rather than made here, since making one is a device
+    concern (crypto.randomUUID) that this file, which has no 'use client' and
+    is imported during static generation too, should not have to reach for. */
+export function makePerson(id: string, name: string, existingCount: number): Person {
+ const trimmed = name.trim()
+ return { id, name: trimmed, initials: initialsOf(trimmed), tone: personTones[existingCount % personTones.length] }
+}
+
 /* ---------- notes, by who can read them ----------
    Personal notes are between two people and nobody else. Shared notes go to everyone
    you have added. Keeping the two apart is the whole point, so they are never mixed
